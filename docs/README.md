@@ -9,7 +9,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 3. **확정** — 리뷰가 끝난 문서는 상태를 `확정`으로 바꾼다. 확정 후 변경은 문서 하단 변경 이력에 남긴다.
 4. **개발 문서 작성** — 기능명세가 확정되면 `dev/` 문서(아키텍처, 데이터 모델, 보안, AI 작업 처리, 단계별 작업 계획)를 작성한다. 원본 기획 7~8절(Firebase 구성, 컬렉션 구조, AI 작업 흐름, 디자인 토큰)과 [open-questions.md](./planning/open-questions.md) 3절의 메모가 출발점이다.
 
-> 현재: 모든 문서 **초안**. 리뷰 시작 전.
+> 현재: 모든 문서 **초안**. open-questions 1차 결정 반영(2026-10-19) — 다음은 각 문서 끝 리뷰 질문.
 
 ## 원본 기획
 - [brief/toonflow-brief.md](./brief/toonflow-brief.md) — 사용자가 준 원본(브랜딩·UI·Firebase MVP 설계). **수정하지 않는다.** 아래 문서들이 원본을 기능 단위로 나누고 보강한 것이며, 원본과 다르게 정한 내용은 open-questions "2. 결정됨"에 기록한다.
@@ -44,7 +44,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 
 ### 추천 리뷰 순서
 1. `planning/overview.md`, `planning/roadmap.md` — 무엇을 먼저 만드는지(첫 수직 기능)가 정해져야 나머지 범위가 흔들리지 않는다.
-2. `planning/open-questions.md` — 범위를 크게 바꾸는 결정(작품·에피소드 구조, AI 비용 부담 방식, 제보자 동의, AI 생성물 표시)을 먼저 정한다.
+2. `planning/open-questions.md` — 범위를 크게 바꾸는 결정. 1차 결정 완료, 새 미결이 생기면 여기에 추가.
 3. `features/story.md` → `storyboard.md` → `illustrate.md` → `review.md` → `publish.md` — 제작 흐름(핵심).
 4. `features/characters.md`, `styles.md`, `ai-usage.md` — 그림 품질·비용을 좌우.
 5. `features/inbox.md`, `episodes.md`, `studio.md`, `assets.md` — 제작 전후 관리.

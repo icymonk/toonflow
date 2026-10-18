@@ -12,5 +12,8 @@ AI 인스타툰 제작 SaaS **TOONFLOW**. 현재 **기획 단계** (코드 없�
 - 새 미결 사항은 `docs/planning/open-questions.md`의 "1. 미결"에 추가하고, 결정되면 "2. 결정됨"으로 옮긴다.
 - 제품 안 용어(메뉴명, 제작 단계명, 상태명)는 `docs/planning/glossary.md`가 원본. 화면 문구·문서 모두 이 표를 따른다.
 
+## Dev decisions
+- Nuxt 5 nightly SPA + shadcn-vue + Tailwind + Firebase, pnpm (open-questions #1, memorize·boardlab과 같은 구성). 상세는 개발 문서 단계에서 `docs/dev/`.
+
 ## Branches
 - `main`(운영) ← `develop`(기본) ← 기능 브랜치. 기능 PR은 `develop`으로.
