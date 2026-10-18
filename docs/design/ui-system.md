@@ -1,6 +1,6 @@
 # UI 디자인 시스템
 
-> 상태: 초안 · v0.1 · 2026-10-19 — 원본 기획 3·4·6·8절 기준.
+> 상태: 초안 · v0.2 · 2026-10-19 — 원본 기획 3·4·6·8절 기준.
 
 ## 1. 원칙
 - 창작 도구답게 에너지가 있되, **매일 오래 써도 피곤하지 않게.**
@@ -36,17 +36,16 @@
 | **Ink Navy 글자 / Flow Coral** | **5.7:1** | 통과 |
 | 흰 글자 / Coral Strong | 3.4:1 | 큰 글자만 |
 | Flow Coral 글자 / Warm Canvas | 2.5:1 | 미달 — 코랄을 글자색으로 쓰지 않는다 |
-| 흰 글자 / `#C8452F` (제안: Coral Deep) | 4.8:1 | 통과 |
 | Soft Border / Warm Canvas | 1.2:1 | 장식선만. 입력 칸 테두리는 포커스 때 진하게 |
 
-→ 주 버튼은 **코랄 배경 + Ink Navy 글자**(추천) 또는 Coral Deep 배경 + 흰 글자 중 하나로 정한다 (open-questions #16). 링크 글자는 Ink Navy + 밑줄.
+→ 주 버튼은 **코랄 배경 + Ink Navy 글자** (open-questions #16 결정). 코랄 위에 흰 글자를 쓰지 않는다. 링크 글자는 Ink Navy + 밑줄.
 
 ### 2-3. 토큰 (원본 8절)
 | 토큰 | 값 | 용도 |
 | --- | --- | --- |
 | `brand-primary` | Flow Coral | 주요 CTA, 현재 선택, 활성 탭 |
 | `brand-strong` | Coral Strong | 강조 버튼 hover |
-| `brand-on` | Ink Navy (또는 #16 B안이면 흰색) | 코랄 위 글자 |
+| `brand-on` | Ink Navy | 코랄 위 글자 |
 | `surface-canvas` | Warm Canvas | 앱 배경 |
 | `surface-panel` | Panel | 카드, 사이드 패널, 모달 |
 | `surface-muted` | Panel Muted | 보조 영역 |
@@ -114,8 +113,8 @@
 - 이미지 후보 비교는 **원본(이전 선택)과 나란히** (원본 4절).
 
 ## 8. 리뷰 질문
-- 주 버튼 글자색: 코랄 + Ink Navy 글자 vs 진한 코랄 + 흰 글자 (open-questions #16). 원하면 두 안을 나란히 그린 시안 이미지를 만들어 보여드릴 수 있다.
 - 사이드바를 Ink Navy(어두운) 배경으로 할지, Warm Canvas(밝은) 배경으로 할지?
 
 ## 9. 변경 이력
 - v0.1: 원본 3·4·6·8절 정리. 대비 점검, `brand-on`·`status-neutral`·`focus-ring` 토큰, 타입 크기, 앱 셸·제작실 레이아웃, 반응형 폭 추가
+- v0.2: open-questions 결정 반영 (#16 코랄 위 글자 Ink Navy)
