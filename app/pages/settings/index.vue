@@ -64,6 +64,8 @@ function saveWorkspace() {
       </CardContent>
     </Card>
 
+    <AppUsageCard />
+
     <Card>
       <CardHeader>
         <CardTitle>{{ t.workspace }}</CardTitle>
