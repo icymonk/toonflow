@@ -9,7 +9,7 @@ interface SeriesPub { hashtags: string, greeting: string, watermark: string }
 const props = defineProps<{
   pageCount: number, currentPage: number, aspect: string, format: 'jpg' | 'png', aiLabel: boolean, progress: string | null, edit: boolean
   caption: string, captionText: string, hashtags: string[], series: SeriesPub, published: { at: string, url: string } | null, captionCost: number, captioning: boolean
-  credit: string, creditPlace: 'caption' | 'page', withdrawn: number
+  credit: string, creditPlace: 'caption' | 'page', withdrawn: number, hiRes: boolean, plannedAt: string
 }>()
 const emit = defineEmits<{ settings: [patch: Record<string, unknown>], all: [], one: [], makeCaption: [], captionText: [text: string], series: [patch: Partial<SeriesPub>], publish: [url: string], unpublish: [] }>()
 const t = ko.studio.publish
@@ -40,6 +40,7 @@ async function copy() {
         <option value="png">PNG</option>
       </select>
     </label>
+    <label class="flex items-center gap-2 text-xs"><input type="checkbox" :checked="hiRes" :disabled="!edit" @change="emit('settings', { hiRes: !hiRes })">{{ t.hiRes }}</label>
     <div v-if="withdrawn" class="rounded-md bg-red-100 px-2 py-1.5 text-xs text-red-900" role="alert">{{ t.withdrawnAlert(withdrawn) }}</div>
     <div v-if="pageCount > POST_LIMIT" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900" role="alert">{{ t.overLimit(pageCount, POST_LIMIT) }}</div>
     <Button :disabled="!!progress || !pageCount" @click="emit('all')"><Download class="size-4" /> {{ t.all(pageCount) }}</Button>
@@ -87,6 +88,8 @@ async function copy() {
         <Button size="sm" variant="ghost" class="self-start" :disabled="!edit" @click="emit('unpublish')">{{ t.unpublish }}</Button>
       </template>
       <form v-else class="flex flex-col gap-1.5" @submit.prevent="emit('publish', url.trim())">
+        <label class="flex items-center gap-2 text-xs">{{ t.plannedAt }}<input type="date" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :value="plannedAt" :disabled="!edit" @change="emit('settings', { plannedAt: val($event) || null })"></label>
+        <p class="text-muted-foreground text-xs">{{ t.plannedNote }}</p>
         <Input v-model="url" type="url" class="h-8 text-xs" :placeholder="t.urlPh" :disabled="!edit" />
         <Button size="sm" type="submit" :disabled="!edit">{{ t.markPublished }}</Button>
       </form>

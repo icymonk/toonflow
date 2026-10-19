@@ -22,6 +22,14 @@ describe('todayTasks', () => {
       { id: 'b', step: 'review', status: 'done' },
       { id: 'c', step: 'illustrate', status: 'active', archivedAt: ts('2026-10-01') },
     ], [{ status: 'new' }, { status: 'accepted' }], 2)
-    expect(t).toEqual({ newSubs: 1, review: ['a'], illustrate: [], failedJobs: 2 })
+    expect(t).toEqual({ newSubs: 1, review: ['a'], illustrate: [], failedJobs: 2, planned: [] })
+  })
+  it('lists planned dates of unpublished episodes, earliest first (PUB-23)', () => {
+    const t = todayTasks([
+      { id: 'a', step: 'export', status: 'done', settings: { plannedAt: '2026-11-03' } },
+      { id: 'b', step: 'export', status: 'done', settings: { plannedAt: '2026-11-01' } },
+      { id: 'c', step: 'export', status: 'published', published: { at: ts('2026-10-01') }, settings: { plannedAt: '2026-10-01' } },
+    ], [], 0)
+    expect(t.planned).toEqual([{ id: 'b', date: '2026-11-01' }, { id: 'a', date: '2026-11-03' }])
   })
 })

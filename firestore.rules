@@ -232,7 +232,7 @@ service cloud.firestore {
         match /panels/{panelId} {
           allow read: if canView(ws);
           allow create, update: if canEdit(ws)
-            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'bubbles', 'refImage', 'styleId', 'staleFrom', 'deletedAt', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'adjust', 'bubbles', 'refImage', 'styleId', 'staleFrom', 'deletedAt', 'updatedAt'])
             && request.resource.data.pageId is string
             && strLen(request.resource.data.scene, 0, 2000)
             && strLen(request.resource.data.note, 0, 2000);

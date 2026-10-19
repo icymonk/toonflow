@@ -1,3 +1,4 @@
+import type { Adjust } from '#shared/studio'
 import type { Candidate, CandidateInput } from '#shared/illustrate'
 import type { JobError, JobStatus } from '#shared/jobs'
 import type { Crop, Cut } from '#shared/studio'
@@ -113,6 +114,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   /** ILL-11: 이전 선택은 후보로 남는다 */
   const choose = (id: string, candidateId: string) => s.updatePanel(id, { selectedCandidateId: candidateId, staleFrom: null, crop: null })
   const setCrop = (id: string, crop: Crop | null) => s.updatePanel(id, { crop })
+  const setAdjust = (id: string, adjust: Adjust | null) => s.updatePanel(id, { adjust })
 
-  return { setFlag, edit, uploadCandidate, importCandidate, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
+  return { setFlag, edit, uploadCandidate, importCandidate, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop, setAdjust }
 }

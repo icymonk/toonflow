@@ -22,7 +22,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
     for (const [k, i] of idx.entries()) {
       progress.value = ko.studio.publish.progress(k + 1, idx.length)
       const label = i === pages.value.length - 1 ? lastLabel.value : null
-      const blob = await drawPage(layoutPage(pages.value[i]!, w, h, review.typeset.value), w, h, review.typeset.value, imgs, label, s.series.value?.watermark?.trim() || null, fmt.value === 'png' ? 'image/png' : 'image/jpeg')
+      const blob = await drawPage(layoutPage(pages.value[i]!, w, h, review.typeset.value), w, h, review.typeset.value, imgs, label, s.series.value?.watermark?.trim() || null, fmt.value === 'png' ? 'image/png' : 'image/jpeg', ep.settings.hiRes ? 2 : 1)
       out.push({ name: exportName(s.seriesName.value || ep.title, ep.number, i + 1, fmt.value), blob })
     }
     return out
