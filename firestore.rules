@@ -70,6 +70,10 @@ service cloud.firestore {
     match /waitlist/{id} {
       allow read: if isAdmin();
     }
+    // ACC-20 초대 링크: id는 토큰의 해시, 서버만 쓴다. 관리자 이상은 자기 워크스페이스 것을 본다(목록·취소)
+    match /invites/{id} {
+      allow read: if canManage(resource.data.workspaceId);
+    }
 
     // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
     // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
@@ -99,6 +103,10 @@ service cloud.firestore {
 
       match /members/{uid} {
         allow read: if canView(ws);
+        // ACC-22 마지막 활동: 본인이 lastActiveAt만
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt'])
+          && request.resource.data.lastActiveAt == request.time;
       }
       // INB-03·05: 제보 링크 주소·금칙어
       match /config/{id} {

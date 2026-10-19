@@ -37,7 +37,7 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
   const jobId = await db.runTransaction(async (tx) => {
     const dup = await tx.get(jobs.where('idempotencyKey', '==', data.idempotencyKey).limit(1))
     if (!dup.empty) return dup.docs[0]!.id
-    if (!(await reserve(tx, data.workspaceId, estimate))) throw new HttpsError('resource-exhausted', ERROR_KEYS.limitExceeded)
+    if (!(await reserve(tx, data.workspaceId, estimate, uid))) throw new HttpsError('resource-exhausted', ERROR_KEYS.limitExceeded)
     const ref = jobs.doc()
     tx.set(ref, {
       type: data.type,
@@ -86,7 +86,7 @@ export const retryAiJob = authedCallable(jobRefInput, async ({ uid, data }) => {
     if (!job.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
     if (job.get('status') !== 'failed') return null
     const estimate = (job.get('estimateKrw') as number | undefined) ?? 0
-    if (!(await reserve(tx, data.workspaceId, estimate))) throw new HttpsError('resource-exhausted', ERROR_KEYS.limitExceeded)
+    if (!(await reserve(tx, data.workspaceId, estimate, uid))) throw new HttpsError('resource-exhausted', ERROR_KEYS.limitExceeded)
     const n = ((job.get('retries') as number | undefined) ?? 0) + 1
     tx.update(ref, { status: 'queued', attempts: 0, retries: n, month: monthKey(), error: FieldValue.delete(), finishedAt: FieldValue.delete() })
     return n

@@ -75,7 +75,7 @@ async function finish(ref: DocumentReference, wsId: string, models: ModelsConfig
     if (job.get('status') !== 'running') return
     const charged = (job.get('costKrw') as number | undefined) ?? 0
     const total = Math.max(charged, actualKrw(models, job.get('model'), usage))
-    settle(tx, wsId, job.get('month'), job.get('estimateKrw') ?? 0, total - charged, job.get('target')?.episodeId)
+    settle(tx, wsId, job.get('month'), job.get('estimateKrw') ?? 0, total - charged, job.get('target')?.episodeId, job.get('requestedBy'))
     tx.update(ref, { status, costKrw: total, error: error ?? FieldValue.delete(), finishedAt: FieldValue.serverTimestamp() })
   })
 }

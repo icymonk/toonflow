@@ -11,7 +11,7 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
 } from 'firebase/auth'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { defineStore } from 'pinia'
 import { ERROR_KEYS } from '#shared/callables'
 import { withDefaults } from '#shared/workspace'
@@ -98,6 +98,8 @@ export const useAuthStore = defineStore('auth', () => {
     const data = ws.data() ?? {}
     workspace.value = { id: wsId, name: data.name, ownerId: data.ownerId, defaults: withDefaults(data.defaults), deleteAt: millis(data.deleteAt) }
     role.value = (member.get('role') as Role | undefined) ?? null
+    // ACC-22 마지막 활동 (실패해도 넘어간다)
+    if (member.exists()) updateDoc(member.ref, { lastActiveAt: serverTimestamp() }).catch(() => {})
   }
 
   /** 로그인한 사람의 프로필·워크스페이스를 읽는다. 없으면 만든다 */

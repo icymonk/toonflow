@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.7 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.8 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -72,6 +72,7 @@
 | `intake/{slug}` | 공개 제보 링크 → `workspaceId`, `enabled`, `name`(작가 이름), `intro`, `topics`, `questions[]`(5개까지), `images`(첨부 받기, 기본 끔). `slug`는 무작위 12자. 하위 `rate/{ip해시}`(`times[]`, 서버만)로 10분 3번 제한 (INB-02~06) |
 | `workspaces/{ws}/config/intake` | `slug`, `bannedWords[]`(100개까지). 멤버 읽기, 소유자·관리자 쓰기 (INB-03·05) |
 | `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 `email`·`nickname`. 제보 문서에는 `notify`(이메일 남김)·`attachments[]`(Storage `workspaces/{ws}/intake/{id}/`, 서버만 씀)·`consent`(`text`·`at`)·`createdBy: 'intake'`만. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
+| `invites/{sha256(token)}` | 초대 링크: 워크스페이스, 역할, 만료, 만든 사람, 참여 수 (ACC-20, 서버만 쓰고 관리자 이상이 봄) |
 | `waitlist/{sha256(email)}` | 대기 명단: 이메일, 이름, 인스타그램 계정, 메모, 상태(대기·승인·거절), 처리 시각·운영자 (CMN-41·52, 서버만 쓰고 운영자만 읽음) |
 | `workspaces/{ws}/bubbleTemplates/{id}` | 말풍선 템플릿: 이름, 모양·꼬리·글자 크기·굵게·크기 (REV-07, 편집자가 만들고 지움) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
@@ -117,3 +118,4 @@
 - v2.5: 3-G — 에피소드 `aiCheck: { mode: 'quality'|'consistency', items: [{ panelId, issue }], count, jobId, at }`(서버만, 마지막 결과 하나). AI 작업 `panel.check`: 글 모델에 컷마다 고른 그림(후보 문서 `imagePath`)을 같이 넘김, 12컷까지. `workspaces/{ws}/bubbleTemplates/{id}` `{ name, shape, tail, fontSize, bold, w, h, createdBy, createdAt }`(고치기 없음)
 - v2.6: 4-A — `waitlist/{sha256(email) 앞 32자}` `{ email, name, handle, note, status: 'pending'|'approved'|'rejected', createdAt, decidedAt?, decidedBy? }`. 공개 callable `joinWaitlist`(같은 곳에서 10분 3회 `waitlistRate/r_{sha}`, 숨은 칸이 채워지면 조용히 버림, 같은 이메일은 한 건), `decideWaitlist`(admin 클레임, 승인 시 `config/access.allowedEmails`에 arrayUnion)
 - v2.7: 4-B — `users/{uid}.workspaceIds[]`(속한 워크스페이스, 4-B 전 계정은 `workspaceId` 하나로 대신), `workspaceId`는 마지막으로 연 워크스페이스. 워크스페이스 `deleteAt`(삭제 예약, 7일 뒤)·`deletedBy`, 멤버 문서 `email`·`displayName`(만들 때 토큰에서). 계정 삭제는 `users/{uid}.deletedAt`·`purgeAt`(30일 뒤) + Auth 계정 사용 중지. callable `createWorkspace`(소유 10개까지)·`switchWorkspace`·`deleteWorkspace`(소유자, 마지막 남은 것은 거절)·`restoreWorkspace`·`transferOwnership`(관리자에게만)·`deleteAccount`(소유한 워크스페이스가 남아 있으면 거절). 매일 04:30 `purgeDeleted`가 유예가 끝난 워크스페이스(Firestore·Storage)와 계정을 지운다
+- v2.8: 4-C — `invites/{sha256(token)}` `{ workspaceId, role: 'admin'|'editor'|'viewer', expiresAt, createdBy, usedCount, createdAt }`(토큰은 만들 때 한 번만 보여 줌). 멤버 문서 `lastActiveAt`(본인만, `request.time`), `monthlyLimitKrw`(멤버 한도, null이면 없음), `invitedBy`. `usage/{yyyymm}.byMember.{uid}`(실제 비용, 작업 `requestedBy` 기준). callable `createInvite`·`revokeInvite`·`inviteInfo`·`acceptInvite`(허용 목록과 관계없이 멤버 + users 문서)·`setMemberRole`·`removeMember`·`leaveWorkspace`(소유자 거절)·`setMemberLimit`. 소유자는 소유자 밖 역할을, 관리자는 편집자·보기 전용만 주고 바꾼다

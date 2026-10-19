@@ -7,6 +7,7 @@ import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { DecideWaitlistInput, JoinWaitlistInput } from './waitlist'
 import type { CreateWorkspaceInput, DeleteAccountInput, TransferOwnershipInput, WorkspaceRefInput } from './workspaces'
+import type { CreateInviteInput, InviteInfo, InviteTokenInput, MemberRefInput, RevokeInviteInput, SetMemberLimitInput, SetMemberRoleInput } from './members'
 import type { SetWorkspaceLimitInput } from './usage'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
@@ -29,6 +30,7 @@ export const ERROR_KEYS = {
   ownsWorkspace: 'error.ownsWorkspace',
   tooManyWorkspaces: 'error.tooManyWorkspaces',
   notAdminTarget: 'error.notAdminTarget',
+  ownerCannotLeave: 'error.ownerCannotLeave',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -60,5 +62,13 @@ export interface Callables {
   restoreWorkspace: { input: WorkspaceRefInput, output: { ok: true } }
   transferOwnership: { input: TransferOwnershipInput, output: { ok: true } }
   deleteAccount: { input: DeleteAccountInput, output: { ok: true } }
+  createInvite: { input: CreateInviteInput, output: { token: string, expiresAt: number } }
+  revokeInvite: { input: RevokeInviteInput, output: { ok: true } }
+  inviteInfo: { input: InviteTokenInput, output: InviteInfo }
+  acceptInvite: { input: InviteTokenInput, output: { workspaceId: string } }
+  setMemberRole: { input: SetMemberRoleInput, output: { ok: true } }
+  removeMember: { input: MemberRefInput, output: { ok: true } }
+  leaveWorkspace: { input: WorkspaceRefInput, output: { ok: true } }
+  setMemberLimit: { input: SetMemberLimitInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }
