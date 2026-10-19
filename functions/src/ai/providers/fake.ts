@@ -14,6 +14,7 @@ export const fakeText: TextModel = {
       caption: { caption: '가짜 캡션 본문', hashtags: ['#인스타툰', '#공감툰'] },
       rewrite: { text: '가짜 다시 쓰기' },
       summary: { summary: ['첫째 줄', '둘째 줄', '셋째 줄'], genre: 'comedy', score: 72, reason: '반전이 뚜렷해요' },
+      check: { items: [{ index: 1, issue: '가짜 점검: 손 모양이 어색해 보여요' }] },
     }
     return { text: JSON.stringify(format ? canned[format] : { echo: prompt.slice(0, 200) }), usage: { inTokens: prompt.length, outTokens: 50 }, requestId: `fake-${Date.now()}` }
   },

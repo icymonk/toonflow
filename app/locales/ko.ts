@@ -163,6 +163,7 @@ export const ko = {
     stages: { story: '각색', storyboard: '콘티', illustrate: '작화', review: '검수', export: '출력', done: '완료', published: '발행됨' },
   },
   assetsPage: {
+    templates: (n: number) => `말풍선 템플릿 ${n}개 (검수 단계에서 만들고 써요)`,
     generated: '생성 이미지',
     refs: '참고 자료',
     allEpisodes: '모든 에피소드',
@@ -426,6 +427,24 @@ export const ko = {
       stroke: '효과음 테두리',
       checks: '자동 점검',
       noIssues: '문제 없음',
+      ai: {
+        title: 'AI 점검 (선택)',
+        hint: '고른 그림을 AI가 살펴봐요. 누를 때마다 비용이 들고, 한 번에 앞에서부터 12컷까지 봐요.',
+        modes: { quality: '그림 품질 점검', consistency: '캐릭터 일관성 점검' } as Record<'quality' | 'consistency', string>,
+        run: (label: string, n: number, krw: number) => `${label} (${n}컷) · 약 ₩${krw.toLocaleString()}`,
+        running: 'AI가 살펴보는 중이에요…',
+        started: 'AI 점검을 시작했어요',
+        none: '점검할 그림이 없어요',
+        result: (label: string, n: number) => `${label} 결과 · ${n}컷 살펴봄`,
+        item: (n: number, issue: string) => `${n}컷: ${issue}`,
+      },
+      tpl: {
+        apply: '템플릿 적용',
+        none: '저장한 템플릿 없음',
+        save: '템플릿으로 저장',
+        namePrompt: '템플릿 이름 (20자까지)',
+        saved: '템플릿으로 저장했어요',
+      },
       issues: {
         noImage: (n: number) => `${n}컷: 그림이 없어요`,
         outside: (n: number) => `${n}컷: 말풍선이 컷 밖으로 나갔어요`,
@@ -664,7 +683,7 @@ export const ko = {
     usageWarn: '이번 달 AI 사용량이 한도의 80%를 넘었어요',
     usageOver: '이번 달 AI 사용 한도에 도달했어요. 새 AI 작업이 막혀요',
     prefs: { title: '알림 설정', done: 'AI 생성 완료', failed: 'AI 생성 실패', usage: '사용량 경고(80%·100%)' },
-    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약' } as Record<string, string>,
+    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약', 'panel.check': 'AI 점검' } as Record<string, string>,
   },
   publishList: {
     allSeries: '모든 작품',

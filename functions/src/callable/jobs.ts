@@ -10,6 +10,7 @@ import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
 import { loadModels } from '../lib/models'
 import { reserve, settle } from '../lib/usage'
+import { checkInputChars } from '../../../shared/aicheck'
 import { imageCount } from '../../../shared/library'
 
 const jobRef = (wsId: string, jobId: string) => getFirestore().doc(`workspaces/${wsId}/aiJobs/${jobId}`)
@@ -29,7 +30,7 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
   const kind = JOB_KIND[data.type]
   const model = data.model ?? models.defaults[kind]
   if (!models.models.some(m => m.id === model && m.enabled && m.kind === kind)) throw new HttpsError('failed-precondition', ERROR_KEYS.modelUnavailable)
-  const inputChars = JSON.stringify(data.params).length
+  const inputChars = JSON.stringify(data.params).length + (data.type === 'panel.check' ? checkInputChars(data.params) : 0)
   const estimate = estimateKrw(models, model, data.type, { inputChars, images: imageCount(data.params), drafts: Number(data.params.n ?? 1) })
   const jobs = db.collection(`workspaces/${data.workspaceId}/aiJobs`)
 

@@ -5,6 +5,7 @@ import { analysisSchema, captionSchema, summarySchema, draftSchema, parseJson, s
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
 import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
+import { aiCheckParams, aiCheckSchema, mapCheckItems } from '../../../shared/aicheck'
 import { AiError } from './errors'
 
 interface JobDoc { type: JobType, target?: { episodeId?: string, panelId?: string, styleId?: string, submissionId?: string }, params?: Record<string, unknown> }
@@ -43,6 +44,13 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
   if (job.type === 'submission.summary' && job.target?.submissionId) {
     const s = parse(summarySchema, result)
     await db.doc(`workspaces/${wsId}/submissions/${job.target.submissionId}`).update({ aiSummary: { ...s, jobId } })
+    return
+  }
+  // ILL-43·REV-13: 에피소드 문서에 마지막 점검 결과 하나. 앱은 aiCheck를 쓸 수 없다 (rules)
+  if (job.type === 'panel.check' && job.target?.episodeId) {
+    const p = aiCheckParams.parse(job.params)
+    const r = parse(aiCheckSchema, result)
+    await db.doc(`workspaces/${wsId}/episodes/${job.target.episodeId}`).update({ aiCheck: { mode: p.mode, items: mapCheckItems(p.panelIds, r.items), count: p.panelIds.length, jobId, at: FieldValue.serverTimestamp() } })
     return
   }
   const episodeId = job.target?.episodeId
