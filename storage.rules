@@ -1,0 +1,10 @@
+rules_version = '2';
+
+// 경로별 규칙은 docs/dev/security.md 3절. 기능을 만들 때 그 경로를 연다. 정의하지 않은 경로는 모두 막는다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}
