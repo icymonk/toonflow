@@ -3,18 +3,21 @@ import type { Firestore } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import type { CandidateRef } from './candidates'
 import { getBlob, ref as storageRef } from 'firebase/storage'
-import { fontCss, spikyPath } from '#shared/render'
+import { adjustFilter, fontCss, spikyPath } from '#shared/render'
 import { resolveCandidatePath } from './candidates'
 
 const INK = '#1F2A44'
 
 // PUB-03: 장 렌더러와 같은 배치(layoutPage)를 Canvas에 그려 JPG/PNG로
-export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null, type: 'image/jpeg' | 'image/png'): Promise<Blob> {
+/** PUB-07 scale 2 = 고화질 원본 */
+export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null, type: 'image/jpeg' | 'image/png', scale = 1): Promise<Blob> {
   await loadFonts(ts)
   const cv = document.createElement('canvas')
-  cv.width = W
-  cv.height = H
-  paintPage(cv.getContext('2d')!, laid, W, H, ts, imgs, label, watermark)
+  cv.width = W * scale
+  cv.height = H * scale
+  const ctx = cv.getContext('2d')!
+  ctx.scale(scale, scale)
+  paintPage(ctx, laid, W, H, ts, imgs, label, watermark)
   return new Promise((res, rej) => cv.toBlob(b => (b ? res(b) : rej(new Error('toBlob failed'))), type, 0.92))
 }
 
@@ -41,7 +44,9 @@ export function paintPage(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderi
       const sc = Math.max(it.img.w / img.width, it.img.h / img.height)
       const dw = img.width * sc
       const dh = img.height * sc
+      ctx.filter = adjustFilter(it.cut.panel.adjust)
       ctx.drawImage(img, it.img.x + (it.img.w - dw) / 2, it.img.y + (it.img.h - dh) / 2, dw, dh)
+      ctx.filter = 'none'
     }
     for (const lb of it.bubbles) {
       const { b, px } = lb

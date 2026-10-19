@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Adjust } from '#shared/studio'
 import type { Candidate } from '#shared/illustrate'
 import type { Crop, Cut } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
@@ -20,7 +21,7 @@ const props = defineProps<{
   estimate: (n: number) => number
   edit: boolean
 }>()
-const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }], variant: [id: string], upload: [file: File], import: [path: string], inpaint: [id: string, mask: Blob, change: string] }>()
+const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }], variant: [id: string], upload: [file: File], import: [path: string], inpaint: [id: string, mask: Blob, change: string], adjust: [a: Adjust | null] }>()
 const t = ko.studio.illustrate
 const n = useLocalStorage('toonflow:studio:candidates', CANDIDATE_DEFAULT)
 const leaveRoom = useLocalStorage('toonflow:studio:leaveRoom', true)
@@ -39,6 +40,16 @@ watch(() => props.cut.panel.id, () => {
   extra.value = ''
 }, { immediate: true })
 const saveCrop = useDebounceFn(() => emit('crop', zoom.value <= 1 ? null : zoomCrop(zoom.value, cx.value, cy.value)), 400)
+// ILL-24 밝기·색 보정
+const NO_ADJUST = { brightness: 100, contrast: 100, saturate: 100 }
+const ADJUST_KEYS = ['brightness', 'contrast', 'saturate'] as const
+const adj = reactive({ ...NO_ADJUST })
+watch(() => props.cut.panel.adjust, a => Object.assign(adj, a ?? NO_ADJUST), { immediate: true })
+const saveAdjust = useDebounceFn(() => emit('adjust', ADJUST_KEYS.every(k => adj[k] === 100) ? null : { ...adj }), 400)
+function resetAdjust() {
+  Object.assign(adj, NO_ADJUST)
+  emit('adjust', null)
+}
 function resetCrop() {
   zoom.value = 1
   cx.value = 0.5
@@ -139,6 +150,11 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
       <label class="flex items-center gap-2 text-xs">{{ t.zoom }}<input v-model.number="zoom" type="range" min="1" max="3" step="0.05" class="flex-1" @input="saveCrop"></label>
       <label class="flex items-center gap-2 text-xs">{{ t.x }}<input v-model.number="cx" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
       <label class="flex items-center gap-2 text-xs">{{ t.y }}<input v-model.number="cy" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
+      <div class="flex items-center justify-between pt-2">
+        <span class="text-sm font-medium">{{ t.adjust }}</span>
+        <button class="text-muted-foreground flex items-center gap-0.5 text-xs underline" @click="resetAdjust"><RotateCcw class="size-3" />{{ t.resetAdjust }}</button>
+      </div>
+      <label v-for="k in ADJUST_KEYS" :key="k" class="flex items-center gap-2 text-xs">{{ t[k] }}<input v-model.number="adj[k]" type="range" min="50" max="150" step="1" class="flex-1" :aria-label="t[k]" @input="saveAdjust"><span class="w-8 text-right tabular-nums">{{ adj[k] }}</span></label>
     </div>
     <StudioMaskEditor v-if="maskPath" :path="maskPath" @close="maskId = null" @done="onMask" />
   </div>

@@ -2,7 +2,7 @@
 import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
-import { cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
+import { adjustFilter, cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
 import { resolveCandidatePath } from '~/lib/candidates'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
@@ -77,7 +77,7 @@ defineExpose({ svg })
     <g v-for="it in items" :key="it.cut.panel.id" @pointerdown="emit('select', it.cut.panel.id, null)">
       <g :clip-path="`url(#clip-${it.cut.panel.id})`">
         <rect :x="it.r.x" :y="it.r.y" :width="it.r.w" :height="it.r.h" fill="#F4F4F5" />
-        <image v-if="it.url" :href="it.url" :x="it.img.x" :y="it.img.y" :width="it.img.w" :height="it.img.h" preserveAspectRatio="xMidYMid slice" />
+        <image v-if="it.url" :href="it.url" :x="it.img.x" :y="it.img.y" :width="it.img.w" :height="it.img.h" preserveAspectRatio="xMidYMid slice" :style="{ filter: adjustFilter(it.cut.panel.adjust) }" />
         <text v-else :x="it.r.x + it.r.w / 2" :y="it.r.y + it.r.h / 2" text-anchor="middle" font-size="28" fill="#71717A">{{ it.cut.panel.scene.slice(0, 24) }}</text>
         <g v-for="bb in it.bubbles" :key="bb.b.dialogueId" :class="edit ? 'cursor-move' : ''" @pointerdown="down($event, it.cut.panel.id, bb.b, 'move')">
           <template v-if="bb.b.shape !== 'sfx'">

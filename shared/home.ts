@@ -1,6 +1,6 @@
 /** CMN-02 오늘 할 일 · CMN-03 이번 달 현황 */
 interface Ts { toMillis: () => number }
-interface EpLike { id: string, step: string, status: string, archivedAt?: Ts | null, createdAt?: Ts, costKrw?: number, published?: { at?: Ts } | null }
+interface EpLike { id: string, step: string, status: string, archivedAt?: Ts | null, createdAt?: Ts, costKrw?: number, published?: { at?: Ts } | null, settings?: { plannedAt?: string | null } }
 
 const monthStart = (now: Date) => new Date(now.getFullYear(), now.getMonth(), 1).getTime()
 
@@ -24,5 +24,7 @@ export function todayTasks(eps: EpLike[], subs: { status: string }[], failedJobs
     review: live.filter(e => e.step === 'review' || e.step === 'export').map(e => e.id),
     illustrate: live.filter(e => e.step === 'illustrate').map(e => e.id),
     failedJobs,
+    /** PUB-23 게시 예정일 메모 (빠른 날짜 순) */
+    planned: eps.filter(e => !e.archivedAt && !e.published && e.settings?.plannedAt).map(e => ({ id: e.id, date: e.settings!.plannedAt! })).sort((a, b) => a.date.localeCompare(b.date)),
   }
 }

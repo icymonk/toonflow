@@ -21,6 +21,7 @@ const todo = computed(() => [
   { n: today.value.review.length, label: t.today.review(today.value.review.length), to: today.value.review.length === 1 ? `/studio?episode=${today.value.review[0]}` : '/stories' },
   { n: today.value.illustrate.length, label: t.today.illustrate(today.value.illustrate.length), to: today.value.illustrate.length === 1 ? `/studio?episode=${today.value.illustrate[0]}` : '/stories' },
   { n: today.value.failedJobs, label: t.today.failed(today.value.failedJobs), to: '/stories' },
+  ...today.value.planned.map(p => ({ n: 1, label: t.today.planned(p.date, episodes.value.find(e => e.id === p.id)?.title ?? ''), to: `/studio?episode=${p.id}` })),
 ].filter(x => x.n > 0))
 const month = computed(() => monthStats(episodes.value))
 const krw = (n: number) => `₩${n.toLocaleString('ko-KR')}`

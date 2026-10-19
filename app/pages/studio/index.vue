@@ -483,7 +483,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             >
               <GripVertical v-if="edit" class="text-muted-foreground mt-0.5 size-3.5 shrink-0 cursor-grab" />
               <span class="text-muted-foreground w-6 shrink-0 text-xs leading-5">{{ c.number }}</span>
-              <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" class="relative h-10 w-8 shrink-0 rounded-sm" />
+              <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" :adjust="c.panel.adjust" class="relative h-10 w-8 shrink-0 rounded-sm" />
               <span class="line-clamp-2 flex-1" :class="{ 'text-muted-foreground italic': !c.panel.scene }">{{ c.panel.scene || t.noScene }}</span>
               <Loader2 v-if="s.busyPanels.value.has(c.panel.id)" class="size-3.5 animate-spin" :aria-label="t.generating" />
               <span v-else-if="failedPanel(c.panel.id)" class="bg-destructive mt-1.5 size-2 shrink-0 rounded-full" :title="t.illustrate.failed" />
@@ -531,7 +531,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           :label="lastLabel" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
         />
         <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
-        <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" @edit="saveNow" @select="select" />
+        <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" :title="episode?.title ?? ''" @edit="saveNow" @select="select" />
         <template v-else-if="selected">
           <div v-if="withdrawnSources.length" class="flex w-full max-w-md items-center gap-2 rounded-md bg-red-100 px-3 py-2 text-xs text-red-900" role="alert">
             <span class="flex-1">{{ t.publish.withdrawnAlert(withdrawnSources.length) }}</span>
@@ -548,7 +548,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           />
           <div v-else class="bg-card relative flex max-h-full w-full max-w-md flex-col overflow-hidden items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
             <span class="text-muted-foreground absolute top-2 left-3 text-xs">{{ t.page(selected.pageIndex + 1) }} · {{ t.cut(selected.number) }}</span>
-            <StudioPanelImage v-if="selected.panel.selectedCandidateId" :candidate-id="selected.panel.selectedCandidateId" :panel-id="selected.panel.id" :crop="selected.panel.crop" class="absolute inset-0" />
+            <StudioPanelImage v-if="selected.panel.selectedCandidateId" :candidate-id="selected.panel.selectedCandidateId" :panel-id="selected.panel.id" :crop="selected.panel.crop" :adjust="selected.panel.adjust" class="absolute inset-0" />
             <template v-else>
               <p class="line-clamp-6 text-sm">{{ selected.panel.scene || t.noScene }}</p>
               <p class="text-muted-foreground text-xs">{{ step === 'illustrate' ? t.illustrate.noCandidates : t.imageSoon }}</p>
@@ -595,7 +595,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-            :credit="credit" :credit-place="creditPlace" :withdrawn="withdrawnSources.length"
+            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
             @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
@@ -619,7 +619,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
           :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
           @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
-          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" :library="pickList" @import="p => run(() => ill.importCandidate(selected!, p), t.illustrate.uploaded)" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @adjust="a => run(() => ill.setAdjust(selected!.panel.id, a))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" :library="pickList" @import="p => run(() => ill.importCandidate(selected!, p), t.illustrate.uploaded)" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
         />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
@@ -647,7 +647,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <div class="flex h-[85dvh] flex-col items-center gap-2">
         <div class="grid h-full gap-1 bg-white p-1" :class="gridClass[previewCuts[0]?.page.layout ?? '1']" :style="{ aspectRatio: aspect }">
           <div v-for="c in previewCuts" :key="c.panel.id" class="relative flex items-center justify-center overflow-hidden bg-neutral-100 p-3 text-center text-xs text-neutral-600">
-            <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" class="absolute inset-0" />
+            <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" :adjust="c.panel.adjust" class="absolute inset-0" />
             <template v-else>{{ c.panel.scene || t.noScene }}</template>
           </div>
         </div>

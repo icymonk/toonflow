@@ -34,6 +34,9 @@ export interface Crop { x: number, y: number, w: number, h: number }
 
 export type StaleFrom = 'scene' | 'dialogue' | null
 
+/** ILL-24 밝기·색 보정 (100 = 그대로, %) */
+export interface Adjust { brightness: number, contrast: number, saturate: number }
+
 export interface Panel {
   id: string
   pageId: string
@@ -50,6 +53,7 @@ export interface Panel {
   dialogues: Dialogue[]
   selectedCandidateId: string | null
   crop?: Crop | null
+  adjust?: Adjust | null
   /** REV-01~03 */
   bubbles?: Bubble[] | null
   /** SBD-15 구도·포즈 참고 이미지 */

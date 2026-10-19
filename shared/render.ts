@@ -1,3 +1,4 @@
+import type { Adjust } from './studio'
 import { findPii } from './privacy'
 import type { Cut, Dialogue, DialogueType, PageLayout, Panel } from './studio'
 
@@ -177,3 +178,6 @@ const safe = (s: string) => s.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/
 export const exportName = (series: string, episode: number, page: number, ext: string) => `${safe(series)}_${episode}화_${String(page).padStart(2, '0')}.${ext}`
 export const splitBatches = <T>(items: T[], limit = POST_LIMIT): T[][] =>
   items.length <= limit ? [items] : Array.from({ length: Math.ceil(items.length / limit) }, (_, i) => items.slice(i * limit, (i + 1) * limit))
+
+/** ILL-24 화면(CSS)·출력(Canvas) 공용 보정 필터 */
+export const adjustFilter = (a?: Adjust | null) => (a ? `brightness(${a.brightness}%) contrast(${a.contrast}%) saturate(${a.saturate}%)` : 'none')
