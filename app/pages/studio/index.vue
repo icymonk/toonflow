@@ -8,7 +8,8 @@ import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vue
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
 import { bulkTargets } from '#shared/illustrate'
-import { autoCheck } from '#shared/render'
+import { AI_LABEL, autoCheck } from '#shared/render'
+import { creditLine } from '#shared/intake'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
@@ -46,10 +47,15 @@ const exportPages = computed(() => {
   for (const c of s.cuts.value) m.set(c.page.id, [...(m.get(c.page.id) ?? []), c])
   return [...m.values()]
 })
-const exp = useExport(s, review, exportPages)
+// PUB-12·14: 제보자 크레딧과 철회된 재료 썰
+const credit = computed(() => creditLine(story.sources.value.map(x => x.credit)))
+const creditPlace = computed(() => episode.value?.settings.creditPlace ?? 'caption')
+const lastLabel = computed(() => [creditPlace.value === 'page' ? credit.value : '', episode.value?.settings.aiLabel !== false ? AI_LABEL : ''].filter(Boolean).join(' · ') || null)
+const withdrawnSources = computed(() => story.sources.value.filter(x => x.status === 'withdrawn' || x.withdrawn))
+const exp = useExport(s, review, exportPages, lastLabel)
 // PUB-30~37 릴스 영상
 const expMode = ref<'image' | 'video'>('image')
-const video = useVideo(s, review)
+const video = useVideo(s, review, lastLabel)
 const vTime = ref(0)
 const vIndex = computed(() => Math.max(0, video.clips.value.findIndex(c => c.cuts.some(x => x.panel.id === selectedPanelId.value))))
 const vClip = computed(() => video.clips.value[vIndex.value] ?? null)
@@ -96,7 +102,7 @@ async function illInpaint(id: string, mask: Blob, change: string) {
 }
 // PUB-10·11·20
 const captionText = computed(() => episode.value?.caption?.text ?? '')
-const fullCaption = computed(() => composeCaption({ greeting: s.series.value?.greeting, text: captionText.value, hashtags: episode.value?.caption?.hashtags, fixedTags: s.series.value?.hashtags, aiLabel: episode.value?.settings.aiLabel !== false }))
+const fullCaption = computed(() => composeCaption({ greeting: s.series.value?.greeting, text: captionText.value, hashtags: episode.value?.caption?.hashtags, fixedTags: s.series.value?.hashtags, credit: creditPlace.value === 'caption' ? credit.value : '', aiLabel: episode.value?.settings.aiLabel !== false }))
 const captionCost = computed(() => lib.estimateText('publish.caption', story.material.value.length))
 const makeCaption = () => (story.active.value ? run(() => story.caption(story.active.value!), t.publish.captionStarted) : toast.warning(t.board.needStory))
 const setCaptionText = (text: string) => run(() => s.updateEpisode({ caption: { text: text.slice(0, 2000), hashtags: episode.value?.caption?.hashtags ?? [] } }))
@@ -108,6 +114,7 @@ const publishedInfo = computed(() => {
 })
 function guardExport(fn: () => unknown) {
   if (left.value && !window.confirm(t.review.notPassed(left.value))) return
+  if (withdrawnSources.value.length && !window.confirm(t.publish.withdrawnConfirm(withdrawnSources.value.length))) return
   return fn()
 }
 const expPage = ref(0)
@@ -521,11 +528,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         </div>
         <StudioExportPreview
           v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportPages" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
-          :ai-label="exp.aiLabel.value" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
+          :label="lastLabel" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
         />
         <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
         <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" @edit="saveNow" @select="select" />
         <template v-else-if="selected">
+          <div v-if="withdrawnSources.length" class="flex w-full max-w-md items-center gap-2 rounded-md bg-red-100 px-3 py-2 text-xs text-red-900" role="alert">
+            <span class="flex-1">{{ t.publish.withdrawnAlert(withdrawnSources.length) }}</span>
+          </div>
           <div v-if="episode.staleFrom === 'story'" class="flex w-full max-w-md items-center gap-2 rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900">
             <span class="flex-1">{{ t.story.staleStory }}</span>
             <button v-if="edit" class="underline" @click="autoSplit">{{ t.board.resplit }}</button>
@@ -585,6 +595,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
+            :credit="credit" :credit-place="creditPlace" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
             @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
@@ -594,7 +605,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             v-else :settings="video.settings.value" :clips="video.clips.value" :clip="vClip" :index="vIndex" :total="video.total.value" :edit="edit"
             :music-url="video.musicUrl.value" :music-name="video.musicName.value" :supported="video.supported.value" :progress="video.progress.value"
             @save="p => run(() => video.save(p))" @clip="(id, p) => run(() => video.setClip(id, p))" @auto="id => run(() => video.autoDuration(id))" @all="ms => run(() => video.allDuration(ms))"
-            @upload="f => run(() => video.uploadMusic(f), t.video.musicUploaded)" @remove-music="run(() => video.removeMusic())" @mp4="exportMp4" @cancel="video.cancelExport()"
+            @upload="f => run(() => video.uploadMusic(f), t.video.musicUploaded)" @remove-music="run(() => video.removeMusic())" @mp4="guardExport(exportMp4)" @cancel="video.cancelExport()"
           />
         </template>
         <StudioReviewAside

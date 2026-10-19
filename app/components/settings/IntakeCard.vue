@@ -2,7 +2,7 @@
 import type { IntakeConfig, IntakePage } from '#shared/intake'
 import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
-import { INTAKE_LIMITS, newSlug, parseBanned } from '#shared/intake'
+import { CONSENT_TEXT, INTAKE_LIMITS, newSlug, parseBanned } from '#shared/intake'
 import { canManage } from '#shared/roles'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
@@ -13,7 +13,7 @@ const auth = useAuthStore()
 const { $firestore } = useNuxtApp()
 const manage = computed(() => canManage(auth.role))
 const slug = ref('')
-const form = reactive({ enabled: false, name: '', intro: '', topics: '', questions: '', images: false, banned: '' })
+const form = reactive({ enabled: false, name: '', intro: '', topics: '', questions: '', images: false, banned: '', consentText: '' })
 const saving = ref(false)
 const link = computed(() => (slug.value ? `${window.location.origin}/s/${slug.value}` : ''))
 
@@ -25,7 +25,7 @@ onMounted(async () => {
   slug.value = cfg.slug
   form.banned = cfg.bannedWords.join('\n')
   const p = (await getDoc(doc($firestore, 'intake', cfg.slug))).data() as IntakePage | undefined
-  if (p) Object.assign(form, { enabled: p.enabled, name: p.name, intro: p.intro, topics: p.topics, questions: p.questions.join('\n'), images: p.images })
+  if (p) Object.assign(form, { enabled: p.enabled, name: p.name, intro: p.intro, topics: p.topics, questions: p.questions.join('\n'), images: p.images, consentText: p.consentText ?? '' })
 })
 
 async function save() {
@@ -41,6 +41,7 @@ async function save() {
       topics: form.topics.trim().slice(0, INTAKE_LIMITS.topics),
       questions: form.questions.split('\n').map(q => q.trim().slice(0, INTAKE_LIMITS.question)).filter(Boolean).slice(0, INTAKE_LIMITS.questions),
       images: form.images,
+      consentText: form.consentText.trim().slice(0, INTAKE_LIMITS.consent),
     }
     const batch = writeBatch($firestore)
     batch.set(doc($firestore, 'intake', s), { ...page, updatedAt: serverTimestamp() })
@@ -109,6 +110,10 @@ async function copy() {
         <div class="flex flex-col gap-1.5">
           <Label for="in-banned">{{ t.banned }}</Label>
           <Textarea id="in-banned" v-model="form.banned" rows="2" :disabled="!manage" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label for="in-consent">{{ t.consentText }}</Label>
+          <Textarea id="in-consent" v-model="form.consentText" rows="3" :maxlength="INTAKE_LIMITS.consent" :placeholder="CONSENT_TEXT" :disabled="!manage" />
         </div>
         <label class="flex items-center gap-2 text-sm">
           <input v-model="form.images" type="checkbox" :disabled="!manage">

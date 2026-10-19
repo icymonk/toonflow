@@ -1,9 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { composeBody, findBanned, imageType, INTAKE_RATE, intakeSubmitInput, newSlug, parseBanned, rateCheck, SLUG_RE } from './intake'
+import { composeBody, creditLine, findBanned, imageType, INTAKE_RATE, intakeSubmitInput, intakeTokenInput, newSlug, parseBanned, rateCheck, SLUG_RE, submitterState } from './intake'
 
-const valid = { slug: 'abcd2345efgh', body: 'x'.repeat(40), answers: [], nickname: '', email: '', consent: true, images: [], website: '' }
+const valid = { slug: 'abcd2345efgh', body: 'x'.repeat(40), answers: [], nickname: '', email: '', consent: true, credit: false, notify: false, images: [], website: '' }
 
 describe('intake (INB-02~06)', () => {
+  it('submitter state and credit line (INB-12·27, PUB-12)', () => {
+    expect(submitterState('new', undefined, 0)).toBe('received')
+    expect(submitterState('used', undefined, 0)).toBe('used')
+    expect(submitterState('used', undefined, 1)).toBe('published')
+    expect(submitterState('used', { published: true }, 1)).toBe('withdrawRequested')
+    expect(submitterState('withdrawn', { published: false }, 0)).toBe('withdrawn')
+    expect(creditLine(['민지', undefined, ' 민지 ', '하루'])).toBe('썰 제보: 민지 님, 하루 님')
+    expect(creditLine([undefined, ''])).toBe('')
+    expect(intakeTokenInput.safeParse({ token: 'a'.repeat(32) }).success).toBe(true)
+    expect(intakeTokenInput.safeParse({ token: 'A'.repeat(32) }).success).toBe(false)
+  })
   it('slugs are url-safe and random', () => {
     const a = newSlug()
     expect(a).toMatch(SLUG_RE)

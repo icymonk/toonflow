@@ -58,14 +58,16 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
     // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
     match /intake/{slug} {
       function validIntake(slug, d) {
         return slug.matches('[a-z0-9]{8,32}')
-          && d.keys().hasOnly(['workspaceId', 'enabled', 'name', 'intro', 'topics', 'questions', 'images', 'updatedAt'])
+          && d.keys().hasOnly(['workspaceId', 'enabled', 'name', 'intro', 'topics', 'questions', 'images', 'consentText', 'updatedAt'])
           && d.enabled is bool && d.images is bool
           && strLen(d.name, 0, 40) && strLen(d.intro, 0, 300) && strLen(d.topics, 0, 300)
-          && d.questions is list && d.questions.size() <= 5;
+          && d.questions is list && d.questions.size() <= 5
+          && (!('consentText' in d) || strLen(d.consentText, 0, 500));
       }
       allow get: if true;
       allow create: if canManage(request.resource.data.workspaceId) && validIntake(slug, request.resource.data);

@@ -1,12 +1,13 @@
 import type { Cut } from '#shared/studio'
 import { zipSync } from 'fflate'
-import { AI_LABEL, exportName, layoutPage, splitBatches } from '#shared/render'
+import { exportName, layoutPage, splitBatches } from '#shared/render'
 import { selectedRefs } from '~/lib/candidates'
 import { download, drawPage, loadImages } from '~/lib/export'
 import { ko } from '~/locales/ko'
 
 /** Export: 장별 JPG/PNG, ZIP, 장 하나만, 장수 상한 나누기 (PUB-03~05·13) */
-export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>, pages: Ref<Cut[][]>) {
+/** lastLabel: 마지막 장 아래 문구 (AI 생성 표기·제보자 크레딧, PUB-12·13) */
+export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>, pages: Ref<Cut[][]>, lastLabel: Ref<string | null>) {
   const { $firestore, $storage } = useNuxtApp()
   const auth = useAuthStore()
   const progress = ref<string | null>(null)
@@ -20,7 +21,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
     const out: { name: string, blob: Blob }[] = []
     for (const [k, i] of idx.entries()) {
       progress.value = ko.studio.publish.progress(k + 1, idx.length)
-      const label = aiLabel.value && i === pages.value.length - 1 ? AI_LABEL : null
+      const label = i === pages.value.length - 1 ? lastLabel.value : null
       const blob = await drawPage(layoutPage(pages.value[i]!, w, h, review.typeset.value), w, h, review.typeset.value, imgs, label, s.series.value?.watermark?.trim() || null, fmt.value === 'png' ? 'image/png' : 'image/jpeg')
       out.push({ name: exportName(s.seriesName.value || ep.title, ep.number, i + 1, fmt.value), blob })
     }

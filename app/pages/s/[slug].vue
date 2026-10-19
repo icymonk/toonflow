@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { IntakePage } from '#shared/intake'
 import { doc, getDoc } from 'firebase/firestore'
+import { toast } from 'vue-sonner'
 import { CONSENT_TEXT, INTAKE_LIMITS } from '#shared/intake'
 import { errorMessage } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
@@ -20,7 +21,8 @@ onMounted(async () => {
   state.value = page.value ? 'form' : 'missing'
 })
 
-const form = reactive({ body: '', answers: [] as string[], nickname: '', email: '', consent: false, website: '' })
+const form = reactive({ body: '', answers: [] as string[], nickname: '', email: '', consent: false, credit: false, notify: false, website: '' })
+const statusLink = ref('')
 const images = ref<{ name: string, b64: string }[]>([])
 const sending = ref(false)
 const error = ref('')
@@ -45,16 +47,19 @@ async function send() {
   error.value = ''
   sending.value = true
   try {
-    await callFn($functions, 'submitIntake', {
+    const r = await callFn($functions, 'submitIntake', {
       slug,
       body: form.body,
       answers: form.answers.slice(0, page.value!.questions.length).map(a => a ?? ''),
       nickname: form.nickname,
       email: form.email,
       consent: true,
+      credit: form.credit && !!form.nickname.trim(),
+      notify: form.notify && !!form.email.trim(),
       images: page.value!.images ? images.value.map(i => i.b64) : [],
       website: form.website,
     })
+    statusLink.value = `${window.location.origin}/s/r/${r.token}`
     state.value = 'done'
   }
   catch (e) {
@@ -65,8 +70,13 @@ async function send() {
   }
 }
 
+async function copyStatus() {
+  await navigator.clipboard.writeText(statusLink.value)
+  toast.success(t.copied)
+}
+
 function again() {
-  Object.assign(form, { body: '', answers: [], consent: false })
+  Object.assign(form, { body: '', answers: [], consent: false, credit: false, notify: false })
   images.value = []
   state.value = 'form'
 }
@@ -105,6 +115,14 @@ function again() {
         <p class="text-muted-foreground text-sm">
           {{ t.thanksBody }}
         </p>
+        <div class="bg-muted flex w-full flex-col gap-1.5 rounded-md p-3 text-sm">
+          <span class="font-medium">{{ t.statusLink }}</span>
+          <div class="flex items-center gap-2">
+            <a :href="statusLink" class="text-primary truncate text-xs underline" data-testid="status-link">{{ statusLink }}</a>
+            <Button size="sm" variant="outline" @click="copyStatus">{{ t.copy }}</Button>
+          </div>
+          <p class="text-muted-foreground text-xs">{{ t.statusHint }}</p>
+        </div>
         <Button variant="outline" @click="again">
           {{ t.again }}
         </Button>
@@ -147,7 +165,15 @@ function again() {
         </p>
         <label class="flex items-start gap-2 text-sm">
           <input v-model="form.consent" type="checkbox" class="mt-1" :aria-label="t.consent" required>
-          <span><b>{{ t.consent }}</b> {{ CONSENT_TEXT }}</span>
+          <span><b>{{ t.consent }}</b> {{ page.consentText || CONSENT_TEXT }}</span>
+        </label>
+        <label class="flex items-start gap-2 text-sm">
+          <input v-model="form.credit" type="checkbox" class="mt-1" :aria-label="t.credit" :disabled="!form.nickname.trim()">
+          <span>{{ t.credit }}</span>
+        </label>
+        <label class="flex items-start gap-2 text-sm">
+          <input v-model="form.notify" type="checkbox" class="mt-1" :aria-label="t.notify" :disabled="!form.email.trim()">
+          <span>{{ t.notify }}</span>
         </label>
         <p v-if="error" class="text-destructive text-sm" role="alert">
           {{ error }}

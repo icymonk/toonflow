@@ -2,7 +2,7 @@ import type { Cut } from '#shared/studio'
 import type { ClipSettings, VideoSettings } from '#shared/video'
 import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
 import { deleteObject, getBlob, getDownloadURL, ref as sref, uploadBytes } from 'firebase/storage'
-import { AI_LABEL, exportName } from '#shared/render'
+import { exportName } from '#shared/render'
 import { buildClips, clampMs, DEFAULT_VIDEO, REELS_MAX_MS, totalMs, VIDEO_SIZES } from '#shared/video'
 import { selectedRefs } from '~/lib/candidates'
 import { download, loadFonts, loadImages } from '~/lib/export'
@@ -11,7 +11,7 @@ import { frameRenderer } from '~/lib/video'
 import { ko } from '~/locales/ko'
 
 /** 영상 설정(meta/video)·타임라인·프레임 렌더러·배경음악·MP4 (PUB-30~38) */
-export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>) {
+export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>, lastLabel: Ref<string | null>) {
   const { $firestore, $storage } = useNuxtApp()
   const auth = useAuthStore()
   const settings = ref<VideoSettings>({ ...DEFAULT_VIDEO })
@@ -54,7 +54,7 @@ export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typ
     page: review.size.value,
     ts: review.typeset.value,
     imgs: imgs.value,
-    label: s.episode.value?.settings.aiLabel !== false ? AI_LABEL : null,
+    label: lastLabel.value,
     watermark: s.series.value?.watermark?.trim() || null,
   }))
 

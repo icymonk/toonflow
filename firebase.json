@@ -99,6 +99,20 @@
         }
       },
       {
+        "source": "/fn/intakeStatus",
+        "function": {
+          "functionId": "intakeStatus",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/withdrawIntake",
+        "function": {
+          "functionId": "withdrawIntake",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

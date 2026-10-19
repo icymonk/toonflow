@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.1 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.2 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -109,3 +109,4 @@
 - v1.9: 2-I — `episodes.number`는 편집자가 고칠 수 있음(정수 1~9999), `episodes.duplicatedFrom`(복제 원본, `duplicateEpisode`만 씀), `submissions.aiSummary`(`summary[≤3]`·`genre`·`score` 0~100·`reason`·`jobId`, 서버만 씀), collectionGroup `candidates(workspaceId, imagePath)` 색인(정리 때 같은 파일을 쓰는 후보 확인)
 - v2.0: 3-A — `meta/video` `clips`를 컷·장 ID 키의 맵(고친 컷만)으로, `musicLoop`·`coverId` 추가, 음원 경로 `refs/music/{episodeId}/{file}`
 - v2.1: 3-C — `intake/{slug}` 필드·`rate` 하위, `workspaces/{ws}/config/intake`, 링크 제보의 `notify`·`attachments`·`consent`, 공개 callable `submitIntake`(받기 꺼짐·30자 미만·금칙어·10분 3번 초과 거절, 이미지는 머리 바이트로 PNG/JPEG/WebP만·장당 2MB). 올리거나 가져온 후보(id에 `_` 없음)의 그림은 후보 문서 `imagePath`에서 찾는다
+- v2.2: 3-D — `intake/{slug}.consentText`(작가가 고친 동의 문구, 비면 기본), 링크 제보 `consent.credit`·`consent.notify`, `credit`(크레딧에 동의한 닉네임), `withdrawn: { at, published }`. 확인 링크 토큰은 `intakeTokens/{sha256(token)}` → `{ workspaceId, submissionId }`(서버만). 공개 callable `intakeStatus`·`withdrawIntake`: 게시 전 철회는 `status: 'withdrawn'` + 본문·첨부·연락처 삭제, 게시 후는 `withdrawn.published: true`만. 에피소드 `settings.creditPlace: 'caption'|'page'`(기본 캡션). 이메일 발송은 아직 없음(확인 링크에서 게시 링크를 본다)

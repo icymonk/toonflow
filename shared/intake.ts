@@ -1,13 +1,15 @@
 import { z } from 'zod'
 
 // 공개 제보 링크 (INB-02~06, docs/dev/data-model.md `intake/{slug}`)
-export const INTAKE_LIMITS = { name: 40, intro: 300, topics: 300, question: 100, questions: 5, answer: 1000, body: 5000, minBody: 30, nickname: 20, email: 200, banned: 100, bannedWord: 30, images: 3, imageBytes: 2 * 1024 * 1024 } as const
+export const INTAKE_LIMITS = { name: 40, intro: 300, topics: 300, question: 100, questions: 5, answer: 1000, body: 5000, minBody: 30, nickname: 20, email: 200, banned: 100, bannedWord: 30, images: 3, imageBytes: 2 * 1024 * 1024, consent: 500 } as const
 /** INB-05: 같은 곳에서 10분에 3번까지 */
 export const INTAKE_RATE = { windowMs: 10 * 60_000, max: 3 } as const
-/** INB-10 기본 동의 문구. 작가가 고치는 기능은 3-D */
+/** INB-10 기본 동의 문구. 작가가 Settings에서 고칠 수 있고, 제출 당시 문구가 제보에 남는다 */
 export const CONSENT_TEXT = '보낸 이야기를 작가가 각색해 인스타툰으로 게시해도 좋아요. 이름·학교·회사 같은 개인정보는 바꿔서 쓴다는 안내를 확인했어요.'
 
 export const SLUG_RE = /^[a-z0-9]{8,32}$/
+/** INB-12 제보자 확인 링크 `/s/r/{token}`. 서버에는 해시만 둔다 */
+export const TOKEN_RE = /^[a-f0-9]{32}$/
 
 /** 공개 페이지 문서 (누구나 읽는다) */
 export interface IntakePage {
@@ -18,6 +20,8 @@ export interface IntakePage {
   topics: string
   questions: string[]
   images: boolean
+  /** 비면 CONSENT_TEXT */
+  consentText?: string
 }
 
 /** 워크스페이스 안 설정 (`workspaces/{ws}/config/intake`) */
@@ -33,12 +37,35 @@ export const intakeSubmitInput = z.object({
   nickname: z.string().trim().max(INTAKE_LIMITS.nickname),
   email: z.string().trim().max(INTAKE_LIMITS.email).regex(/^$|^[^\s@]+@[^\s@]+\.[^\s@]+$/),
   consent: z.literal(true),
+  /** INB-10 선택 동의: 닉네임 크레딧, 결과 알림(이메일이 있을 때만) */
+  credit: z.boolean(),
+  notify: z.boolean(),
   /** base64 (data: 접두어 없이) */
   images: z.array(z.string().max(Math.ceil(INTAKE_LIMITS.imageBytes * 4 / 3) + 4)).max(INTAKE_LIMITS.images),
   /** 사람에게는 보이지 않는 칸. 채워져 있으면 봇으로 보고 조용히 버린다 */
   website: z.string().max(200),
 })
 export type IntakeSubmitInput = z.infer<typeof intakeSubmitInput>
+
+export const intakeTokenInput = z.object({ token: z.string().regex(TOKEN_RE) })
+export type IntakeTokenInput = z.infer<typeof intakeTokenInput>
+
+/** 제보자가 확인 링크에서 보는 상태 (INB-12·27) */
+export type SubmitterState = 'received' | 'used' | 'published' | 'withdrawn' | 'withdrawRequested'
+export interface IntakeStatus { state: SubmitterState, name: string, urls: string[] }
+
+export function submitterState(status: string, withdrawn: unknown, publishedCount: number): SubmitterState {
+  if (status === 'withdrawn') return 'withdrawn'
+  if (withdrawn) return 'withdrawRequested'
+  if (publishedCount) return 'published'
+  return status === 'used' ? 'used' : 'received'
+}
+
+/** PUB-12: 크레딧에 동의한 제보자 닉네임 */
+export function creditLine(names: (string | undefined)[]): string {
+  const n = [...new Set(names.map(s => s?.trim()).filter((s): s is string => !!s))]
+  return n.length ? `썰 제보: ${n.map(x => `${x} 님`).join(', ')}` : ''
+}
 
 export function newSlug(): string {
   const abc = 'abcdefghijkmnpqrstuvwxyz23456789'
