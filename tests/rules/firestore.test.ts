@@ -266,6 +266,19 @@ describe('4단계 활동·열람 기록 (CMN-31·54)', () => {
   })
 })
 
+describe('4단계 같이 보는 사람 (STU-24)', () => {
+  it('members write only their own presence with server time', async () => {
+    const P = `${W}/episodes/e1/presence`
+    await assertSucceeds(setDoc(doc(db('viewer'), `${P}/viewer`), { name: 'v', photoURL: null, panelId: 'p1', at: serverTimestamp() }))
+    await assertSucceeds(getDoc(doc(db('editor'), `${P}/viewer`)))
+    await assertFails(setDoc(doc(db('editor'), `${P}/viewer`), { name: 'x', photoURL: null, panelId: null, at: serverTimestamp() }))
+    await assertFails(setDoc(doc(db('editor'), `${P}/editor`), { name: 'x', photoURL: null, panelId: null, at: new Date(0) }))
+    await assertFails(setDoc(doc(db('other'), `${P}/other`), { name: 'x', photoURL: null, panelId: null, at: serverTimestamp() }))
+    await assertFails(getDoc(doc(db('other'), `${P}/viewer`)))
+    await assertSucceeds(deleteDoc(doc(db('viewer'), `${P}/viewer`)))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

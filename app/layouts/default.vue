@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ListTodo, LogOut, PanelLeft, Search, Trash2 } from '@lucide/vue'
+import { ListTodo, LogOut, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
 import { onKeyStroke, useLocalStorage } from '@vueuse/core'
 import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
 
+const theme = useTheme()
+const cycleTheme = () => theme.set(({ light: 'dark', dark: 'system', system: 'light' } as const)[theme.theme.value])
 // 앱 셸: docs/design/ui-system.md 6절. 사이드바는 Ink Navy, 선택한 메뉴는 코랄 + Ink Navy 글자
 const auth = useAuthStore()
 const { ratio, level } = useUsage()
@@ -93,6 +95,11 @@ async function signOut() {
             <ListTodo class="size-4" />
           </Button>
           <AppNotifications />
+          <Button variant="ghost" size="icon" :aria-label="ko.theme[theme.theme.value]" :title="ko.theme[theme.theme.value]" @click="cycleTheme">
+            <Sun v-if="theme.theme.value === 'light'" class="size-4" />
+            <Moon v-else-if="theme.theme.value === 'dark'" class="size-4" />
+            <Monitor v-else class="size-4" />
+          </Button>
         </div>
       </header>
       <main class="min-w-0 flex-1">

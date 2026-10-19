@@ -17,7 +17,7 @@ concurrency:
 env:
   # 서비스 계정 시크릿을 등록하기 전에는 배포 단계를 건너뛴다
   HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
-  ONLY: ${{ inputs.only || vars.FIREBASE_DEPLOY_ONLY || 'hosting,firestore' }}
+  ONLY: ${{ inputs.only || vars.FIREBASE_DEPLOY_ONLY || 'hosting,firestore,functions,storage' }}
   NUXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NUXT_PUBLIC_FIREBASE_API_KEY }}
   # 운영은 앱과 같은 사이트에서 로그인 처리(서드파티 저장소 차단 대응). PR 미리보기는 기본 authDomain 사용
   NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ github.event_name != 'pull_request' && (vars.FIREBASE_PROD_AUTH_DOMAIN || 'toonflow-351ed.web.app') || vars.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}

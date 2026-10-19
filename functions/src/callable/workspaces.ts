@@ -1,4 +1,5 @@
 import type { DocumentReference } from 'firebase-admin/firestore'
+import { presetStyleDocs } from '../../../shared/library'
 import { getAuth } from 'firebase-admin/auth'
 import { FieldValue, getFirestore, Timestamp } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
@@ -31,6 +32,7 @@ export const createWorkspace = authedCallable(createWorkspaceInput, async ({ uid
   const now = FieldValue.serverTimestamp()
   const batch = db.batch()
   batch.set(wsRef, { name: data.name || defaultWorkspaceName(null, null), ownerId: uid, defaults: {}, deleteAt: null, createdAt: now })
+  for (const st of presetStyleDocs(uid, now)) batch.set(wsRef.collection('styles').doc(), st)
   batch.set(wsRef.collection('members').doc(uid), { role: 'owner', joinedAt: now, ...memberInfo(token) })
   batch.update(user.ref, { workspaceIds: [...ids, wsRef.id], workspaceId: wsRef.id })
   await batch.commit()
