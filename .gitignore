@@ -34,3 +34,7 @@ logs
 # E2E
 tests/e2e/test-results/
 tests/e2e/playwright-report/
+
+# Playwright
+/test-results/
+/playwright-report/

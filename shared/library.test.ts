@@ -1,6 +1,6 @@
 import type { Character } from './library'
 import { describe, expect, it } from 'vitest'
-import { characterPrompt, describeAppearance, emptyAppearance, imageCount, matchCharacters, stylePrompt, stylePrompts } from './library'
+import { characterPrompt, describeAppearance, emptyAppearance, imageCount, imageParams, matchCharacters, stylePrompt, stylePrompts } from './library'
 
 const ch = (id: string, name: string, aliases: string[] = [], deleted = false): Character => ({
   id, name, aliases, intro: '', appearance: emptyAppearance(), appearanceText: '', episodeId: null, refImages: [], coverPath: null, deletedAt: deleted ? { toMillis: () => 1 } : null,
@@ -19,5 +19,11 @@ describe('library', () => {
     expect(characterPrompt({ name: '민지', aliases: [], intro: '', appearance: emptyAppearance(), appearanceText: '안경', episodeId: null }, null)).toContain('안경')
     expect(imageCount({ prompts: ['a', 'b', 'c'] })).toBe(3)
     expect(imageCount({ prompt: 'a', n: 2 })).toBe(2)
+  })
+})
+
+describe('imageParams', () => {
+  it('accepts null negative/refPaths (callable encodes undefined as null)', () => {
+    expect(imageParams.safeParse({ prompt: 'p', n: 2, negative: null, refPaths: null }).success).toBe(true)
   })
 })

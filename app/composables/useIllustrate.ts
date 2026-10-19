@@ -71,7 +71,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
         workspaceId: ws(),
         type: 'panel.image',
         target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-        params: { prompt: promptOf(cut, opts), n, negative: st?.negative || undefined, refPaths: panelRefPaths(charsOf(cut), st), input },
+        params: { prompt: promptOf(cut, opts), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: panelRefPaths(charsOf(cut), st), input },
         idempotencyKey: crypto.randomUUID(),
       })
     }))
