@@ -29,7 +29,7 @@ export function useSubmissions() {
     await batch.commit()
   }
 
-  const update = (id: string, patch: Partial<Pick<Submission, 'title' | 'body' | 'sourceNote' | 'tags' | 'starred' | 'note' | 'status'>>) =>
+  const update = (id: string, patch: Partial<Pick<Submission, 'title' | 'body' | 'sourceNote' | 'tags' | 'starred' | 'note' | 'status' | 'maskedBody'>>) =>
     updateDoc(doc(col(), id), patch)
 
   async function setStatus(ids: string[], status: SubmissionStatus) {

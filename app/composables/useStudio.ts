@@ -14,6 +14,7 @@ export function useStudio(episodeId: Ref<string>) {
   const episode = ref<Episode | null>(null)
   const missing = ref(false)
   const seriesName = ref('')
+  const seriesReviewItems = ref<string[]>([])
   const pages = ref<Page[]>([])
   const panels = ref<Panel[]>([])
   const jobs = ref<ActiveJob[]>([])
@@ -36,7 +37,10 @@ export function useStudio(episodeId: Ref<string>) {
         }
         const ep = { id: snap.id, ...data } as Episode
         if (ep.seriesId !== episode.value?.seriesId) {
-          getDoc(doc($firestore, ...wsPath(), 'series', ep.seriesId)).then(s => (seriesName.value = (s.get('name') as string) ?? ''))
+          getDoc(doc($firestore, ...wsPath(), 'series', ep.seriesId)).then((s) => {
+            seriesName.value = (s.get('name') as string) ?? ''
+            seriesReviewItems.value = (s.get('reviewItems') as string[] | undefined) ?? []
+          })
         }
         episode.value = ep
       }, () => (missing.value = true)),
@@ -101,6 +105,13 @@ export function useStudio(episodeId: Ref<string>) {
 
   const touch = () => ({ updatedAt: serverTimestamp() })
   const updateEpisode = (patch: Record<string, unknown>) => track(() => updateDoc(epRef(), { ...patch, ...touch() }))
+  /** REV-14: 작품마다 검수 항목 추가 */
+  async function setSeriesReviewItems(items: string[]) {
+    const id = episode.value?.seriesId
+    if (!id) return
+    seriesReviewItems.value = items
+    await track(() => updateDoc(doc($firestore, ...wsPath(), 'series', id), { reviewItems: items, updatedAt: serverTimestamp() }))
+  }
   const rename = (title: string) => updateEpisode({ title })
   const setStep = (step: Step) => (episode.value?.status === 'active' ? updateEpisode({ step }) : Promise.resolve())
   const updatePanel = (id: string, patch: Partial<Omit<Panel, 'id'>>) => track(() => updateDoc(doc(sub('panels'), id), { ...patch, ...touch() }))
@@ -220,7 +231,7 @@ export function useStudio(episodeId: Ref<string>) {
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
 
   return {
-    episode, missing, seriesName, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
+    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
   }

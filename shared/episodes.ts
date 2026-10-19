@@ -46,6 +46,7 @@ export interface Series extends SeriesInput {
   id: string
   styleId?: string | null
   mainCharacterIds?: string[]
+  reviewItems?: string[]
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null
@@ -66,6 +67,7 @@ export interface Episode {
   analysis?: import('./story').Analysis & { jobId: string }
   staleFrom?: 'story' | null
   pageOrder?: string[]
+  review?: Record<string, import('./review').ReviewState>
   costKrw: number
   updatedAt?: Ts
   deletedAt?: Ts | null

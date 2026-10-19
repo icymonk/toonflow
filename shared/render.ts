@@ -1,3 +1,4 @@
+import { findPii } from './privacy'
 import type { Cut, Dialogue, DialogueType, PageLayout, Panel } from './studio'
 
 // 장 렌더러 공용 계산 (R5, REV-01~04·11). 좌표: 장은 출력 픽셀, 말풍선은 컷 안 0~1 비율
@@ -102,7 +103,7 @@ export function syncBubbles(panel: Pick<Panel, 'dialogues'> & { bubbles?: Bubble
   return auto.map(a => have.get(a.dialogueId) ?? a)
 }
 
-export type CheckKind = 'noImage' | 'outside' | 'smallText' | 'noBubble'
+export type CheckKind = 'noImage' | 'outside' | 'smallText' | 'noBubble' | 'pii'
 export interface CheckIssue { kind: CheckKind, panelId: string, number: number, dialogueId?: string }
 /** REV-11 자동 점검 (그림·말풍선) */
 export function autoCheck(cuts: Cut[]): CheckIssue[] {
@@ -112,6 +113,7 @@ export function autoCheck(cuts: Cut[]): CheckIssue[] {
     if (!p.selectedCandidateId) out.push({ kind: 'noImage', panelId: p.id, number: c.number })
     const bs = new Map((p.bubbles ?? []).map(b => [b.dialogueId, b]))
     for (const d of p.dialogues) {
+      if (findPii(d.text).length) out.push({ kind: 'pii', panelId: p.id, number: c.number, dialogueId: d.id })
       const b = bs.get(d.id)
       if (!b) out.push({ kind: 'noBubble', panelId: p.id, number: c.number, dialogueId: d.id })
       else if (b.x < -0.001 || b.y < -0.001 || b.x + b.w > 1.001 || b.y + b.h > 1.001) out.push({ kind: 'outside', panelId: p.id, number: c.number, dialogueId: d.id })

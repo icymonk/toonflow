@@ -95,3 +95,4 @@
 - v0.7: 1-I — 말풍선 `bubbles[]` 좌표는 컷 안 0~1 비율, `shape`=대사 종류, `tail`: `none|bl|b|br|tl|tr`. `meta/typeset.font`: `pretendard|gowun-dodum|jua` (SIL OFL 1.1)
 - v0.8: 1-J — 에피소드 `settings.format: 'jpg'|'png'`, `settings.aiLabel`(기본 켜짐). 출력은 저장하지 않고 브라우저에서 바로 내려받기. Storage 버킷 CORS는 `storage.cors.json`을 `main` 배포 때 CI가 적용
 - v0.9: 1-K — 휴지통 되살리기·바로 삭제는 callable `restoreFromTrash`·`purgeFromTrash`(하위 문서까지 `recursiveDelete`), 30일 지난 것은 `purgeExpiredTrash`(매일 04:00 KST). 알림은 `aiJobs` 최근 30개 + 사용량으로 앱에서 계산하고 읽은 시각은 브라우저에 저장
+- v1.0: 2-A — `submissions.maskedBody`(가린 글, 각색 재료로 우선), `episodes.review`(검수 항목별 `unchecked`·`needs`·`pass`, 작품 항목은 `custom:<이름>`), `series.reviewItems`(작품별 검수 항목)
