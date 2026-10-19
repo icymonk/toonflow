@@ -1,4 +1,5 @@
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
+import type { CreateEpisodeInput, TrashInput } from './episodes'
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { SetWorkspaceLimitInput } from './usage'
 
@@ -12,6 +13,7 @@ export const ERROR_KEYS = {
   forbidden: 'error.forbidden',
   limitExceeded: 'error.limitExceeded',
   modelUnavailable: 'error.modelUnavailable',
+  seriesNotEmpty: 'error.seriesNotEmpty',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -23,4 +25,6 @@ export interface Callables {
   startAiJob: { input: StartAiJobInput, output: { jobId: string } }
   cancelAiJob: { input: JobRefInput, output: { ok: true } }
   retryAiJob: { input: JobRefInput, output: { ok: true } }
+  createEpisode: { input: CreateEpisodeInput, output: { episodeId: string } }
+  deleteToTrash: { input: TrashInput, output: { ok: true } }
 }

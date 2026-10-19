@@ -81,6 +81,27 @@ service cloud.firestore {
       match /aiJobs/{jobId} {
         allow read: if canView(ws);
       }
+      // EPI-01·02: 편집자 이상이 직접 만들고 고친다. episodeCount·deletedAt은 서버만
+      match /series/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100)
+          && request.resource.data.episodeCount == 0 && request.resource.data.deletedAt == null
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'coverPath', 'archivedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
+      }
+      // EPI-10~12: 만들기·삭제는 서버(createEpisode·deleteToTrash). 제목·단계·상태·보관·설정만 직접 고친다
+      match /episodes/{id} {
+        allow read: if canView(ws);
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'updatedAt'])
+          && strLen(request.resource.data.title, 1, 80)
+          && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
+          && request.resource.data.status in ['active', 'done', 'published'];
+      }
     }
   }
 }

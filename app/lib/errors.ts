@@ -23,6 +23,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.notMember': 'notMember',
   'error.forbidden': 'forbidden',
   'error.limitExceeded': 'limitExceeded',
+  'error.seriesNotEmpty': 'seriesNotEmpty',
   'error.modelUnavailable': 'modelUnavailable',
 }
 
