@@ -41,6 +41,9 @@ async function other() {
       <Button variant="outline" @click="other">
         {{ ko.waiting.other }}
       </Button>
+      <NuxtLink to="/welcome#waitlist" class="text-muted-foreground text-center text-xs underline">
+        {{ ko.waiting.join }}
+      </NuxtLink>
     </CardContent>
   </Card>
 </template>

@@ -72,6 +72,9 @@ async function sendLink() {
           {{ ko.login.sendLink }}
         </Button>
       </form>
+      <NuxtLink to="/welcome#waitlist" class="text-muted-foreground text-center text-xs underline">
+        {{ ko.login.noAccount }}
+      </NuxtLink>
     </CardContent>
   </Card>
 </template>

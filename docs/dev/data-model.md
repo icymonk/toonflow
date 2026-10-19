@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.5 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.6 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -72,6 +72,7 @@
 | `intake/{slug}` | 공개 제보 링크 → `workspaceId`, `enabled`, `name`(작가 이름), `intro`, `topics`, `questions[]`(5개까지), `images`(첨부 받기, 기본 끔). `slug`는 무작위 12자. 하위 `rate/{ip해시}`(`times[]`, 서버만)로 10분 3번 제한 (INB-02~06) |
 | `workspaces/{ws}/config/intake` | `slug`, `bannedWords[]`(100개까지). 멤버 읽기, 소유자·관리자 쓰기 (INB-03·05) |
 | `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 `email`·`nickname`. 제보 문서에는 `notify`(이메일 남김)·`attachments[]`(Storage `workspaces/{ws}/intake/{id}/`, 서버만 씀)·`consent`(`text`·`at`)·`createdBy: 'intake'`만. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
+| `waitlist/{sha256(email)}` | 대기 명단: 이메일, 이름, 인스타그램 계정, 메모, 상태(대기·승인·거절), 처리 시각·운영자 (CMN-41·52, 서버만 쓰고 운영자만 읽음) |
 | `workspaces/{ws}/bubbleTemplates/{id}` | 말풍선 템플릿: 이름, 모양·꼬리·글자 크기·굵게·크기 (REV-07, 편집자가 만들고 지움) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
 | `workspaces/{ws}/publications/{id}` | 발행 기록: 에피소드, 게시일, 링크, 캡션 (PUB-20~23) |
@@ -114,3 +115,4 @@
 - v2.3: 3-E — `reports/{id}` `{ kind: 'page'|'submission', slug, workspaceId, submissionId?, reason, detail, status: 'open'|'resolved', by, action?, note?, resolvedBy?, log[] }`(서버가 만들고 운영자만 읽음), `intakeBlocks/{slug}` `{ workspaceId, reportId, by, at }`(누구나 읽고 서버만 씀, 있으면 `submitIntake` 거절). callable `reportPage`(공개, 10분 3회)·`reportSubmission`(편집자 이상)·`resolveReport`(admin 클레임). 비슷한 제보(INB-26)는 저장하지 않고 화면에서 2글자 조각 유사도 0.6 이상을 묶는다
 - v2.4: 3-F — 컷 `adjust { brightness, contrast, saturate }`(%, 없으면 그대로. 화면은 CSS filter, 출력·릴스는 Canvas filter), 에피소드 `settings.hiRes`(PUB-07 2배 크기 출력)·`settings.plannedAt`(PUB-23 YYYY-MM-DD 메모, Home 오늘 할 일에 표시). 콘티 내보내기(SBD-32)는 저장 없이 대본 보기에서 .txt 내려받기·인쇄 창(PDF 저장)
 - v2.5: 3-G — 에피소드 `aiCheck: { mode: 'quality'|'consistency', items: [{ panelId, issue }], count, jobId, at }`(서버만, 마지막 결과 하나). AI 작업 `panel.check`: 글 모델에 컷마다 고른 그림(후보 문서 `imagePath`)을 같이 넘김, 12컷까지. `workspaces/{ws}/bubbleTemplates/{id}` `{ name, shape, tail, fontSize, bold, w, h, createdBy, createdAt }`(고치기 없음)
+- v2.6: 4-A — `waitlist/{sha256(email) 앞 32자}` `{ email, name, handle, note, status: 'pending'|'approved'|'rejected', createdAt, decidedAt?, decidedBy? }`. 공개 callable `joinWaitlist`(같은 곳에서 10분 3회 `waitlistRate/r_{sha}`, 숨은 칸이 채워지면 조용히 버림, 같은 이메일은 한 건), `decideWaitlist`(admin 클레임, 승인 시 `config/access.allowedEmails`에 arrayUnion)

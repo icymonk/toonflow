@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Report, ReportAction } from '#shared/reports'
+import type { WaitlistAction, WaitlistEntry } from '#shared/waitlist'
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { DEFAULT_LIMITS, DEFAULT_MODELS, limitsConfig, modelsConfig, parseEmails } from '#shared/config'
@@ -24,6 +25,7 @@ onMounted(async () => {
   Object.assign(limits, { ...DEFAULT_LIMITS, ...lim!.data() })
   modelsText.value = JSON.stringify({ ...DEFAULT_MODELS, ...models!.data() }, null, 2)
   await loadReports()
+  await loadWaitlist()
 })
 
 async function save(id: string, data: Record<string, unknown>) {
@@ -48,6 +50,25 @@ async function resolve(r: Report, action: ReportAction) {
     await callFn($functions, 'resolveReport', { reportId: r.id, action, note: notes[r.id] ?? '' })
     toast.success(t.saved)
     await loadReports()
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+}
+// CMN-52 대기 명단
+const waitlist = ref<WaitlistEntry[]>([])
+const showDecided = ref(false)
+const shownWaitlist = computed(() => waitlist.value.filter(w => showDecided.value || w.status === 'pending'))
+async function loadWaitlist() {
+  const snap = await getDocs(query(collection($firestore, 'waitlist'), orderBy('createdAt', 'desc'), limit(200)))
+  waitlist.value = snap.docs.map(d => ({ id: d.id, ...d.data() }) as WaitlistEntry)
+}
+async function decide(w: WaitlistEntry, action: WaitlistAction) {
+  try {
+    await callFn($functions, 'decideWaitlist', { id: w.id, action })
+    toast.success(t.saved)
+    await loadWaitlist()
+    if (action === 'approve') emails.value = [...new Set([...parseEmails(emails.value), w.email])].join('\n')
   }
   catch (error) {
     toast.error(errorMessage(error) ?? ko.errors.unknown)
@@ -130,6 +151,36 @@ function saveModels() {
           <Button class="self-start" @click="saveModels">
             {{ t.save }}
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ t.waitlist }}</CardTitle>
+          <CardDescription>{{ t.waitlistHint }}</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-2">
+          <label class="flex items-center gap-2 text-xs"><input v-model="showDecided" type="checkbox">{{ t.showDecided }}</label>
+          <p v-if="!shownWaitlist.length" class="text-muted-foreground text-sm">
+            {{ t.noWaitlist }}
+          </p>
+          <div v-for="w in shownWaitlist" :key="w.id" class="flex flex-wrap items-center gap-2 rounded-md border p-3 text-sm">
+            <span class="rounded px-1.5 py-0.5 text-xs" :class="w.status === 'pending' ? 'bg-amber-100 text-amber-900' : 'bg-muted'">{{ t.waitStatus[w.status] }}</span>
+            <span class="font-medium">{{ w.name }}</span>
+            <span>{{ w.email }}</span>
+            <span v-if="w.handle" class="text-muted-foreground text-xs">{{ w.handle }}</span>
+            <span class="text-muted-foreground text-xs">{{ when(w.createdAt) }}</span>
+            <p v-if="w.note" class="w-full whitespace-pre-wrap text-xs">
+              {{ w.note }}
+            </p>
+            <div v-if="w.status === 'pending'" class="ml-auto flex gap-1">
+              <Button size="sm" @click="decide(w, 'approve')">
+                {{ t.waitAction.approve }}
+              </Button>
+              <Button size="sm" variant="ghost" @click="decide(w, 'reject')">
+                {{ t.waitAction.reject }}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
       <Card>
