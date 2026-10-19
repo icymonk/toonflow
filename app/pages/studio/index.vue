@@ -7,6 +7,7 @@ import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vue
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
 import { bulkTargets } from '#shared/illustrate'
+import { autoCheck } from '#shared/render'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import { firstUnmetBefore, remaining } from '#shared/studio'
@@ -29,6 +30,19 @@ const illN = useLocalStorage('toonflow:studio:candidates', 2)
 const illBusy = computed(() => cuts.value.filter(c => s.busyPanels.value.has(c.panel.id)).length)
 const failedPanel = (id: string) => ill.latest.value.get(id)?.status === 'failed'
 const compareId = ref<string | null>(null)
+const review = useReview(s, computed(() => s.episode.value?.settings.aspect))
+const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
+const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
+const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
+const issues = computed(() => autoCheck(s.cuts.value))
+function onBubble(panelId: string, dialogueId: string | null) {
+  if (panelId !== selectedPanelId.value) select(panelId)
+  bubbleSel.value = dialogueId ? { panelId, dialogueId } : null
+}
+async function placeAll(force: boolean) {
+  if (force && !window.confirm(t.review.replaceAllConfirm)) return
+  await run(() => review.place(s.cuts.value, force), t.review.placed)
+}
 async function illGenerate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
   await run(() => ill.generate(list, n, opts), t.illustrate.started(list.length))
 }
@@ -328,6 +342,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
               {{ t.board.blank }}
             </Button>
           </div>
+          <div v-if="edit && step === 'review' && cuts.length" class="flex flex-col gap-1.5 px-1 pt-1">
+            <Button size="sm" @click="placeAll(false)">{{ t.review.autoPlace }}</Button>
+            <Button size="sm" variant="outline" @click="placeAll(true)">{{ t.review.replaceAll }}</Button>
+          </div>
           <div v-if="edit && step === 'illustrate' && cuts.length" class="flex flex-col gap-1.5 px-1 pt-1">
             <Button size="sm" :disabled="!bulkTargets(cuts, 'empty', s.busyPanels.value).length" @click="bulk('empty')">
               <Sparkles class="size-4" /> {{ t.illustrate.allEmpty(bulkTargets(cuts, 'empty', s.busyPanels.value).length) }}
@@ -393,7 +411,12 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <button v-if="edit" class="underline" @click="autoSplit">{{ t.board.resplit }}</button>
             <button v-if="edit" class="underline" @click="run(story.keepStale)">{{ t.keep }}</button>
           </div>
-          <div class="bg-card relative flex max-h-full w-full max-w-md flex-col overflow-hidden items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
+          <PageRender
+            v-if="step === 'review'" class="max-h-full w-full max-w-md rounded-lg border shadow-sm" :cuts="pageCutsOf(selected.page.id)" :aspect="episode.settings.aspect"
+            :typeset="review.typeset.value" :edit="edit" :selected-panel-id="selectedPanelId" :selected-bubble="selBubble"
+            @select="onBubble" @move="(pid, did, patch) => run(() => review.setBubble(pid, did, patch))"
+          />
+          <div v-else class="bg-card relative flex max-h-full w-full max-w-md flex-col overflow-hidden items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
             <span class="text-muted-foreground absolute top-2 left-3 text-xs">{{ t.page(selected.pageIndex + 1) }} · {{ t.cut(selected.number) }}</span>
             <StudioPanelImage v-if="selected.panel.selectedCandidateId" :candidate-id="selected.panel.selectedCandidateId" :crop="selected.panel.crop" class="absolute inset-0" />
             <template v-else>
@@ -431,6 +454,12 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
+        />
+        <StudioReviewAside
+          v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit"
+          @text="(did, text) => run(() => review.setText(selected!.panel.id, did, text))" @bubble="(did, patch) => run(() => review.setBubble(selected!.panel.id, did, patch))"
+          @typeset="patch => run(() => review.setTypeset(patch))" @replace="run(() => review.place([selected!], true), t.review.placed)"
+          @pick="is => onBubble(is.panelId, is.dialogueId ?? null)"
         />
         <StudioIllustrateAside
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
