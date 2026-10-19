@@ -1,16 +1,29 @@
 import type { LaidCut, Typeset } from '#shared/render'
+import type { FirebaseStorage } from 'firebase/storage'
+import { getBlob, ref as storageRef } from 'firebase/storage'
+import { candidatePath } from '#shared/illustrate'
 import { fontCss, spikyPath } from '#shared/render'
 
 const INK = '#1F2A44'
 
 // PUB-03: 장 렌더러와 같은 배치(layoutPage)를 Canvas에 그려 JPG/PNG로
 export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null, type: 'image/jpeg' | 'image/png'): Promise<Blob> {
-  const font = fontCss(ts.font)
-  await Promise.all([document.fonts.load(`500 ${ts.fontSize}px ${font}`), document.fonts.load(`700 ${ts.fontSize}px ${font}`)]).catch(() => {})
+  await loadFonts(ts)
   const cv = document.createElement('canvas')
   cv.width = W
   cv.height = H
-  const ctx = cv.getContext('2d')!
+  paintPage(cv.getContext('2d')!, laid, W, H, ts, imgs, label, watermark)
+  return new Promise((res, rej) => cv.toBlob(b => (b ? res(b) : rej(new Error('toBlob failed'))), type, 0.92))
+}
+
+export async function loadFonts(ts: Typeset) {
+  const font = fontCss(ts.font)
+  await Promise.all([document.fonts.load(`500 ${ts.fontSize}px ${font}`), document.fonts.load(`700 ${ts.fontSize}px ${font}`)]).catch(() => {})
+}
+
+/** 장 하나를 ctx에 그린다. 영상 프레임(app/lib/video.ts)도 이걸 쓴다 */
+export function paintPage(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null) {
+  const font = fontCss(ts.font)
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, W, H)
   for (const it of laid) {
@@ -99,7 +112,6 @@ export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typese
     ctx.fillStyle = '#71717A'
     ctx.fillText(label, W - 24, H - 4)
   }
-  return new Promise((res, rej) => cv.toBlob(b => (b ? res(b) : rej(new Error('toBlob failed'))), type, 0.92))
 }
 
 export function download(blob: Blob, name: string) {
@@ -108,4 +120,10 @@ export function download(blob: Blob, name: string) {
   a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000)
+}
+
+/** 컷에 고른 그림(후보 ID)들을 불러온다 */
+export async function loadImages(storage: FirebaseStorage, ws: string, ids: string[], into = new Map<string, ImageBitmap>()) {
+  await Promise.all([...new Set(ids)].filter(id => !into.has(id)).map(async id => into.set(id, await createImageBitmap(await getBlob(storageRef(storage, candidatePath(ws, id)))))))
+  return into
 }

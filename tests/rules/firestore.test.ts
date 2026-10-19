@@ -87,6 +87,16 @@ describe('server-only fields', () => {
     await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/meta/typeset`), { ...ts, font: 'comic' }))
     await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/meta/typeset`), ts))
   })
+  it('video settings validate shape (PUB-30~36)', async () => {
+    const v = { aspect: '9:16', unit: 'panel', clips: { p1: { durationMs: 2000, motion: 'zoomIn' } }, musicPath: `${W}/refs/music/e1/a.mp3`, musicVolume: 0.8, musicFadeOutMs: 2000, musicLoop: true, coverId: null }
+    const ref = `${W}/episodes/e1/meta/video`
+    await assertSucceeds(setDoc(doc(db('editor'), ref), v))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...v, aspect: '16:9' }))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...v, musicPath: 'workspaces/other/refs/music/e1/a.mp3' }))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...v, musicVolume: 2 }))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...v, extra: 1 }))
+    await assertFails(setDoc(doc(db('viewer'), ref), v))
+  })
 })
 
 describe('2단계 경로', () => {

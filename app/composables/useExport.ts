@@ -1,9 +1,7 @@
 import type { Cut } from '#shared/studio'
-import { getBlob, ref as storageRef } from 'firebase/storage'
 import { zipSync } from 'fflate'
-import { candidatePath } from '#shared/illustrate'
 import { AI_LABEL, exportName, layoutPage, splitBatches } from '#shared/render'
-import { download, drawPage } from '~/lib/export'
+import { download, drawPage, loadImages } from '~/lib/export'
 import { ko } from '~/locales/ko'
 
 /** Export: 장별 JPG/PNG, ZIP, 장 하나만, 장수 상한 나누기 (PUB-03~05·13) */
@@ -16,9 +14,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
 
   async function render(idx: number[]) {
     const { w, h } = review.size.value
-    const imgs = new Map<string, ImageBitmap>()
-    const ids = [...new Set(idx.flatMap(i => pages.value[i] ?? []).map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x))]
-    await Promise.all(ids.map(async id => imgs.set(id, await createImageBitmap(await getBlob(storageRef($storage, candidatePath(auth.workspace!.id, id)))))))
+    const imgs = await loadImages($storage, auth.workspace!.id, idx.flatMap(i => pages.value[i] ?? []).map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x))
     const ep = s.episode.value!
     const out: { name: string, blob: Blob }[] = []
     for (const [k, i] of idx.entries()) {

@@ -47,6 +47,16 @@ const exportPages = computed(() => {
   return [...m.values()]
 })
 const exp = useExport(s, review, exportPages)
+// PUB-30~37 릴스 영상
+const expMode = ref<'image' | 'video'>('image')
+const video = useVideo(s, review)
+const vTime = ref(0)
+const vIndex = computed(() => Math.max(0, video.clips.value.findIndex(c => c.cuts.some(x => x.panel.id === selectedPanelId.value))))
+const vClip = computed(() => video.clips.value[vIndex.value] ?? null)
+function vSelect(c: { start: number, cuts: Cut[] }) {
+  vTime.value = c.start
+  select(c.cuts[0]!.panel.id)
+}
 // REV-10·14·15
 const rows = computed(() => checklist(issues.value, episode.value?.settings.aiLabel !== false, episode.value?.review ?? {}, s.seriesReviewItems.value))
 const left = computed(() => reviewLeft(rows.value))
@@ -490,6 +500,13 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           />
           <p v-else class="text-muted-foreground text-center text-sm">{{ t.story.empty }}</p>
         </div>
+        <div v-else-if="step === 'export' && expMode === 'video' && cuts.length" class="flex w-full flex-1 flex-col items-center gap-3 overflow-y-auto">
+          <StudioVideoPreview v-model="vTime" :draw="video.draw.value" :width="video.size.value.w" :height="video.size.value.h" :total="video.total.value" />
+          <StudioVideoTimeline
+            class="max-w-3xl" :clips="video.clips.value" :total="video.total.value" :selected-id="vClip?.id ?? ''" :edit="edit"
+            @select="vSelect" @duration="(id, ms) => run(() => video.setClip(id, { durationMs: ms }))"
+          />
+        </div>
         <StudioExportPreview
           v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportPages" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
           :ai-label="exp.aiLabel.value" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
@@ -548,14 +565,24 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
-        <StudioExportAside
-          v-else-if="step === 'export'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
-          :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-          :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
-          :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
-          @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
-          @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
-        />
+        <template v-else-if="step === 'export'">
+          <div class="mb-3 flex gap-1" role="tablist">
+            <Button size="sm" role="tab" :aria-selected="expMode === 'image'" :variant="expMode === 'image' ? 'default' : 'outline'" @click="expMode = 'image'">{{ t.video.tabImage }}</Button>
+            <Button size="sm" role="tab" :aria-selected="expMode === 'video'" :variant="expMode === 'video' ? 'default' : 'outline'" @click="expMode = 'video'"><Clapperboard class="size-3.5" /> {{ t.video.tabVideo }}</Button>
+          </div>
+          <StudioExportAside
+            v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
+            :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
+            :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
+            :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
+            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
+            @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
+          />
+          <StudioVideoAside
+            v-else :settings="video.settings.value" :clip="vClip" :index="vIndex" :total="video.total.value" :edit="edit"
+            @save="p => run(() => video.save(p))" @clip="(id, p) => run(() => video.setClip(id, p))" @auto="id => run(() => video.autoDuration(id))" @all="ms => run(() => video.allDuration(ms))"
+          />
+        </template>
         <StudioReviewAside
           v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit" :checklist="rows" :left="left"
           @check="setCheck" @add-item="addItem" @remove-item="removeItem"

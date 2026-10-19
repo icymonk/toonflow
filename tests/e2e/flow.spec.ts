@@ -73,6 +73,24 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   expect(files.length).toBeGreaterThan(0)
   expect(files[0]).toMatch(/_1화_01\.jpg$/)
 
+  // 릴스 영상 미리 보기·타임라인 (PUB-30~37)
+  await page.getByRole('tab', { name: /릴스 영상/ }).click()
+  const preview = page.getByLabel('영상 미리 보기')
+  await expect(preview).toBeVisible()
+  await expect(page.getByRole('listitem').filter({ hasText: /초/ }).first()).toBeVisible()
+  await page.getByLabel('움직임', { exact: true }).selectOption('zoomIn')
+  await page.getByLabel('보여 줄 시간(초)').fill('3')
+  await page.getByLabel('보여 줄 시간(초)').blur()
+  await expect(page.getByLabel('움직임', { exact: true })).toHaveValue('zoomIn')
+  await expect(page.getByLabel('보여 줄 시간(초)')).toHaveValue('3')
+  await expect.poll(() => preview.evaluate((cv: HTMLCanvasElement) => {
+    const d = cv.getContext('2d')!.getImageData(0, 0, cv.width, cv.height).data
+    let n = 0
+    for (let i = 0; i < d.length; i += 4 * 97) if (d[i]! < 200) n++
+    return n
+  })).toBeGreaterThan(50)
+  await page.getByRole('tab', { name: '이미지' }).click()
+
   // 캡션·발행
   await page.getByRole('button', { name: /AI 캡션 초안/ }).click()
   await expect(page.getByPlaceholder(/캡션 본문/)).toHaveValue(/가짜 캡션/, { timeout: 60_000 })
