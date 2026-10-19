@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.9 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.0 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -73,8 +73,8 @@
 | `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 이메일·닉네임. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
 | `workspaces/{ws}/publications/{id}` | 발행 기록: 에피소드, 게시일, 링크, 캡션 (PUB-20~23) |
-| `episodes/{id}/meta/video` | 영상 설정: `aspect`, `unit: 'panel'\|'page'`, `clips: { panelId, durationMs, motion, motionStrength, transition, transitionMs, bubbleReveal }[]`(타임라인 순서), `musicPath`, `musicVolume`, `musicFadeOutMs`, `coverPanelId` (PUB-30~38) |
-| `workspaces/{ws}/refs/music/{file}` (Storage) | 올린 배경음악 (PUB-36, 편집자, `audio/*`, 20MB 이하) |
+| `episodes/{id}/meta/video` | 영상 설정: `aspect: '9:16'\|'4:5'`, `unit: 'panel'\|'page'`, `clips: { [panelId 또는 pageId]: { durationMs, motion, strength, transition, transitionMs, reveal } }`(고친 컷만, 순서는 콘티 순서를 따른다), `musicPath`, `musicVolume`, `musicFadeOutMs`, `musicLoop`, `coverId` (PUB-30~38) |
+| `workspaces/{ws}/refs/music/{episodeId}/{file}` (Storage) | 올린 배경음악 (PUB-36, 편집자, `audio/*`, 20MB 이하) |
 
 ## 2. Storage
 | 경로 | 내용 | 쓰기 |
@@ -106,3 +106,4 @@
 - v1.7: 2-G — 캐릭터 `variants: { kind: 'expression'|'outfit', label, path }[]`(최대 12, 컷 `expression`·`outfit` 글에 `label`이 들어 있으면 대표 이미지 대신 참조), 이미지 작업 `prompts` 최대 6개(캐릭터 시트)
 - v1.8: 2-H — `episodes/{id}/snapshots/{id}`(STU-23): `name`(1~40자), `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`·`panels[]`(각 80개 이하, 컷은 편집자가 쓰는 필드만 복사). 만들기·지우기만, 고치기 없음. 되돌리기는 지금 상태를 먼저 스냅숏으로 남긴 뒤 장·컷을 다시 쓰고, 그 뒤에 생긴 장·컷은 `deletedAt`
 - v1.9: 2-I — `episodes.number`는 편집자가 고칠 수 있음(정수 1~9999), `episodes.duplicatedFrom`(복제 원본, `duplicateEpisode`만 씀), `submissions.aiSummary`(`summary[≤3]`·`genre`·`score` 0~100·`reason`·`jobId`, 서버만 씀), collectionGroup `candidates(workspaceId, imagePath)` 색인(정리 때 같은 파일을 쓰는 후보 확인)
+- v2.0: 3-A — `meta/video` `clips`를 컷·장 ID 키의 맵(고친 컷만)으로, `musicLoop`·`coverId` 추가, 음원 경로 `refs/music/{episodeId}/{file}`
