@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn-vue/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* TOONFLOW 토큰: docs/design/ui-system.md 2절. 다크 모드는 4단계(#20) */
+@theme inline {
+    --font-sans: 'Pretendard Variable', Pretendard, Inter, -apple-system, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    --font-heading: var(--font-sans);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+}
+
+:root {
+    /* Warm Canvas · Ink Navy · Flow Coral */
+    --background: #faf8f4;
+    --foreground: #202538;
+    --card: #ffffff;
+    --card-foreground: #202538;
+    --popover: #ffffff;
+    --popover-foreground: #202538;
+    /* 코랄 위 글자는 Ink Navy (#16, 대비 5.7:1) */
+    --primary: #ff735c;
+    --primary-foreground: #202538;
+    --secondary: #f1efea;
+    --secondary-foreground: #202538;
+    --muted: #f1efea;
+    --muted-foreground: #686d7b;
+    --accent: #ffe3dd;
+    --accent-foreground: #202538;
+    --destructive: #b95b45;
+    --success: #367a68;
+    --warning: #a86a20;
+    --border: #e9e7e2;
+    --input: #e9e7e2;
+    --ring: #202538;
+    --radius: 12px;
+    /* 사이드바는 Ink Navy */
+    --sidebar: #202538;
+    --sidebar-foreground: #faf8f4;
+    --sidebar-primary: #ff735c;
+    --sidebar-primary-foreground: #202538;
+    --sidebar-accent: #2d3349;
+    --sidebar-accent-foreground: #faf8f4;
+    --sidebar-border: #2d3349;
+    --sidebar-ring: #ff735c;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
