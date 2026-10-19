@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.8 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v0.9 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -94,3 +94,4 @@
 - v0.6: 1-H — 후보 id `${jobId}_${i}`(그림은 `aiJobs/{jobId}/{i}.png`), 고른 그림이 없으면 첫 후보를 자동 선택. `panel.image` params `{ prompt, n, negative, refPaths[], input }`
 - v0.7: 1-I — 말풍선 `bubbles[]` 좌표는 컷 안 0~1 비율, `shape`=대사 종류, `tail`: `none|bl|b|br|tl|tr`. `meta/typeset.font`: `pretendard|gowun-dodum|jua` (SIL OFL 1.1)
 - v0.8: 1-J — 에피소드 `settings.format: 'jpg'|'png'`, `settings.aiLabel`(기본 켜짐). 출력은 저장하지 않고 브라우저에서 바로 내려받기. Storage 버킷 CORS는 `storage.cors.json`을 `main` 배포 때 CI가 적용
+- v0.9: 1-K — 휴지통 되살리기·바로 삭제는 callable `restoreFromTrash`·`purgeFromTrash`(하위 문서까지 `recursiveDelete`), 30일 지난 것은 `purgeExpiredTrash`(매일 04:00 KST). 알림은 `aiJobs` 최근 30개 + 사용량으로 앱에서 계산하고 읽은 시각은 브라우저에 저장
