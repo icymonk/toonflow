@@ -311,6 +311,9 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <CardDescription>{{ t.source[current.source] }}<template v-if="current.sourceNote"> · {{ current.sourceNote }}</template> · {{ date(current) }}</CardDescription>
           </CardHeader>
           <CardContent class="flex flex-col gap-4">
+            <p v-if="current.withdrawn" class="rounded-md bg-red-100 px-3 py-2 text-xs text-red-900" role="alert">
+              {{ current.withdrawn.published ? t.withdrawnAfter : t.withdrawnBefore }}<template v-if="current.withdrawn.at"> · {{ new Date(current.withdrawn.at.toMillis()).toLocaleString('ko-KR') }}</template>
+            </p>
             <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
               {{ current.body }}
             </p>
@@ -329,6 +332,7 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
               </p>
               <p v-if="current.consent">
                 <span class="text-muted-foreground">{{ t.consent }}</span> {{ current.consent.text }}
+                <br><span class="text-muted-foreground">{{ t.consentOptional }}</span> {{ t.consentCredit }} {{ current.consent.credit ? 'O' : 'X' }}<template v-if="current.credit"> ({{ current.credit }})</template> · {{ t.consentNotify }} {{ current.consent.notify ?? current.notify ? 'O' : 'X' }}<template v-if="current.consent.at"> · {{ new Date(current.consent.at.toMillis()).toLocaleString('ko-KR') }}</template>
               </p>
             </div>
             <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">

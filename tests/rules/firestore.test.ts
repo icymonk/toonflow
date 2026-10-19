@@ -163,6 +163,8 @@ describe('3단계 제보 링크 (INB-02~06·15)', () => {
     await assertFails(setDoc(doc(db('owner'), 'intake/abcd2345efgh'), { ...page, extra: 1 }))
     await assertSucceeds(getDoc(doc(db(null), 'intake/abcd2345efgh')))
     await assertSucceeds(setDoc(doc(db('admin'), 'intake/abcd2345efgh'), { ...page, enabled: false }))
+    await assertSucceeds(setDoc(doc(db('owner'), 'intake/abcd2345efgh'), { ...page, consentText: '동의해요' }))
+    await assertFails(setDoc(doc(db('owner'), 'intake/abcd2345efgh'), { ...page, consentText: 'x'.repeat(501) }))
   })
   it('config: managers write slug and banned words; members read', async () => {
     await assertSucceeds(setDoc(doc(db('owner'), `${W}/config/intake`), { slug: 'abcd2345efgh', bannedWords: ['광고'] }))
@@ -176,6 +178,8 @@ describe('3단계 제보 링크 (INB-02~06·15)', () => {
     await assertFails(getDoc(doc(db('editor'), `${W}/submissions/s1/private/contact`)))
     await assertFails(setDoc(doc(db('owner'), `${W}/submissions/s1/private/contact`), { nickname: 'x', email: '' }))
     await assertFails(getDoc(doc(db(null), 'intake/abcd2345efgh/rate/k')))
+    await assertFails(getDoc(doc(db('owner'), 'intakeTokens/x')))
+    await assertFails(setDoc(doc(db(null), 'intakeTokens/x'), { workspaceId: 'w1', submissionId: 's1' }))
   })
 })
 

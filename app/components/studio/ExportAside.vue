@@ -4,11 +4,12 @@ import { toast } from 'vue-sonner'
 import { PAGE_SIZES, POST_LIMIT } from '#shared/render'
 import { ko } from '~/locales/ko'
 
-// PUB-01·03·04·05·06·10·11·13·20, CMN-43
+// PUB-01·03·04·05·06·10·11·12·13·14·20, CMN-43
 interface SeriesPub { hashtags: string, greeting: string, watermark: string }
 const props = defineProps<{
   pageCount: number, currentPage: number, aspect: string, format: 'jpg' | 'png', aiLabel: boolean, progress: string | null, edit: boolean
   caption: string, captionText: string, hashtags: string[], series: SeriesPub, published: { at: string, url: string } | null, captionCost: number, captioning: boolean
+  credit: string, creditPlace: 'caption' | 'page', withdrawn: number
 }>()
 const emit = defineEmits<{ settings: [patch: Record<string, unknown>], all: [], one: [], makeCaption: [], captionText: [text: string], series: [patch: Partial<SeriesPub>], publish: [url: string], unpublish: [] }>()
 const t = ko.studio.publish
@@ -39,6 +40,7 @@ async function copy() {
         <option value="png">PNG</option>
       </select>
     </label>
+    <div v-if="withdrawn" class="rounded-md bg-red-100 px-2 py-1.5 text-xs text-red-900" role="alert">{{ t.withdrawnAlert(withdrawn) }}</div>
     <div v-if="pageCount > POST_LIMIT" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900" role="alert">{{ t.overLimit(pageCount, POST_LIMIT) }}</div>
     <Button :disabled="!!progress || !pageCount" @click="emit('all')"><Download class="size-4" /> {{ t.all(pageCount) }}</Button>
     <Button variant="outline" :disabled="!!progress || !pageCount" @click="emit('one')">{{ t.one(currentPage + 1) }}</Button>
@@ -52,6 +54,13 @@ async function copy() {
       <Textarea :model-value="captionText" rows="4" class="text-xs" :placeholder="t.captionPh" :disabled="!edit" @change="emit('captionText', val($event))" />
       <p v-if="hashtags.length" class="text-primary text-xs">{{ hashtags.join(' ') }}</p>
       <label class="flex items-center gap-2 text-xs"><input type="checkbox" :checked="aiLabel" :disabled="!edit" @change.prevent="toggleLabel">{{ t.aiLabel }}</label>
+      <label v-if="credit" class="flex items-center gap-2 text-xs">{{ t.creditPlace }}
+        <select :value="creditPlace" :class="sel" :disabled="!edit" :aria-label="t.creditPlace" @change="emit('settings', { creditPlace: val($event) })">
+          <option value="caption">{{ t.creditCaption }}</option>
+          <option value="page">{{ t.creditPage }}</option>
+        </select>
+      </label>
+      <p v-if="credit" class="text-muted-foreground text-xs">{{ credit }}</p>
       <p class="text-muted-foreground text-xs">{{ t.caption }}</p>
       <div class="bg-muted flex items-start gap-2 rounded p-2 text-xs">
         <span class="flex-1 whitespace-pre-wrap">{{ caption }}</span>

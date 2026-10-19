@@ -29,6 +29,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.tooShort': 'tooShort',
   'error.bannedWord': 'bannedWord',
   'error.tooMany': 'tooMany',
+  'error.tokenNotFound': 'tokenNotFound',
 }
 
 /** Firebase·서버 오류를 화면 문구로. 사용자가 닫은 팝업 등은 null */
