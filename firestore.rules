@@ -17,6 +17,12 @@ service cloud.firestore {
     function canView(ws) {
       return isAdmin() || roleIn(ws) in ['owner', 'admin', 'editor', 'viewer'];
     }
+    function canEdit(ws) {
+      return roleIn(ws) in ['owner', 'admin', 'editor'];
+    }
+    function strLen(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
     function canManage(ws) {
       return roleIn(ws) in ['owner', 'admin'];
     }
@@ -51,6 +57,25 @@ service cloud.firestore {
       // AIU-20·21: 사용량은 서버만 쓴다
       match /usage/{month} {
         allow read: if canView(ws);
+      }
+      // INB-01·20~22: 편집자 이상이 직접 등록·상태·메모·태그·별표. used·withdrawn·episodeIds·deletedAt은 서버만
+      match /submissions/{id} {
+        function validFields(d) {
+          return strLen(d.title, 1, 80) && strLen(d.body, 1, 20000) && strLen(d.note, 0, 2000)
+            && strLen(d.sourceNote, 0, 200) && d.tags is list && d.tags.size() <= 10 && d.starred is bool;
+        }
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['title', 'body', 'source', 'sourceNote', 'tags', 'starred', 'note', 'status', 'episodeIds', 'createdBy', 'createdAt'])
+          && validFields(request.resource.data)
+          && request.resource.data.source in ['dm', 'comment', 'form', 'self', 'other']
+          && request.resource.data.status == 'new' && request.resource.data.episodeIds == []
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if canEdit(ws)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'sourceNote', 'tags', 'starred', 'note', 'status'])
+          && validFields(request.resource.data)
+          && resource.data.status in ['new', 'reviewing', 'accepted', 'onHold', 'rejected']
+          && request.resource.data.status in ['new', 'reviewing', 'accepted', 'onHold', 'rejected'];
       }
       // AIU-02: 작업 상태는 서버만 쓴다
       match /aiJobs/{jobId} {
