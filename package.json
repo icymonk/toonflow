@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "typecheck": "nuxt typecheck && pnpm --filter functions typecheck",
     "functions:build": "pnpm --filter functions build",
-    "emulators": "pnpm functions:build && firebase emulators:start"
+    "emulators": "pnpm functions:build && firebase emulators:start",
+    "test:rules": "firebase emulators:exec --only firestore --project demo-toonflow 'vitest run -c vitest.rules.config.ts'"
   },
   "dependencies": {
     "@lucide/vue": "^1.52.0",
@@ -34,6 +35,8 @@
     "zod": "^4.6.5"
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "firebase-tools": "^15.34.0",
     "happy-dom": "20.14.5",
