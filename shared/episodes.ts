@@ -50,6 +50,7 @@ export interface Series extends SeriesInput {
   hashtags?: string
   greeting?: string
   watermark?: string
+  memo?: string
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null

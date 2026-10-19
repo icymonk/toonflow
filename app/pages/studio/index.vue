@@ -13,6 +13,7 @@ import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
 import { composeCaption } from '#shared/publish'
+import { storyContext } from '#shared/story'
 import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
 import { errorMessage } from '~/lib/errors'
@@ -26,7 +27,12 @@ const edit = computed(() => canEdit(auth.role))
 const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
-const story = useStory(episode, computed(() => cuts.value.length > 0))
+// STO-03: 작품 메모 + 주요·이번 화 캐릭터의 성격·말투
+const storyCtx = computed(() => {
+  const ids = new Set([...(s.series.value?.mainCharacterIds ?? []), ...(episode.value?.settings.characterIds ?? [])])
+  return storyContext(s.series.value?.memo, lib.characters.value.filter(c => ids.has(c.id)))
+})
+const story = useStory(episode, computed(() => cuts.value.length > 0), storyCtx)
 const lib = useLibrary()
 const selectedPanelId = computed(() => String(route.query.panel ?? '') || cuts.value[0]?.panel.id || '')
 const ill = useIllustrate(s, lib, selectedPanelId)
@@ -106,6 +112,9 @@ async function makeCharacter(panel: Panel, name: string, once: boolean) {
 }
 const storySel = computed(() => String(route.query.version ?? '') || story.active.value?.id || story.versions.value.at(-1)?.id || '')
 const storyVersion = computed(() => story.versions.value.find(v => v.id === storySel.value) ?? null)
+// STO-23
+const storyCompareId = ref('')
+const compareVersion = computed(() => story.versions.value.find(v => v.id === storyCompareId.value && v.id !== storySel.value) ?? null)
 const running = (type: string) => s.jobs.value.filter(j => j.type === type).length
 const selectVersion = (id: string) => router.replace({ query: { ...route.query, version: id } })
 
@@ -431,8 +440,11 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <!-- 가운데: 미리보기 -->
       <section class="bg-muted/30 flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-6">
         <div v-if="step === 'story'" class="w-full flex-1 overflow-y-auto">
+          <StudioStoryCompare v-if="storyVersion && compareVersion" :a="storyVersion" :b="compareVersion" @close="storyCompareId = ''" />
           <StudioStoryEditor
-            v-if="storyVersion" :version="storyVersion" :active="storyVersion.id === episode.activeStoryVersionId" :edit="edit"
+            v-else-if="storyVersion" :version="storyVersion" :active="storyVersion.id === episode.activeStoryVersionId" :edit="edit"
+            :versions="story.versions.value" :rev="story.rewriteRev.value" :rewriting="!!story.rewriting.value"
+            @rewrite="(sid, f, text, m, tone) => run(() => story.rewrite(storyVersion!, sid, f, text, m, tone))" @compare="id => (storyCompareId = id)"
             @save="patch => run(() => story.updateVersion(storyVersion!.id, patch))" @activate="run(() => story.setActive(storyVersion!.id))"
             @remake="run(() => story.draft(1, '', storyVersion!), t.story.started)"
           />
@@ -491,6 +503,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <StudioStoryAside
           v-if="step === 'story'" :episode="episode" :version="storyVersion" :sources="story.sources.value" :edit="edit"
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
+          :series-memo="s.series.value?.memo ?? ''" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />

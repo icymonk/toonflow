@@ -45,6 +45,19 @@ const split = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
+// STO-13
+const MODE_KO = { rewrite: '새롭게 다시 써', shorter: '뜻은 그대로 두고 더 짧게 줄여', funnier: '더 웃기게 고쳐', tone: '' } as const
+const rewrite = (p: StoryParams): TextPrompt => {
+  const r = p.rewrite
+  if (!r) throw new AiError('internal', 'rewrite params missing')
+  const how = r.mode === 'tone' ? `말투를 "${r.tone || '자연스러운 구어체'}"로 바꿔` : MODE_KO[r.mode]
+  return {
+    format: 'rewrite',
+    system: `너는 인스타툰 각색 작가야. 각색안 전체를 참고해서 [고칠 부분]만 ${how}. 대사라면 한 줄에 하나씩 "[종류] 화자: 대사" 형식을 지킨다. 반드시 JSON만: {"text": str}`,
+    prompt: `${p.draft || p.material}\n\n[고칠 부분]\n${r.text}`,
+  }
+}
+
 // PUB-10
 const caption = (p: StoryParams): TextPrompt => ({
   format: 'caption',
@@ -53,7 +66,7 @@ const caption = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption }
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite }
 
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
@@ -61,5 +74,7 @@ export function textPrompt(type: JobType, params: Record<string, unknown>): Text
   if (!build) return { system: '', prompt: JSON.stringify(params) }
   const p = storyParams.safeParse(params)
   if (!p.success) throw new AiError('internal', `bad params for ${type}`)
-  return build(p.data)
+  const out = build(p.data)
+  // STO-03
+  return p.data.context ? { ...out, prompt: `${out.prompt}\n\n[작품 참고 — 설정·캐릭터 말투]\n${p.data.context}` } : out
 }

@@ -14,6 +14,9 @@ export const characterInput = z.object({
   intro: str(100),
   appearance: z.object({ age: str(60), gender: str(60), build: str(60), hair: str(60), eyes: str(60), marks: str(60), outfit: str(60) }),
   appearanceText: str(600),
+  /** CHR-03 */
+  personality: str(100).optional(),
+  speech: z.array(str(80)).max(3).optional(),
   /** CHR-10: 이번 에피소드만 쓰는 단역이면 에피소드 id */
   episodeId: z.string().nullable(),
 })
