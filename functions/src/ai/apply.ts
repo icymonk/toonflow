@@ -7,7 +7,7 @@ import { matchCharacters } from '../../../shared/library'
 import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
 import { AiError } from './errors'
 
-interface JobDoc { type: JobType, target?: { episodeId?: string, styleId?: string }, params?: Record<string, unknown> }
+interface JobDoc { type: JobType, target?: { episodeId?: string, panelId?: string, styleId?: string }, params?: Record<string, unknown> }
 
 function parse<T>(schema: z.ZodType<T>, result: unknown): T {
   const out = typeof result === 'string' ? parseJson(schema, result) : null
@@ -21,6 +21,22 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
   // STL-04: 그림체 미리 보기는 그림체 문서에. 캐릭터 후보(CHR-04)는 작업 결과에서 작가가 고른다
   if (job.type === 'style.sample' && job.target?.styleId && Array.isArray(result)) {
     await db.doc(`workspaces/${wsId}/styles/${job.target.styleId}`).update({ samples: result, sampleJobId: jobId, updatedAt: FieldValue.serverTimestamp() })
+    return
+  }
+  // ILL-01·10: 컷 후보. 후보 id가 jobId_i라 다시 실행해도 같은 문서. 고른 그림이 없으면 첫 후보로
+  if (job.type === 'panel.image' && job.target?.episodeId && job.target.panelId && Array.isArray(result)) {
+    const panelRef = db.doc(`workspaces/${wsId}/episodes/${job.target.episodeId}/panels/${job.target.panelId}`)
+    const now = FieldValue.serverTimestamp()
+    await db.runTransaction(async (tx) => {
+      const panel = await tx.get(panelRef)
+      if (!panel.exists) return
+      const ids = (result as string[]).map((imagePath, i) => {
+        const id = `${jobId}_${i}`
+        tx.set(panelRef.collection('candidates').doc(id), { imagePath, width: 1080, height: 1350, source: 'ai', jobId, input: job.params?.input ?? null, hidden: false, favorite: false, createdAt: now })
+        return id
+      })
+      if (!panel.get('selectedCandidateId') && ids[0]) tx.update(panelRef, { selectedCandidateId: ids[0], updatedAt: now })
+    })
     return
   }
   const episodeId = job.target?.episodeId

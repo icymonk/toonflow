@@ -19,10 +19,11 @@ const grid: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', 
       <span class="text-muted-foreground text-xs">{{ ko.studio.page(cs[0]!.pageIndex + 1) }}</span>
       <div class="bg-card grid gap-0.5 rounded border p-0.5" :class="grid[cs[0]!.page.layout]" :style="{ aspectRatio: aspect }">
         <button
-          v-for="c in cs" :key="c.panel.id" class="overflow-hidden bg-neutral-100 p-1.5 text-left text-[10px] leading-tight text-neutral-700"
+          v-for="c in cs" :key="c.panel.id" class="overflow-hidden bg-neutral-100 text-left text-[10px] leading-tight text-neutral-700"
           :class="{ 'ring-primary ring-2': c.panel.id === selectedId }" @click="emit('select', c.panel.id)"
         >
-          <span class="line-clamp-6">{{ c.panel.scene || ko.studio.noScene }}</span>
+          <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :crop="c.panel.crop" class="relative size-full" />
+          <span v-else class="line-clamp-6 p-1.5">{{ c.panel.scene || ko.studio.noScene }}</span>
         </button>
       </div>
     </div>

@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.5 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v0.6 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -91,3 +91,4 @@
 - v0.3: 1-E — 에피소드 `analysis`·`storyVersionCount`·`staleFrom`, 각색안 `logline`·`punchline`·`settings`·`editedAt` (분석은 각색안이 아니라 에피소드에)
 - v0.4: 1-F — 컷 `place`·`mood`·`characterNames`, 대사 `speaker`, 에피소드 `storyboardJobId`. 다시 나누기는 기존 장·컷을 soft delete
 - v0.5: 1-G — 캐릭터 `aliases`·`intro`·외형 항목·`appearanceText`·`episodeId`·`coverPath`, 그림체 항목 값·`rightsConfirmed`·`sampleJobId`. 캐릭터 후보·그림체 미리 보기는 `style.sample` 작업 (`params.prompts[]`·`refPaths[]`)
+- v0.6: 1-H — 후보 id `${jobId}_${i}`(그림은 `aiJobs/{jobId}/{i}.png`), 고른 그림이 없으면 첫 후보를 자동 선택. `panel.image` params `{ prompt, n, negative, refPaths[], input }`

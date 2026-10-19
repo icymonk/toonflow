@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
+import type { PanelJob } from '~/composables/useIllustrate'
 import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
+import { bulkTargets } from '#shared/illustrate'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import { firstUnmetBefore, remaining } from '#shared/studio'
@@ -21,6 +23,26 @@ const s = useStudio(episodeId)
 const { episode, cuts } = s
 const story = useStory(episode, computed(() => cuts.value.length > 0))
 const lib = useLibrary()
+const selectedPanelId = computed(() => String(route.query.panel ?? '') || cuts.value[0]?.panel.id || '')
+const ill = useIllustrate(s, lib, selectedPanelId)
+const illN = useLocalStorage('toonflow:studio:candidates', 2)
+const illBusy = computed(() => cuts.value.filter(c => s.busyPanels.value.has(c.panel.id)).length)
+const failedPanel = (id: string) => ill.latest.value.get(id)?.status === 'failed'
+const compareId = ref<string | null>(null)
+async function illGenerate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
+  await run(() => ill.generate(list, n, opts), t.illustrate.started(list.length))
+}
+// ILL-02 한꺼번에
+async function bulk(mode: 'empty' | 'stale') {
+  const list = bulkTargets(cuts.value, mode, s.busyPanels.value)
+  if (!list.length || !window.confirm(t.illustrate.bulkConfirm(list.length, illN.value, lib.estimate(list.length * illN.value)))) return
+  await illGenerate(list, illN.value, { leaveRoom: true })
+}
+// ILL-06
+async function illCancel(job: PanelJob) {
+  if (job.status === 'running' && !window.confirm(t.illustrate.cancelRunning)) return
+  await run(() => ill.cancel(job.id), t.illustrate.canceled)
+}
 // SBD-12: 인물 이름을 고치면 캐릭터 연결도 다시
 function editPanel(panel: Panel, field: keyof Panel, value: unknown) {
   queueEdit(panel, field, value)
@@ -191,7 +213,7 @@ async function removePanel(id: string) {
   if (id === selectedId.value && next) select(next.panel.id)
   toast(t.deleted, { action: { label: t.undo, onClick: () => run(s.undo) } })
 }
-const typing = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '')
+const typing = () => ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName ?? '') || !!compareId.value
 onKeyStroke(['z', 'Z'], (e) => {
   if (!(e.metaKey || e.ctrlKey) || typing() || !edit.value) return
   e.preventDefault()
@@ -306,6 +328,15 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
               {{ t.board.blank }}
             </Button>
           </div>
+          <div v-if="edit && step === 'illustrate' && cuts.length" class="flex flex-col gap-1.5 px-1 pt-1">
+            <Button size="sm" :disabled="!bulkTargets(cuts, 'empty', s.busyPanels.value).length" @click="bulk('empty')">
+              <Sparkles class="size-4" /> {{ t.illustrate.allEmpty(bulkTargets(cuts, 'empty', s.busyPanels.value).length) }}
+            </Button>
+            <Button v-if="bulkTargets(cuts, 'stale', s.busyPanels.value).length" size="sm" variant="outline" @click="bulk('stale')">
+              {{ t.illustrate.allStale(bulkTargets(cuts, 'stale', s.busyPanels.value).length) }}
+            </Button>
+            <p v-if="illBusy" class="text-muted-foreground text-xs">{{ t.illustrate.progress(illBusy, cuts.length) }}</p>
+          </div>
           <template v-for="c in cuts" :key="c.panel.id">
             <div v-if="c.indexInPage === 0" class="text-muted-foreground mt-2 flex items-center justify-between px-1 text-xs font-medium">
               {{ t.page(c.pageIndex + 1) }}
@@ -321,8 +352,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             >
               <GripVertical v-if="edit" class="text-muted-foreground mt-0.5 size-3.5 shrink-0 cursor-grab" />
               <span class="text-muted-foreground w-6 shrink-0 text-xs leading-5">{{ c.number }}</span>
+              <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :crop="c.panel.crop" class="relative h-10 w-8 shrink-0 rounded-sm" />
               <span class="line-clamp-2 flex-1" :class="{ 'text-muted-foreground italic': !c.panel.scene }">{{ c.panel.scene || t.noScene }}</span>
               <Loader2 v-if="s.busyPanels.value.has(c.panel.id)" class="size-3.5 animate-spin" :aria-label="t.generating" />
+              <span v-else-if="failedPanel(c.panel.id)" class="bg-destructive mt-1.5 size-2 shrink-0 rounded-full" :title="t.illustrate.failed" />
               <span v-if="c.panel.staleFrom" class="mt-1.5 size-2 shrink-0 rounded-full bg-amber-500" :title="t.stale[c.panel.staleFrom]" />
               <span v-if="edit" class="hidden shrink-0 gap-0.5 group-hover:flex">
                 <button :aria-label="t.moveUp" :disabled="c.number === 1" @click.stop="run(() => s.movePanel(c.panel.id, -1))"><ArrowUp class="size-3.5" /></button>
@@ -360,10 +393,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <button v-if="edit" class="underline" @click="autoSplit">{{ t.board.resplit }}</button>
             <button v-if="edit" class="underline" @click="run(story.keepStale)">{{ t.keep }}</button>
           </div>
-          <div class="bg-card relative flex max-h-full w-full max-w-md flex-col items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
+          <div class="bg-card relative flex max-h-full w-full max-w-md flex-col overflow-hidden items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
             <span class="text-muted-foreground absolute top-2 left-3 text-xs">{{ t.page(selected.pageIndex + 1) }} · {{ t.cut(selected.number) }}</span>
-            <p class="line-clamp-6 text-sm">{{ selected.panel.scene || t.noScene }}</p>
-            <p class="text-muted-foreground text-xs">{{ t.imageSoon }}</p>
+            <StudioPanelImage v-if="selected.panel.selectedCandidateId" :candidate-id="selected.panel.selectedCandidateId" :crop="selected.panel.crop" class="absolute inset-0" />
+            <template v-else>
+              <p class="line-clamp-6 text-sm">{{ selected.panel.scene || t.noScene }}</p>
+              <p class="text-muted-foreground text-xs">{{ step === 'illustrate' ? t.illustrate.noCandidates : t.imageSoon }}</p>
+            </template>
+            <Loader2 v-if="s.busyPanels.value.has(selected.panel.id)" class="absolute top-2 right-3 size-4 animate-spin" :aria-label="t.generating" />
           </div>
           <div class="flex items-center gap-2">
             <Button size="icon" variant="outline" :disabled="selectedIndex <= 0" :aria-label="t.prev" @click="step1(-1)">
@@ -395,6 +432,12 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
+        <StudioIllustrateAside
+          v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
+          :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
+          @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))"
+        />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
             {{ t.stale[selected.panel.staleFrom] }}
@@ -409,14 +452,19 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       </Button>
     </div>
 
+    <StudioCompare
+      v-if="compareId && selected" :candidates="ill.candidates.value" :current-id="selected.panel.selectedCandidateId" :start-id="compareId" :aspect="aspect" :edit="edit"
+      @close="compareId = null" @choose="id => { run(() => ill.choose(selected!.panel.id, id)); compareId = null }"
+    />
     <!-- STU-32 전체 미리보기 -->
     <div v-if="previewOpen" class="fixed inset-0 z-50 flex items-center justify-center gap-4 bg-black/80" role="dialog" :aria-label="t.preview">
       <button class="absolute top-4 right-4 text-white" :aria-label="t.close" @click="previewOpen = false"><X class="size-6" /></button>
       <button class="text-white disabled:opacity-30" :disabled="previewPage === 0" :aria-label="t.prev" @click="previewPage--"><ChevronLeft class="size-8" /></button>
       <div class="flex h-[85dvh] flex-col items-center gap-2">
         <div class="grid h-full gap-1 bg-white p-1" :class="gridClass[previewCuts[0]?.page.layout ?? '1']" :style="{ aspectRatio: aspect }">
-          <div v-for="c in previewCuts" :key="c.panel.id" class="flex items-center justify-center bg-neutral-100 p-3 text-center text-xs text-neutral-600">
-            {{ c.panel.scene || t.noScene }}
+          <div v-for="c in previewCuts" :key="c.panel.id" class="relative flex items-center justify-center overflow-hidden bg-neutral-100 p-3 text-center text-xs text-neutral-600">
+            <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :crop="c.panel.crop" class="absolute inset-0" />
+            <template v-else>{{ c.panel.scene || t.noScene }}</template>
           </div>
         </div>
         <span class="text-sm text-white">{{ previewPage + 1 }} / {{ pageCount }}</span>
