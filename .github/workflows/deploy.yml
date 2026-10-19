@@ -72,5 +72,10 @@ jobs:
           fi
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      # PUB-03: 출력 때 Canvas가 Storage 이미지를 읽을 수 있게 버킷 CORS를 연다 (storage.cors.json)
+      - if: env.HAS_SA == 'true' && github.event_name != 'pull_request' && contains(env.ONLY, 'storage')
+        uses: google-github-actions/setup-gcloud@v3
+      - if: env.HAS_SA == 'true' && github.event_name != 'pull_request' && contains(env.ONLY, 'storage')
+        run: gcloud storage buckets update gs://toonflow-351ed.firebasestorage.app --cors-file=storage.cors.json || echo "::warning::Storage CORS를 설정하지 못했어요. 서비스 계정에 Storage 관리자 권한이 필요해요"
       - if: env.HAS_SA == 'true' && github.event_name != 'pull_request'
         run: pnpm exec firebase deploy --project default --non-interactive --force --only "$ONLY"

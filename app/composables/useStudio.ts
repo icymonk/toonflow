@@ -222,6 +222,6 @@ export function useStudio(episodeId: Ref<string>) {
   return {
     episode, missing, seriesName, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
-    rename, setStep, updatePanel, addPage, addPanel, deletePanel, movePanel,
+    rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
   }
 }

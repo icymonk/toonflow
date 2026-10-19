@@ -31,6 +31,15 @@ const illBusy = computed(() => cuts.value.filter(c => s.busyPanels.value.has(c.p
 const failedPanel = (id: string) => ill.latest.value.get(id)?.status === 'failed'
 const compareId = ref<string | null>(null)
 const review = useReview(s, computed(() => s.episode.value?.settings.aspect))
+const exportPages = computed(() => {
+  const m = new Map<string, Cut[]>()
+  for (const c of s.cuts.value) m.set(c.page.id, [...(m.get(c.page.id) ?? []), c])
+  return [...m.values()]
+})
+const exp = useExport(s, review, exportPages)
+const expPage = ref(0)
+watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIndex, i => (expPage.value = i ?? 0), { immediate: true })
+const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.publish.failed))
 const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
@@ -403,6 +412,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           />
           <p v-else class="text-muted-foreground text-center text-sm">{{ t.story.empty }}</p>
         </div>
+        <StudioExportPreview
+          v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportPages" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
+          :ai-label="exp.aiLabel.value" :name="s.seriesName.value || episode.title"
+        />
         <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
         <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" @edit="saveNow" @select="select" />
         <template v-else-if="selected">
@@ -454,6 +467,11 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
+        />
+        <StudioExportAside
+          v-else-if="step === 'export'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
+          :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
+          @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="runExport(exp.all)" @one="runExport(() => exp.one(expPage))"
         />
         <StudioReviewAside
           v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit"
