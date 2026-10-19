@@ -73,7 +73,7 @@
 | `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 이메일·닉네임. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
 | `workspaces/{ws}/publications/{id}` | 발행 기록: 에피소드, 게시일, 링크, 캡션 (PUB-20~23) |
-| `episodes/{id}/meta/video` | 영상 설정: `aspect: '9:16'\|'4:5'`, `unit: 'panel'\|'page'`, `clips: { [panelId 또는 pageId]: { durationMs, motion, strength, transition, transitionMs, reveal } }`(고친 컷만, 순서는 콘티 순서를 따른다), `musicPath`, `musicVolume`, `musicFadeOutMs`, `musicLoop`, `coverId` (PUB-30~38) |
+| `episodes/{id}/meta/video` | 영상 설정: `aspect: '9:16'\|'4:5'`, `unit: 'panel'\|'page'`, `clips: { [panelId 또는 pageId]: { durationMs, motion, strength, transition, transitionMs, reveal } }`(고친 컷만, 순서는 콘티 순서를 따른다). 표지 화면 시간은 `cover:{id}` 키, `musicPath`, `musicVolume`, `musicFadeOutMs`, `musicLoop`, `coverId` (PUB-30~38) |
 | `workspaces/{ws}/refs/music/{episodeId}/{file}` (Storage) | 올린 배경음악 (PUB-36, 편집자, `audio/*`, 20MB 이하) |
 
 ## 2. Storage

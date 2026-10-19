@@ -1,6 +1,6 @@
 import type { Cut } from './studio'
 import { describe, expect, it } from 'vitest'
-import { bubblesAt, buildClips, frameAt, motionAt, suggestMs, totalMs } from './video'
+import { bubblesAt, buildClips, COVER_MS, frameAt, motionAt, suggestMs, totalMs } from './video'
 
 const cut = (id: string, page: string, texts: string[]): Cut => ({
   panel: { id, pageId: page, dialogues: texts.map((text, i) => ({ id: `${id}${i}`, type: 'speech', speaker: '', speakerId: null, text })) } as unknown as Cut['panel'],
@@ -38,5 +38,15 @@ describe('video', () => {
     expect(bubblesAt({ reveal: 'together', bubbles: 3, durationMs: 3000 }, 0)).toBe(3)
     expect(motionAt('zoomIn', 'mid', 1).scale).toBeCloseTo(1.12)
     expect(motionAt('panX', 'weak', 0).dx).toBeCloseTo(0.03)
+  })
+  it('cover clip goes first and shifts the timeline (PUB-38)', () => {
+    const plain = buildClips(cuts, { unit: 'panel', clips: {} })
+    const withCover = buildClips(cuts, { unit: 'panel', clips: {}, coverId: plain[1]!.id })
+    expect(withCover).toHaveLength(plain.length + 1)
+    expect(withCover[0]!.id).toBe(`cover:${plain[1]!.id}`)
+    expect(withCover[0]!.durationMs).toBe(COVER_MS)
+    expect(withCover[0]!.transition).toBe('cut')
+    expect(withCover[1]!.start).toBe(COVER_MS)
+    expect(buildClips(cuts, { unit: 'panel', clips: {}, coverId: 'gone' })).toHaveLength(plain.length)
   })
 })

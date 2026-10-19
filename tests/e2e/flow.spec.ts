@@ -89,6 +89,27 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
     for (let i = 0; i < d.length; i += 4 * 97) if (d[i]! < 200) n++
     return n
   })).toBeGreaterThan(50)
+  // 표지·MP4 (PUB-38): 모든 컷 0.5초로 줄여 빨리 만든다
+  await page.getByLabel('보여 줄 시간(초)').fill('0.5')
+  await page.getByLabel('보여 줄 시간(초)').blur()
+  await page.getByRole('button', { name: '모든 컷에 이 시간' }).click()
+  await page.getByLabel('표지(첫 화면)').selectOption({ index: 1 })
+  // 배경음악 (PUB-36): 1초 사인파 WAV
+  const pcm = Buffer.alloc(48_000 * 2)
+  for (let i = 0; i < 48_000; i++) pcm.writeInt16LE(Math.round(Math.sin(i / 48_000 * 2 * Math.PI * 440) * 8000), i * 2)
+  const head = Buffer.alloc(44)
+  head.write('RIFF', 0); head.writeUInt32LE(36 + pcm.length, 4); head.write('WAVEfmt ', 8); head.writeUInt32LE(16, 16)
+  head.writeUInt16LE(1, 20); head.writeUInt16LE(1, 22); head.writeUInt32LE(48_000, 24); head.writeUInt32LE(96_000, 28)
+  head.writeUInt16LE(2, 32); head.writeUInt16LE(16, 34); head.write('data', 36); head.writeUInt32LE(pcm.length, 40)
+  await page.getByLabel('이 음원을 영상에 쓸 권리가 있어요').check()
+  await page.getByLabel('음원 파일 올리기').setInputFiles({ name: 'bgm.wav', mimeType: 'audio/wav', buffer: Buffer.concat([head, pcm]) })
+  await expect(page.getByRole('button', { name: '음악 빼기' })).toBeVisible()
+  const [mp4] = await Promise.all([page.waitForEvent('download', { timeout: 120_000 }), page.getByRole('button', { name: 'MP4 내려받기' }).click()])
+  expect(mp4.suggestedFilename()).toMatch(/_1화_릴스\.mp4$/)
+  const bytes = readFileSync((await mp4.path())!)
+  expect(bytes.subarray(4, 8).toString()).toBe('ftyp')
+  expect(bytes.length).toBeGreaterThan(10_000)
+  await expect(page.getByText(/MP4를 내려받았어요|Opus로 넣었어요/)).toBeVisible()
   await page.getByRole('tab', { name: '이미지' }).click()
 
   // 캡션·발행

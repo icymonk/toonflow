@@ -39,30 +39,36 @@ export function suggestMs(chars: number): number {
 
 export interface Clip extends ClipSettings { id: string, cuts: Cut[], bubbles: number, start: number }
 
-/** 컷 순서대로 타임라인. 장 단위면 장 하나가 한 클립 */
-export function buildClips(cuts: Cut[], v: Pick<VideoSettings, 'unit' | 'clips'>): Clip[] {
+export const COVER_MS = 1000
+export const COVER_PREFIX = 'cover:'
+
+/** 컷 순서대로 타임라인. 장 단위면 장 하나가 한 클립. 표지(coverId)를 고르면 그 화면을 맨 앞에 한 번 더 (PUB-38) */
+export function buildClips(cuts: Cut[], v: Pick<VideoSettings, 'unit' | 'clips'> & { coverId?: string | null }): Clip[] {
   const groups: Cut[][] = []
   for (const c of cuts) {
     const last = groups.at(-1)
     if (v.unit === 'page' && last && last[0]!.page.id === c.page.id) last.push(c)
     else groups.push([c])
   }
+  const idOf = (g: Cut[]) => (v.unit === 'page' ? g[0]!.page.id : g[0]!.panel.id)
+  const cover = v.coverId ? groups.find(g => idOf(g) === v.coverId) : undefined
+  const list = cover ? [{ g: cover, id: COVER_PREFIX + idOf(cover) }, ...groups.map(g => ({ g, id: idOf(g) }))] : groups.map(g => ({ g, id: idOf(g) }))
   let start = 0
-  return groups.map((g, i) => {
-    const id = v.unit === 'page' ? g[0]!.page.id : g[0]!.panel.id
+  return list.map(({ g, id }, i) => {
     const dialogues = g.flatMap(c => c.panel.dialogues)
     const o = v.clips[id] ?? {}
+    const isCover = id.startsWith(COVER_PREFIX)
     const clip: Clip = {
       id,
       cuts: g,
       bubbles: dialogues.length,
       start,
-      durationMs: clampMs(o.durationMs ?? suggestMs(dialogues.reduce((n, d) => n + d.text.length, 0))),
-      motion: o.motion ?? 'none',
+      durationMs: clampMs(o.durationMs ?? (isCover ? COVER_MS : suggestMs(dialogues.reduce((n, d) => n + d.text.length, 0)))),
+      motion: isCover ? 'none' : (o.motion ?? 'none'),
       strength: o.strength ?? 'mid',
       transition: i === 0 ? 'cut' : (o.transition ?? 'fade'),
       transitionMs: Math.min(1000, Math.max(100, o.transitionMs ?? 300)),
-      reveal: o.reveal ?? 'together',
+      reveal: isCover ? 'together' : (o.reveal ?? 'together'),
     }
     start += clip.durationMs
     return clip

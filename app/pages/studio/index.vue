@@ -53,6 +53,18 @@ const video = useVideo(s, review)
 const vTime = ref(0)
 const vIndex = computed(() => Math.max(0, video.clips.value.findIndex(c => c.cuts.some(x => x.panel.id === selectedPanelId.value))))
 const vClip = computed(() => video.clips.value[vIndex.value] ?? null)
+async function exportMp4() {
+  try {
+    const r = await video.exportMp4()
+    if (r.music && !r.audio) toast.warning(t.video.mp4NoAudio)
+    else if (r.audio === 'opus') toast.warning(t.video.mp4Opus)
+    else toast.success(t.video.mp4Done)
+  }
+  catch (e) {
+    if ((e as Error).name === 'AbortError') toast.info(t.video.mp4Canceled)
+    else toast.error(t.video.mp4Failed)
+  }
+}
 function vSelect(c: { start: number, cuts: Cut[] }) {
   vTime.value = c.start
   select(c.cuts[0]!.panel.id)
@@ -579,8 +591,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
           />
           <StudioVideoAside
-            v-else :settings="video.settings.value" :clip="vClip" :index="vIndex" :total="video.total.value" :edit="edit"
+            v-else :settings="video.settings.value" :clips="video.clips.value" :clip="vClip" :index="vIndex" :total="video.total.value" :edit="edit"
+            :music-url="video.musicUrl.value" :music-name="video.musicName.value" :supported="video.supported.value" :progress="video.progress.value"
             @save="p => run(() => video.save(p))" @clip="(id, p) => run(() => video.setClip(id, p))" @auto="id => run(() => video.autoDuration(id))" @all="ms => run(() => video.allDuration(ms))"
+            @upload="f => run(() => video.uploadMusic(f), t.video.musicUploaded)" @remove-music="run(() => video.removeMusic())" @mp4="exportMp4" @cancel="video.cancelExport()"
           />
         </template>
         <StudioReviewAside
