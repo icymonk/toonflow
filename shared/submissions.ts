@@ -30,6 +30,10 @@ export interface Submission extends Omit<SubmissionInput, 'source'> {
   note: string
   episodeIds: string[]
   maskedBody?: string | null
+  /** INB-02·06 제보 링크로 들어온 제보 */
+  attachments?: string[]
+  notify?: boolean
+  consent?: { text: string, at?: { toMillis: () => number } }
   aiSummary?: import('./story').SubmissionSummary & { jobId: string }
   createdBy: string
   createdAt?: { toMillis: () => number }

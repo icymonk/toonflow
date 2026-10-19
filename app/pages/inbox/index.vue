@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { applyMask, findPii } from '#shared/privacy'
 import type { Submission, SubmissionFilter, SubmissionStatus } from '#shared/submissions'
-import { Inbox, Plus, Star } from '@lucide/vue'
+import { Inbox, Link, Plus, Star } from '@lucide/vue'
+import { doc, getDoc } from 'firebase/firestore'
+import { getDownloadURL, ref as sref } from 'firebase/storage'
 import { toast } from 'vue-sonner'
-import { canEdit } from '#shared/roles'
+import { canEdit, canManage } from '#shared/roles'
 import { filterSubmissions, MANUAL_SOURCES, MANUAL_STATUSES, parseTags, splitBulk, STATUS_KEYS, SUBMISSION_SOURCES, SUBMISSION_STATUSES, submissionInput, titleFrom } from '#shared/submissions'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
@@ -76,6 +78,32 @@ const route = useRoute()
 const currentId = ref<string | undefined>(route.query.id ? String(route.query.id) : undefined)
 watch(() => route.query.id, id => id && (currentId.value = String(id)))
 const current = computed(() => list.value.find(s => s.id === currentId.value))
+
+// INB-02·06·15: 제보 링크 복사, 첨부 이미지, 연락처(소유자·관리자)
+const { $firestore, $storage } = useNuxtApp()
+const intakeSlug = ref('')
+onMounted(async () => {
+  const cfg = await getDoc(doc($firestore, 'workspaces', auth.workspace!.id, 'config', 'intake')).catch(() => null)
+  intakeSlug.value = (cfg?.get('slug') as string | undefined) ?? ''
+})
+async function copyIntake() {
+  await navigator.clipboard.writeText(`${window.location.origin}/s/${intakeSlug.value}`)
+  toast.success(t.copied)
+}
+const attachmentUrls = ref<string[]>([])
+const contact = ref<{ nickname: string, email: string } | null>(null)
+watch(() => current.value?.id, async () => {
+  const s = current.value
+  attachmentUrls.value = []
+  contact.value = null
+  if (!s || s.source !== 'link' || s.status === 'withdrawn') return
+  attachmentUrls.value = await Promise.all((s.attachments ?? []).map(p => getDownloadURL(sref($storage, p)).catch(() => '')))
+  if (canManage(auth.role)) {
+    const c = await getDoc(doc($firestore, 'workspaces', auth.workspace!.id, 'submissions', s.id, 'private', 'contact')).catch(() => null)
+    contact.value = (c?.data() as { nickname: string, email: string } | undefined) ?? null
+  }
+})
+
 const checked = ref<string[]>([])
 watch(shown, (items) => {
   checked.value = checked.value.filter(id => items.some(s => s.id === id))
@@ -136,9 +164,14 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
       <h1 class="text-2xl font-bold">
         Inbox <span class="text-muted-foreground text-base font-normal">· 제보함</span>
       </h1>
-      <Button v-if="edit" @click="adding = !adding">
-        <Plus class="size-4" /> {{ t.add }}
-      </Button>
+      <div class="flex gap-2">
+        <Button v-if="intakeSlug" variant="outline" @click="copyIntake">
+          <Link class="size-4" /> {{ t.copyLink }}
+        </Button>
+        <Button v-if="edit" @click="adding = !adding">
+          <Plus class="size-4" /> {{ t.add }}
+        </Button>
+      </div>
     </div>
 
     <Card v-if="adding">
@@ -281,6 +314,23 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
               {{ current.body }}
             </p>
+            <div v-if="attachmentUrls.length" class="flex flex-col gap-1.5 text-sm">
+              <span class="font-medium">{{ t.attachments }}</span>
+              <div class="flex flex-wrap gap-2">
+                <a v-for="(u, i) in attachmentUrls.filter(Boolean)" :key="i" :href="u" target="_blank" rel="noopener">
+                  <img :src="u" alt="" class="h-24 rounded border object-cover">
+                </a>
+              </div>
+            </div>
+            <div v-if="current.source === 'link' && current.status !== 'withdrawn'" class="flex flex-col gap-1 rounded-md border p-3 text-xs">
+              <span v-if="current.notify" class="bg-primary/15 self-start rounded px-1.5 py-0.5">{{ t.notify }}</span>
+              <p v-if="contact && (contact.nickname || contact.email)">
+                <span class="text-muted-foreground">{{ t.contact }}</span> {{ [contact.nickname, contact.email].filter(Boolean).join(' · ') }}
+              </p>
+              <p v-if="current.consent">
+                <span class="text-muted-foreground">{{ t.consent }}</span> {{ current.consent.text }}
+              </p>
+            </div>
             <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium">{{ t.summary.title }}</span>

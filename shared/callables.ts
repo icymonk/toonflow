@@ -1,6 +1,7 @@
 import type { CleanupInput, UsageInput } from './assets'
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
 import type { CreateEpisodeInput, DuplicateEpisodeInput, TrashInput } from './episodes'
+import type { IntakeSubmitInput } from './intake'
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { SetWorkspaceLimitInput } from './usage'
@@ -16,6 +17,10 @@ export const ERROR_KEYS = {
   limitExceeded: 'error.limitExceeded',
   modelUnavailable: 'error.modelUnavailable',
   seriesNotEmpty: 'error.seriesNotEmpty',
+  intakeClosed: 'error.intakeClosed',
+  tooShort: 'error.tooShort',
+  bannedWord: 'error.bannedWord',
+  tooMany: 'error.tooMany',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -33,5 +38,6 @@ export interface Callables {
   restoreFromTrash: { input: TrashItemInput, output: { ok: true } }
   purgeFromTrash: { input: TrashItemInput, output: { ok: true } }
   cleanupCandidates: { input: CleanupInput, output: { deleted: number } }
+  submitIntake: { input: IntakeSubmitInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }
