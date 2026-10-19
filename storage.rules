@@ -16,7 +16,7 @@ service firebase.storage {
     // CHR-04·STL-02: 캐릭터·그림체 참조 이미지 (이미지, 10MB 이하)
     match /workspaces/{ws}/refs/{kind}/{id}/{file} {
       allow read: if canView(ws);
-      allow create: if canEdit(ws) && kind in ['characters', 'styles']
+      allow create: if canEdit(ws) && kind in ['characters', 'styles', 'panels']
         && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
       allow delete: if canEdit(ws);
     }

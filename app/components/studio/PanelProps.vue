@@ -7,8 +7,14 @@ import { DIALOGUE_WARN_CHARS, layoutOptions, SHOTS } from '#shared/studio'
 import { ko } from '~/locales/ko'
 
 // SBD-10·11·13·23: 선택한 컷의 항목·대사·메모, 선택한 장의 배치
-const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[] }>()
-const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], create: [name: string, once: boolean] }>()
+const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[], refining?: boolean }>()
+const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], create: [name: string, once: boolean], refine: [], split: [], merge: [], refUpload: [file: File], refRemove: [] }>()
+const hasNext = computed(() => props.page.panelIds.indexOf(props.panel.id) < props.page.panelIds.length - 1)
+function pickRef(e: Event) {
+  const f = (e.target as HTMLInputElement).files?.[0]
+  if (f) emit('refUpload', f);
+  (e.target as HTMLInputElement).value = ''
+}
 // SBD-12·CHR-10: 이름별 연결 상태
 const linked = (name: string) => matchCharacters([name], props.characters ?? []).length > 0
 const t = ko.studio.board
@@ -45,8 +51,19 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
     </select>
   </div>
   <div class="flex flex-col gap-1.5">
+    <div v-if="edit" class="flex flex-wrap gap-1">
+      <Button size="sm" variant="outline" :disabled="panel.dialogues.length < 2" @click="emit('split')">{{ ko.studio.board.split }}</Button>
+      <Button size="sm" variant="outline" :disabled="!hasNext" @click="emit('merge')">{{ ko.studio.board.merge }}</Button>
+    </div>
     <Label for="p-scene">{{ ko.studio.scene }}</Label>
     <Textarea id="p-scene" :model-value="panel.scene" :disabled="!edit" rows="4" maxlength="2000" @update:model-value="emit('edit', 'scene', String($event))" />
+    <Button v-if="edit" size="sm" variant="outline" class="self-start" :disabled="refining || !panel.scene.trim()" @click="emit('refine')">{{ refining ? ko.studio.board.refining : ko.studio.board.refine }}</Button>
+    <div class="flex flex-wrap items-center gap-2 text-xs">
+      <span class="text-muted-foreground">{{ ko.studio.board.refImage }}</span>
+      <span v-if="panel.refImage" class="max-w-40 truncate">{{ panel.refImage.split('/').pop() }}</span>
+      <label v-if="edit" class="hover:bg-muted cursor-pointer rounded border px-1.5 py-0.5">{{ ko.studio.board.refUpload }}<input type="file" accept="image/*" class="hidden" @change="pickRef"></label>
+      <button v-if="edit && panel.refImage" class="text-muted-foreground hover:underline" @click="emit('refRemove')">{{ ko.studio.board.refRemove }}</button>
+    </div>
   </div>
   <div class="grid grid-cols-2 gap-2">
     <div class="col-span-2 flex flex-col gap-1">

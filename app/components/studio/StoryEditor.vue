@@ -74,7 +74,7 @@ const save = useDebounceFn(() => emit('save', {
             <option :value="undefined">{{ t.fields.dialogues }}</option>
             <option value="beats">{{ t.fields.beats }}</option>
           </select>
-          <button v-for="m in REWRITE_MODES" :key="m" class="hover:bg-muted rounded border px-1.5 py-0.5 disabled:opacity-50" :disabled="rewriting" @click="ask(s, m)">{{ t.modes[m] }}</button>
+          <button v-for="m in REWRITE_MODES.filter(x => x !== 'refine')" :key="m" class="hover:bg-muted rounded border px-1.5 py-0.5 disabled:opacity-50" :disabled="rewriting" @click="ask(s, m)">{{ t.modes[m] }}</button>
           <span v-if="rewriting" class="text-muted-foreground">{{ t.rewriting }}</span>
         </div>
       </CardContent>

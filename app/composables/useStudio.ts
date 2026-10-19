@@ -109,7 +109,7 @@ export function useStudio(episodeId: Ref<string>) {
   const touch = () => ({ updatedAt: serverTimestamp() })
   const updateEpisode = (patch: Record<string, unknown>) => track(() => updateDoc(epRef(), { ...patch, ...touch() }))
   /** PUB-06·10: 작품 워터마크·고정 인사말·해시태그 */
-  async function updateSeries(patch: Partial<Pick<Series, 'hashtags' | 'greeting' | 'watermark' | 'memo'>>) {
+  async function updateSeries(patch: Partial<Pick<Series, 'hashtags' | 'greeting' | 'watermark' | 'memo' | 'coverText' | 'outroText'>>) {
     const id = episode.value?.seriesId
     if (!id) return
     if (series.value) series.value = { ...series.value, ...patch }
@@ -127,11 +127,11 @@ export function useStudio(episodeId: Ref<string>) {
   const updatePanel = (id: string, patch: Partial<Omit<Panel, 'id'>>) => track(() => updateDoc(doc(sub('panels'), id), { ...patch, ...touch() }))
 
   /** 장 하나(컷 1개)를 afterPageId 뒤에 추가. 새 컷 id를 돌려준다 */
-  async function addPage(afterPageId?: string) {
+  async function addPage(afterPageId?: string, first = false) {
     const before = [...(episode.value?.pageOrder ?? [])]
     const pageRef = doc(sub('pages'))
     const panelRef = doc(sub('panels'))
-    const at = afterPageId ? before.indexOf(afterPageId) + 1 : before.length
+    const at = first ? 0 : afterPageId ? before.indexOf(afterPageId) + 1 : before.length
     const after = [...before.slice(0, at), pageRef.id, ...before.slice(at)]
     const apply = (order: string[], deleted: boolean) => {
       const b = writeBatch($firestore)
@@ -237,11 +237,40 @@ export function useStudio(episodeId: Ref<string>) {
     return id
   }
 
+  /** SBD-22 쪼개기: 대사 뒤쪽 절반을 바로 뒤 새 컷으로 */
+  async function splitPanel(panelId: string) {
+    const cut = cuts.value.find(c => c.panel.id === panelId)
+    if (!cut || cut.panel.dialogues.length < 2) return null
+    const half = Math.ceil(cut.panel.dialogues.length / 2)
+    const { id: _id, pageId: _page, ...data } = cut.panel
+    const id = cut.page.panelIds.length < 4 ? await addPanel(cut.page.id) : await addPage(cut.page.id)
+    if (!id) return null
+    await updatePanel(id, { ...data, dialogues: data.dialogues.slice(half), bubbles: null, selectedCandidateId: null, staleFrom: null })
+    await updatePanel(panelId, { dialogues: cut.panel.dialogues.slice(0, half), bubbles: null })
+    return id
+  }
+  /** SBD-22 합치기: 같은 장의 다음 컷을 이 컷에 */
+  async function mergeNext(panelId: string) {
+    const cut = cuts.value.find(c => c.panel.id === panelId)
+    const nextId = cut?.page.panelIds[cut.page.panelIds.indexOf(panelId) + 1]
+    const next = cuts.value.find(c => c.panel.id === nextId)
+    if (!cut || !next) return false
+    await updatePanel(panelId, { scene: [cut.panel.scene, next.panel.scene].filter(Boolean).join(' / ').slice(0, 2000), dialogues: [...cut.panel.dialogues, ...next.panel.dialogues], bubbles: null })
+    await deletePanel(next.panel.id)
+    return true
+  }
+  /** SBD-24 작품 고정 장: 표지는 맨 앞, 마지막 인사는 맨 뒤 */
+  async function addFixedPages(cover?: string, outro?: string) {
+    const line = (text: string) => [{ id: crypto.randomUUID(), type: 'narration' as const, speaker: '', speakerId: null, text: text.trim().slice(0, 200) }]
+    if (cover?.trim()) await updatePanel(await addPage(undefined, true), { scene: '표지', dialogues: line(cover) })
+    if (outro?.trim()) await updatePanel(await addPage(), { scene: '마지막 인사', dialogues: line(outro) })
+  }
+
   /** SBD-23 장 배치 */
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
 
   return {
-    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
+    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
   }

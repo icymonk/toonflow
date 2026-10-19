@@ -55,7 +55,7 @@ export const splitSchema = z.object({
 export type Split = z.infer<typeof splitSchema>
 
 /** story.* 작업의 params. 앱이 재료·설정을 담아 보낸다 (예상 비용도 이 길이로 계산) */
-export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone'] as const
+export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone', 'refine'] as const
 export type RewriteMode = (typeof REWRITE_MODES)[number]
 export const rewriteSchema = z.object({ text: z.string().min(1).max(3000) })
 

@@ -382,6 +382,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <Button v-else size="sm" :variant="cuts.length ? 'outline' : 'default'" :disabled="!story.active.value" :title="story.active.value ? '' : t.board.needStory" @click="autoSplit">
               <Sparkles class="size-4" /> {{ cuts.length ? t.board.resplit : t.board.auto }}
             </Button>
+            <Button v-if="edit && cuts.length && (s.series.value?.coverText || s.series.value?.outroText)" size="sm" variant="ghost" @click="run(() => s.addFixedPages(s.series.value?.coverText, s.series.value?.outroText), t.board.fixedDone)">
+              {{ t.board.fixed }}
+            </Button>
             <Button v-if="!cuts.length" size="sm" variant="ghost" @click="addPage">
               {{ t.board.blank }}
             </Button>
@@ -504,6 +507,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-if="step === 'story'" :episode="episode" :version="storyVersion" :sources="story.sources.value" :edit="edit"
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
           :series-memo="s.series.value?.memo ?? ''" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
+          :cover-text="s.series.value?.coverText ?? ''" :outro-text="s.series.value?.outroText ?? ''" @series-fixed="p => run(() => s.updateSeries(p))"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
@@ -533,7 +537,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>

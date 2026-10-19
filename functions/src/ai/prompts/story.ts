@@ -46,7 +46,7 @@ const split = (p: StoryParams): TextPrompt => ({
 })
 
 // STO-13
-const MODE_KO = { rewrite: '새롭게 다시 써', shorter: '뜻은 그대로 두고 더 짧게 줄여', funnier: '더 웃기게 고쳐', tone: '' } as const
+const MODE_KO = { rewrite: '새롭게 다시 써', shorter: '뜻은 그대로 두고 더 짧게 줄여', funnier: '더 웃기게 고쳐', tone: '', refine: '그림 AI가 그리기 좋게 구체적인 장면 묘사(장소·시간·조명·인물 배치·구도)로 바꿔. 글자·말풍선 내용은 넣지 않는다' } as const
 const rewrite = (p: StoryParams): TextPrompt => {
   const r = p.rewrite
   if (!r) throw new AiError('internal', 'rewrite params missing')

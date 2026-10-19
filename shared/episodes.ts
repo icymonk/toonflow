@@ -51,6 +51,8 @@ export interface Series extends SeriesInput {
   greeting?: string
   watermark?: string
   memo?: string
+  coverText?: string
+  outroText?: string
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null

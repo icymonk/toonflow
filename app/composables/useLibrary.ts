@@ -46,7 +46,7 @@ export function useLibrary() {
   /** CHR-11: 휴지통으로 (쓰인 컷의 그림은 그대로) */
   const remove = (kind: LibraryKind, id: string) => update(kind, id, { deletedAt: serverTimestamp() })
 
-  async function upload(kind: LibraryKind, id: string, file: File) {
+  async function upload(kind: LibraryKind | 'panels', id: string, file: File) {
     const path = `workspaces/${ws()}/refs/${kind}/${id}/${Date.now()}-${file.name.replace(/[^\w.-]/g, '_')}`
     await uploadBytes(storageRef($storage, path), file, { contentType: file.type })
     return path

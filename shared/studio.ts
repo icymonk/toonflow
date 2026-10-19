@@ -52,6 +52,8 @@ export interface Panel {
   crop?: Crop | null
   /** REV-01~03 */
   bubbles?: Bubble[] | null
+  /** SBD-15 구도·포즈 참고 이미지 */
+  refImage?: string | null
   staleFrom: StaleFrom
   deletedAt?: Ts | null
 }
