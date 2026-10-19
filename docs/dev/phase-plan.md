@@ -40,6 +40,7 @@
 - Firebase 프로젝트 만들기, Blaze 요금제, 프로젝트 ID 알려 주기 (0-2)
 - GitHub 기본 브랜치를 `develop`으로 (Settings → General → Default branch)
 - AI 제공사 계정·API 키 (S1·S2 비교용, 정한 뒤 운영용). 키는 Secret Manager에 직접 넣거나 세션 비밀 값으로 전달
+  - 결정: Google AI Studio(Gemini) 하나로 시작(2026-10-19). 운영 배포 전에 `pnpm exec firebase functions:secrets:set GEMINI_API_KEY --project toonflow-351ed`로 키를 넣는다. 없으면 functions 배포가 실패한다. 선불 방식이라 잔액이 0이면 모든 호출이 402로 실패한다
 - GitHub에 `FIREBASE_SERVICE_ACCOUNT`, `NUXT_PUBLIC_FIREBASE_*` 등록 (0-2)
 - 말풍선 글꼴 후보 확인 (1-I 전에, 라이선스 표로 드림)
 
