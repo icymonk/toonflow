@@ -2,6 +2,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getFunctions } from 'firebase-admin/functions'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
+import { REGION } from '../../../shared/region'
 import { DEFAULT_MODELS } from '../../../shared/config'
 import { JOB_KIND, jobRefInput, startAiJobInput } from '../../../shared/jobs'
 import { estimateKrw } from '../../../shared/pricing'
@@ -42,7 +43,7 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
     return ref.id
   })
 
-  await getFunctions().taskQueue('runAiJob').enqueue({ workspaceId: data.workspaceId, jobId }, { id: jobId }).catch((e: { code?: string }) => {
+  await getFunctions().taskQueue(`locations/${REGION}/functions/runAiJob`).enqueue({ workspaceId: data.workspaceId, jobId }, { id: jobId }).catch((e: { code?: string }) => {
     // 같은 jobId 재요청이면 이미 대기열에 있다
     if (e.code !== 'functions/task-already-exists') throw e
   })
