@@ -28,6 +28,10 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.intakeClosed': 'intakeClosed',
   'error.tooShort': 'tooShort',
   'error.bannedWord': 'bannedWord',
+  'error.lastWorkspace': 'lastWorkspace',
+  'error.ownsWorkspace': 'ownsWorkspace',
+  'error.tooManyWorkspaces': 'tooManyWorkspaces',
+  'error.notAdminTarget': 'notAdminTarget',
   'error.tooMany': 'tooMany',
   'error.tokenNotFound': 'tokenNotFound',
 }

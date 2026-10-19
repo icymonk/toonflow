@@ -6,6 +6,7 @@ import type { ReportPageInput, ReportSubmissionInput, ResolveReportInput } from 
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { DecideWaitlistInput, JoinWaitlistInput } from './waitlist'
+import type { CreateWorkspaceInput, DeleteAccountInput, TransferOwnershipInput, WorkspaceRefInput } from './workspaces'
 import type { SetWorkspaceLimitInput } from './usage'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
@@ -24,6 +25,10 @@ export const ERROR_KEYS = {
   bannedWord: 'error.bannedWord',
   tooMany: 'error.tooMany',
   tokenNotFound: 'error.tokenNotFound',
+  lastWorkspace: 'error.lastWorkspace',
+  ownsWorkspace: 'error.ownsWorkspace',
+  tooManyWorkspaces: 'error.tooManyWorkspaces',
+  notAdminTarget: 'error.notAdminTarget',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -49,5 +54,11 @@ export interface Callables {
   resolveReport: { input: ResolveReportInput, output: { ok: true } }
   joinWaitlist: { input: JoinWaitlistInput, output: { ok: true } }
   decideWaitlist: { input: DecideWaitlistInput, output: { ok: true } }
+  createWorkspace: { input: CreateWorkspaceInput, output: { workspaceId: string } }
+  switchWorkspace: { input: WorkspaceRefInput, output: { ok: true } }
+  deleteWorkspace: { input: WorkspaceRefInput, output: { deleteAt: number } }
+  restoreWorkspace: { input: WorkspaceRefInput, output: { ok: true } }
+  transferOwnership: { input: TransferOwnershipInput, output: { ok: true } }
+  deleteAccount: { input: DeleteAccountInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }

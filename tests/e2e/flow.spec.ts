@@ -173,4 +173,17 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.reload()
   await page.locator('li', { hasText: '제보 링크 ·' }).first().click()
   await expect(page.getByText(/제보자가 동의를 철회했어요/)).toBeVisible()
+
+  // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
+  await page.goto('/')
+  const switcher = page.getByRole('button', { name: '워크스페이스 바꾸기' })
+  // 앞에서 confirm을 모두 수락하는 처리기를 걸어 두었으니, 이름을 넣는 prompt 하나는 따로 받는다
+  page.removeAllListeners('dialog')
+  page.once('dialog', d => d.accept('두 번째 작업실'))
+  await switcher.click()
+  await page.getByRole('menuitem', { name: /새 워크스페이스/ }).click()
+  await expect(switcher).toContainText('두 번째 작업실', { timeout: 30_000 })
+  await switcher.click()
+  await page.getByRole('menuitem').filter({ hasNotText: /두 번째 작업실|새 워크스페이스/ }).first().click()
+  await expect(switcher).not.toContainText('두 번째 작업실', { timeout: 30_000 })
 })

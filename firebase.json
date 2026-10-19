@@ -148,6 +148,48 @@
         }
       },
       {
+        "source": "/fn/createWorkspace",
+        "function": {
+          "functionId": "createWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/switchWorkspace",
+        "function": {
+          "functionId": "switchWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteWorkspace",
+        "function": {
+          "functionId": "deleteWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/restoreWorkspace",
+        "function": {
+          "functionId": "restoreWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/transferOwnership",
+        "function": {
+          "functionId": "transferOwnership",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteAccount",
+        "function": {
+          "functionId": "deleteAccount",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

@@ -27,15 +27,16 @@ export const completeOnboarding = authedCallable(completeOnboardingInput, async 
     const displayName = typeof token.name === 'string' ? token.name : null
     const wsRef = db.collection('workspaces').doc()
     const now = FieldValue.serverTimestamp()
-    tx.set(wsRef, { name: defaultWorkspaceName(displayName, email), ownerId: uid, defaults: {}, createdAt: now })
-    tx.set(wsRef.collection('members').doc(uid), { role: 'owner', joinedAt: now })
+    tx.set(wsRef, { name: defaultWorkspaceName(displayName, email), ownerId: uid, defaults: {}, deleteAt: null, createdAt: now })
+    tx.set(wsRef.collection('members').doc(uid), { role: 'owner', joinedAt: now, email, displayName })
     tx.set(userRef, {
       displayName: displayName ?? email?.split('@')[0] ?? '',
       email,
       photoURL: typeof token.picture === 'string' ? token.picture : null,
       workspaceId: wsRef.id,
-      createdAt: now,
-    })
+      workspaceIds: FieldValue.arrayUnion(wsRef.id),
+      ...(user.exists ? {} : { createdAt: now }),
+    }, { merge: true })
     return { workspaceId: wsRef.id }
   })
 })
