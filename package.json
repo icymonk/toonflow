@@ -13,7 +13,7 @@
     "typecheck": "nuxt typecheck && pnpm --filter functions typecheck",
     "functions:build": "pnpm --filter functions build",
     "emulators": "pnpm functions:build && firebase emulators:start",
-    "test:rules": "firebase emulators:exec --only firestore --project demo-toonflow 'vitest run -c vitest.rules.config.ts'",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-toonflow 'vitest run -c vitest.rules.config.ts'",
     "e2e": "playwright test"
   },
   "dependencies": {
