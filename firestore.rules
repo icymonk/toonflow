@@ -97,11 +97,21 @@ service cloud.firestore {
       match /episodes/{id} {
         allow read: if canView(ws);
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'updatedAt'])
           && strLen(request.resource.data.title, 1, 80)
           && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
           && request.resource.data.status in ['active', 'done', 'published'];
 
+        // STO-11·20·21: AI 안은 서버가 만들고, 직접 고치기·내가 만든 안은 편집자가 쓴다
+        match /storyVersions/{vid} {
+          allow read: if canView(ws);
+          allow create: if canEdit(ws) && request.resource.data.source == 'manual'
+            && request.resource.data.keys().hasOnly(['label', 'source', 'logline', 'scenes', 'punchline', 'titleCandidates', 'settings', 'jobId', 'basedOn', 'editedAt', 'createdAt'])
+            && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
+          allow update: if canEdit(ws)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'logline', 'scenes', 'punchline', 'editedAt'])
+            && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
+        }
         // STU·SBD: 장·컷은 편집자가 직접 쓴다. 지우기는 deletedAt(실행 취소용). 이미지 후보는 서버만
         match /pages/{pageId} {
           allow read: if canView(ws);

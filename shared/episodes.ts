@@ -57,9 +57,12 @@ export interface Episode {
   number: number
   step: Step
   status: EpisodeStatus
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string }
   submissionIds: string[]
   activeStoryVersionId?: string | null
+  storyVersionCount?: number
+  analysis?: import('./story').Analysis & { jobId: string }
+  staleFrom?: 'story' | null
   pageOrder?: string[]
   costKrw: number
   updatedAt?: Ts

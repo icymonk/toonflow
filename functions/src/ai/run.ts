@@ -9,7 +9,9 @@ import { ACTIVE_STATUSES, JOB_KIND } from '../../../shared/jobs'
 import { actualKrw } from '../../../shared/pricing'
 import { loadModels } from '../lib/models'
 import { settle } from '../lib/usage'
+import { applyResult } from './apply'
 import { AiError, classify, isLastAttempt } from './errors'
+import { textPrompt } from './prompts/story'
 import { imageModel, textModel } from './providers'
 import { GEMINI_API_KEY } from './providers/gemini'
 
@@ -30,7 +32,7 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
     }))
     return { result: paths, requestId: out.requestId, usage: { images: out.billedImages } }
   }
-  const out = await textModel(model).generate({ system: '', prompt: JSON.stringify(params) })
+  const out = await textModel(model).generate(textPrompt(type, params))
   return { result: out.text, requestId: out.requestId, usage: out.usage }
 }
 
@@ -65,18 +67,23 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
 
   try {
     // 6. 이미 받은 결과가 있으면 다시 호출하지 않는다 (재시도 무과금)
-    if (job.get('providerResult') === undefined) {
+    let result = job.get('providerResult') as unknown
+    if (result === undefined) {
       const model = models.models.find(m => m.id === job.get('model') && m.enabled)
       if (!model) throw new AiError('internal', `model unavailable: ${job.get('model')}`)
       const out = await callProvider(workspaceId, jobId, job.get('type'), job.get('params') ?? {}, model)
       usage = out.usage
+      result = out.result
       await ref.update({ providerResult: out.result, providerRequestId: out.requestId, usage })
     }
-    // 8. 결과 반영(각색안·콘티·후보 문서)은 기능별 처리기로 1-B부터 붙인다
+    // 8. 결과 반영 (각색안·분석·제목 후보)
+    await applyResult(workspaceId, jobId, job.data() as Parameters<typeof applyResult>[2], result)
     await finish(ref, workspaceId, models, usage, 'succeeded')
   }
   catch (e) {
     const error = classify(e)
+    // 형식이 틀린 응답은 버리고 다음 시도에서 다시 부른다
+    if (error.code === 'invalid_output') await ref.update({ providerResult: FieldValue.delete() })
     if (!isLastAttempt(error.code, attempt)) {
       await ref.update({ status: 'queued', error })
       throw e

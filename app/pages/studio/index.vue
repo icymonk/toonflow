@@ -18,10 +18,16 @@ const edit = computed(() => canEdit(auth.role))
 const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
+const story = useStory(episode, computed(() => cuts.value.length > 0))
+const storySel = computed(() => String(route.query.version ?? '') || story.active.value?.id || story.versions.value.at(-1)?.id || '')
+const storyVersion = computed(() => story.versions.value.find(v => v.id === storySel.value) ?? null)
+const running = (type: string) => s.jobs.value.filter(j => j.type === type).length
+const selectVersion = (id: string) => router.replace({ query: { ...route.query, version: id } })
 
-async function run(fn: () => Promise<unknown>) {
+async function run(fn: () => Promise<unknown>, ok?: string) {
   try {
     await fn()
+    if (ok) toast.success(ok)
   }
   catch (error) {
     toast.error(errorMessage(error) ?? ko.errors.unknown)
@@ -226,9 +232,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <PanelLeftClose class="size-4" />
           </Button>
         </div>
-        <p v-if="step === 'story'" class="text-muted-foreground px-3 text-sm">
-          {{ t.storySoon }}
-        </p>
+        <StudioStoryList
+          v-if="step === 'story'" :versions="story.versions.value" :active-id="episode.activeStoryVersionId ?? null" :selected-id="storySel" :edit="edit"
+          :running="running('story.draft')" :has-material="!!story.material.value" @select="selectVersion" @make="(n, req) => run(() => story.draft(n, req), t.story.started)"
+        />
         <div v-else class="flex-1 overflow-y-auto px-2 pb-2">
           <p v-if="!cuts.length" class="text-muted-foreground px-1 text-sm">
             {{ t.noCuts }}
@@ -267,7 +274,19 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
 
       <!-- 가운데: 미리보기 -->
       <section class="bg-muted/30 flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-6">
-        <template v-if="selected">
+        <div v-if="step === 'story'" class="w-full flex-1 overflow-y-auto">
+          <StudioStoryEditor
+            v-if="storyVersion" :version="storyVersion" :active="storyVersion.id === episode.activeStoryVersionId" :edit="edit"
+            @save="patch => run(() => story.updateVersion(storyVersion!.id, patch))" @activate="run(() => story.setActive(storyVersion!.id))"
+            @remake="run(() => story.draft(1, '', storyVersion!), t.story.started)"
+          />
+          <p v-else class="text-muted-foreground text-center text-sm">{{ t.story.empty }}</p>
+        </div>
+        <template v-else-if="selected">
+          <div v-if="episode.staleFrom === 'story'" class="flex w-full max-w-md items-center gap-2 rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900">
+            <span class="flex-1">{{ t.story.staleStory }}</span>
+            <button v-if="edit" class="underline" @click="run(story.keepStale)">{{ t.keep }}</button>
+          </div>
           <div class="bg-card relative flex max-h-full w-full max-w-md flex-col items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
             <span class="text-muted-foreground absolute top-2 left-3 text-xs">{{ t.page(selected.pageIndex + 1) }} · {{ t.cut(selected.number) }}</span>
             <p class="line-clamp-6 text-sm">{{ selected.panel.scene || t.noScene }}</p>
@@ -297,7 +316,13 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <PanelRightClose class="size-4" />
           </Button>
         </div>
-        <template v-if="selected">
+        <StudioStoryAside
+          v-if="step === 'story'" :episode="episode" :version="storyVersion" :sources="story.sources.value" :edit="edit"
+          :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
+          @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
+          @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
+        />
+        <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>

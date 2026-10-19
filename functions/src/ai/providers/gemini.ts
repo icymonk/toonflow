@@ -58,11 +58,11 @@ export function aspectRatio(w: number, h: number): string {
 
 export function geminiText(m: ModelEntry, key = () => GEMINI_API_KEY.value(), f?: Fetch): TextModel {
   return {
-    async generate({ system, prompt, maxTokens }) {
+    async generate({ system, prompt, format, maxTokens }) {
       const r = await generateContent(m.id, {
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { ...(maxTokens ? { maxOutputTokens: maxTokens } : {}) },
+        generationConfig: { ...(maxTokens ? { maxOutputTokens: maxTokens } : {}), ...(format ? { responseMimeType: 'application/json' } : {}) },
       }, key(), f)
       const text = parts(r).filter(p => p.text && !p.thought).map(p => p.text).join('')
       if (!text) throw new AiError('invalid_output', 'gemini returned no text')

@@ -179,7 +179,7 @@ export function useStudio(episodeId: Ref<string>) {
   }
 
   return {
-    episode, missing, seriesName, cuts, busyPanels,
+    episode, missing, seriesName, cuts, busyPanels, jobs,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, addPage, addPanel, deletePanel, movePanel,
   }
