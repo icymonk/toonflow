@@ -58,6 +58,15 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // CMN-53: 운영자가 막은 제보 페이지. 누구나 읽고 서버(resolveReport)만 쓴다
+    match /intakeBlocks/{slug} {
+      allow get: if true;
+    }
+    // CMN-40: 신고는 서버(reportPage·reportSubmission)가 만들고 운영자만 읽는다
+    match /reports/{id} {
+      allow read: if isAdmin();
+    }
+
     // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
     // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
     match /intake/{slug} {

@@ -8,6 +8,7 @@ import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
 
 // INB-03·04·06 Settings › 제보
+const blocked = ref(false)
 const t = ko.settings.intake
 const auth = useAuthStore()
 const { $firestore } = useNuxtApp()
@@ -25,6 +26,7 @@ onMounted(async () => {
   slug.value = cfg.slug
   form.banned = cfg.bannedWords.join('\n')
   const p = (await getDoc(doc($firestore, 'intake', cfg.slug))).data() as IntakePage | undefined
+  blocked.value = (await getDoc(doc($firestore, 'intakeBlocks', cfg.slug)).catch(() => null))?.exists() ?? false
   if (p) Object.assign(form, { enabled: p.enabled, name: p.name, intro: p.intro, topics: p.topics, questions: p.questions.join('\n'), images: p.images, consentText: p.consentText ?? '' })
 })
 
@@ -71,6 +73,9 @@ async function copy() {
       <CardDescription>{{ manage ? t.hint : ko.settings.readOnly }}</CardDescription>
     </CardHeader>
     <CardContent>
+      <p v-if="blocked" class="mb-3 rounded-md bg-red-100 px-2 py-1.5 text-xs text-red-900" role="alert">
+        {{ t.blocked }}
+      </p>
       <form class="flex flex-col gap-3" @submit.prevent="save">
         <div class="flex flex-col gap-1.5 text-sm">
           <span class="font-medium">{{ t.link }}</span>

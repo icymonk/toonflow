@@ -2,7 +2,9 @@
 import type { IntakePage } from '#shared/intake'
 import { doc, getDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
+import type { ReportReason } from '#shared/reports'
 import { CONSENT_TEXT, INTAKE_LIMITS } from '#shared/intake'
+import { REPORT_REASONS } from '#shared/reports'
 import { errorMessage } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
 import { ko } from '~/locales/ko'
@@ -15,9 +17,11 @@ const { $firestore, $functions } = useNuxtApp()
 const slug = String(route.params.slug ?? '')
 const page = ref<IntakePage | null>(null)
 const state = ref<'loading' | 'missing' | 'form' | 'done'>('loading')
+const blocked = ref(false)
 onMounted(async () => {
   const snap = await getDoc(doc($firestore, 'intake', slug)).catch(() => null)
   page.value = snap?.exists() ? (snap.data() as IntakePage) : null
+  blocked.value = !!(await getDoc(doc($firestore, 'intakeBlocks', slug)).catch(() => null))?.exists()
   state.value = page.value ? 'form' : 'missing'
 })
 
@@ -70,6 +74,24 @@ async function send() {
   }
 }
 
+// CMN-40 페이지 신고
+const report = reactive({ reason: 'spam' as ReportReason, detail: '' })
+const reporting = ref(false)
+async function sendReport() {
+  reporting.value = true
+  try {
+    await callFn($functions, 'reportPage', { slug, reason: report.reason, detail: report.detail })
+    report.detail = ''
+    toast.success(t.report.sent)
+  }
+  catch (e) {
+    toast.error(errorMessage(e) ?? ko.errors.unknown)
+  }
+  finally {
+    reporting.value = false
+  }
+}
+
 async function copyStatus() {
   await navigator.clipboard.writeText(statusLink.value)
   toast.success(t.copied)
@@ -105,8 +127,8 @@ function again() {
           <b>{{ t.topics }}</b> · {{ page.topics }}
         </p>
       </header>
-      <p v-if="!page.enabled" class="py-16 text-center text-lg font-medium" role="status">
-        {{ t.closed }}
+      <p v-if="!page.enabled || blocked" class="py-16 text-center text-lg font-medium" role="status">
+        {{ blocked ? t.blocked : t.closed }}
       </p>
       <section v-else-if="state === 'done'" class="flex flex-col items-start gap-3 py-8" role="status">
         <p class="text-lg font-bold">
@@ -182,6 +204,22 @@ function again() {
           {{ sending ? t.sending : t.submit }}
         </Button>
       </form>
+      <details class="text-muted-foreground border-t pt-3 text-xs">
+        <summary class="cursor-pointer">
+          {{ t.report.open }}
+        </summary>
+        <form class="mt-2 flex flex-col gap-2" @submit.prevent="sendReport">
+          <select v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="t.report.reason">
+            <option v-for="r in REPORT_REASONS" :key="r" :value="r">
+              {{ ko.report.reasons[r] }}
+            </option>
+          </select>
+          <Textarea v-model="report.detail" rows="2" maxlength="500" :aria-label="t.report.detail" :placeholder="t.report.detail" />
+          <Button size="sm" variant="outline" type="submit" class="self-start" :disabled="reporting">
+            {{ t.report.send }}
+          </Button>
+        </form>
+      </details>
     </template>
   </main>
 </template>

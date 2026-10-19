@@ -183,6 +183,22 @@ describe('3단계 제보 링크 (INB-02~06·15)', () => {
   })
 })
 
+describe('3단계 신고 (CMN-40·53)', () => {
+  it('blocks are public read, server write; reports are operator read only', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), 'intakeBlocks/abcd2345efgh'), { workspaceId: 'w1' })
+      await setDoc(doc(c.firestore(), 'reports/r1'), { kind: 'page', slug: 'abcd2345efgh', status: 'open' })
+    })
+    await assertSucceeds(getDoc(doc(db(null), 'intakeBlocks/abcd2345efgh')))
+    await assertFails(deleteDoc(doc(db('owner'), 'intakeBlocks/abcd2345efgh')))
+    await assertFails(setDoc(doc(db('ops', true), 'intakeBlocks/zzzz2345efgh'), { workspaceId: 'w1' }))
+    await assertSucceeds(getDoc(doc(db('ops', true), 'reports/r1')))
+    await assertFails(getDoc(doc(db('owner'), 'reports/r1')))
+    await assertFails(addDoc(collection(db(null), 'reports'), { kind: 'page' }))
+    await assertFails(updateDoc(doc(db('ops', true), 'reports/r1'), { status: 'resolved' }))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

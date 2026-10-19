@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.2 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.3 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -110,3 +110,4 @@
 - v2.0: 3-A — `meta/video` `clips`를 컷·장 ID 키의 맵(고친 컷만)으로, `musicLoop`·`coverId` 추가, 음원 경로 `refs/music/{episodeId}/{file}`
 - v2.1: 3-C — `intake/{slug}` 필드·`rate` 하위, `workspaces/{ws}/config/intake`, 링크 제보의 `notify`·`attachments`·`consent`, 공개 callable `submitIntake`(받기 꺼짐·30자 미만·금칙어·10분 3번 초과 거절, 이미지는 머리 바이트로 PNG/JPEG/WebP만·장당 2MB). 올리거나 가져온 후보(id에 `_` 없음)의 그림은 후보 문서 `imagePath`에서 찾는다
 - v2.2: 3-D — `intake/{slug}.consentText`(작가가 고친 동의 문구, 비면 기본), 링크 제보 `consent.credit`·`consent.notify`, `credit`(크레딧에 동의한 닉네임), `withdrawn: { at, published }`. 확인 링크 토큰은 `intakeTokens/{sha256(token)}` → `{ workspaceId, submissionId }`(서버만). 공개 callable `intakeStatus`·`withdrawIntake`: 게시 전 철회는 `status: 'withdrawn'` + 본문·첨부·연락처 삭제, 게시 후는 `withdrawn.published: true`만. 에피소드 `settings.creditPlace: 'caption'|'page'`(기본 캡션). 이메일 발송은 아직 없음(확인 링크에서 게시 링크를 본다)
+- v2.3: 3-E — `reports/{id}` `{ kind: 'page'|'submission', slug, workspaceId, submissionId?, reason, detail, status: 'open'|'resolved', by, action?, note?, resolvedBy?, log[] }`(서버가 만들고 운영자만 읽음), `intakeBlocks/{slug}` `{ workspaceId, reportId, by, at }`(누구나 읽고 서버만 씀, 있으면 `submitIntake` 거절). callable `reportPage`(공개, 10분 3회)·`reportSubmission`(편집자 이상)·`resolveReport`(admin 클레임). 비슷한 제보(INB-26)는 저장하지 않고 화면에서 2글자 조각 유사도 0.6 이상을 묶는다

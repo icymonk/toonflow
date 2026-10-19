@@ -26,6 +26,10 @@ export const ko = {
   },
   inbox: {
     add: '제보 등록',
+    similar: (n: number) => `비슷한 제보 ${n}`,
+    similarTitle: '비슷한 제보',
+    report: '운영자에게 신고',
+    backToList: '← 목록',
     addTitle: '썰 직접 등록',
     titleLabel: '제목 (비우면 첫 줄)',
     bodyLabel: '본문',
@@ -81,6 +85,8 @@ export const ko = {
   },
   intake: {
     closed: '지금은 제보를 받지 않아요',
+    blocked: '신고가 들어와 운영자가 이 제보 페이지를 막았어요',
+    report: { open: '이 페이지 신고', reason: '신고 이유', detail: '자세한 내용 (선택)', send: '신고하기', sent: '신고했어요. 운영자가 확인해요.' },
     notFound: '없는 제보 링크예요',
     topics: '요즘 받는 썰',
     body: '이야기',
@@ -728,8 +734,12 @@ export const ko = {
       copied: '링크를 복사했어요',
       open: '열어 보기',
       notSaved: '저장하면 링크가 만들어져요',
+      blocked: '신고가 들어와 운영자가 이 제보 링크를 막았어요. 공개 페이지에서 제출할 수 없어요.',
       consentText: '동의 문구 (비우면 기본 문구, 제출 당시 문구가 제보에 남아요)',
     },
+  },
+  report: {
+    reasons: { spam: '광고·스팸', abuse: '욕설·괴롭힘', privacy: '개인정보 노출', illegal: '불법 내용', other: '기타' },
   },
   admin: {
     title: '운영자 설정',
@@ -745,6 +755,13 @@ export const ko = {
     saved: '저장했어요.',
     invalid: '형식이 맞지 않아요.',
     notAdmin: '운영자만 볼 수 있어요.',
+    reports: '신고',
+    reportsHint: '최근 50건. 페이지를 막으면 그 제보 링크로 제출할 수 없어요. 처리할 때마다 기록이 남아요.',
+    noReports: '신고가 없어요.',
+    reportNote: '처리 메모',
+    reportStatus: { open: '대기', resolved: '처리함' },
+    reportKind: { page: '제보 페이지', submission: '제보' },
+    reportAction: { block: '페이지 막기', unblock: '막기 풀기', dismiss: '문제 없음' },
   },
   errors: {
     signInAgain: '다시 로그인해 주세요.',

@@ -26,6 +26,8 @@
 | `…/submissions/{id}/private/*` (3단계) | `canManage` | 서버만 |
 | `intake/*` (3단계) | 누구나 (`enabled`, 안내 문구) | `canManage` (해당 워크스페이스) |
 | `intakeTokens/*` (3-D 확인 링크) | 서버만 | 서버만 |
+| `intakeBlocks/{slug}` (3-E 막은 제보 페이지) | 누구나 | 서버만 |
+| `reports/*` (3-E 신고) | 운영자 | 서버만 |
 | `workspaces/{ws}/config/intake` | `canView` | `canManage` (`slug`·`bannedWords`만) |
 | `workspaces/{ws}/submissions/{id}/private/*` | `canManage` | 서버만 (`submitIntake`) |
 | Storage `workspaces/{ws}/intake/**` | `canView` | 서버만 |
