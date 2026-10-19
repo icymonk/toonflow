@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.1 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v0.2 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -68,6 +68,8 @@
 | `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 이메일·닉네임. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
 | `workspaces/{ws}/publications/{id}` | 발행 기록: 에피소드, 게시일, 링크, 캡션 (PUB-20~23) |
+| `episodes/{id}/meta/video` | 영상 설정: `aspect`, `unit: 'panel'\|'page'`, `clips: { panelId, durationMs, motion, motionStrength, transition, transitionMs, bubbleReveal }[]`(타임라인 순서), `musicPath`, `musicVolume`, `musicFadeOutMs`, `coverPanelId` (PUB-30~38) |
+| `workspaces/{ws}/refs/music/{file}` (Storage) | 올린 배경음악 (PUB-36, 편집자, `audio/*`, 20MB 이하) |
 
 ## 2. Storage
 | 경로 | 내용 | 쓰기 |
@@ -81,3 +83,4 @@
 
 ## 변경 이력
 - v0.1: 초안. 원본 7-2절 구조를 워크스페이스 하위로 옮기고 작품·장·후보·사용량 추가
+- v0.2: 영상 설정 문서·음원 경로 추가 (3단계)

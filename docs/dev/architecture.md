@@ -1,6 +1,6 @@
 # 아키텍처
 
-> 상태: 초안 · v0.1 · 2026-10-19
+> 상태: 초안 · v0.2 · 2026-10-19
 
 ## 1. 기술 스택
 | 영역 | 선택 | 비고 |
@@ -79,6 +79,7 @@ toonflow/
 - 화면에서는 SVG를 그대로 축소해 보이고, 출력 때는 같은 SVG를 오프스크린 Canvas에 그려 `toBlob('image/jpeg', 0.92)`. 글꼴은 `document.fonts.load`로 먼저 읽는다.
 - 이미지는 Storage의 원본을 쓴다. Canvas 오염을 막으려면 Storage 버킷 CORS를 Hosting 도메인에 연다.
 - 4:5 외 1:1·3:4는 같은 컴포넌트에 크기만 바꿔 넣는다. 자른 영역은 컷 `crop`에 비율로 저장한다.
+- **영상(PUB-30~38, 3단계)**: 같은 렌더러로 컷 단위 SVG를 그리고, 시각마다 움직임·전환·말풍선 등장을 적용한 프레임을 Canvas에 그려 브라우저 WebCodecs(`VideoEncoder`, H.264 + 음원은 `AudioEncoder` AAC)로 인코딩, MP4로 묶는다(`mp4-muxer` 같은 작은 라이브러리). 30fps. WebCodecs를 못 쓰는 브라우저는 안내. 대안: 같은 프레임을 서버에서 ffmpeg로 (3단계 시작 때 검증).
 
 ## 7. 배포
 - `.github/workflows/deploy.yml`: PR → Hosting 미리보기 채널, `main` 푸시 → 운영 배포(Hosting·Functions·규칙). memorize·boardlab과 같은 구조.
@@ -87,3 +88,4 @@ toonflow/
 
 ## 변경 이력
 - v0.1: 초안
+- v0.2: 영상 출력 렌더링 방식 추가
