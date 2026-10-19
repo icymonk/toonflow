@@ -83,6 +83,21 @@ describe('server-only fields', () => {
   })
 })
 
+describe('snapshots', () => {
+  const snap = (uid: string) => ({ name: '1차 완성', createdBy: uid, createdAt: new Date(), title: '1화', pageOrder: [], activeStoryVersionId: null, pages: [], panels: [] })
+  it('editors create their own snapshot and delete; viewers and updates are blocked', async () => {
+    const ref = doc(db('editor'), `${W}/episodes/e1/snapshots/s1`)
+    await assertSucceeds(setDoc(ref, snap('editor')))
+    await assertFails(updateDoc(ref, { name: 'x' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/snapshots/s2`), snap('owner')))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s3`), snap('viewer')))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/snapshots/s4`), { ...snap('editor'), extra: 1 }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s1`)))
+    await assertFails(deleteDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s1`)))
+    await assertSucceeds(deleteDoc(ref))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

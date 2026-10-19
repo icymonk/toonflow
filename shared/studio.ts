@@ -176,6 +176,10 @@ export function createHistory(limit = 50) {
       done.push(c)
       return c
     },
+    clear() {
+      done.length = 0
+      undone.length = 0
+    },
     get canUndo() { return done.length > 0 },
     get canRedo() { return undone.length > 0 },
   }

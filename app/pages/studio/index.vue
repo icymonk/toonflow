@@ -3,7 +3,7 @@ import { serverTimestamp } from 'firebase/firestore'
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
-import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, History, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
@@ -299,6 +299,7 @@ onKeyStroke(['z', 'Z'], (e) => {
 
 // STU-31·32 이동·전체 미리보기
 const previewOpen = ref(false)
+const snapOpen = ref(false)
 const previewPage = ref(0)
 function openPreview() {
   previewPage.value = selected.value?.pageIndex ?? 0
@@ -374,6 +375,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       </div>
       <Button size="sm" variant="outline" :disabled="!cuts.length" @click="openPreview">
         <Eye class="size-4" /> {{ t.preview }}
+      </Button>
+      <Button size="sm" variant="outline" @click="snapOpen = true">
+        <History class="size-4" /> {{ t.snap.button }}
       </Button>
     </div>
 
@@ -570,6 +574,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       @close="compareId = null" @choose="id => { run(() => ill.choose(selected!.panel.id, id)); compareId = null }"
     />
     <!-- STU-32 전체 미리보기 -->
+    <StudioSnapshots v-if="snapOpen" :s="s" :edit="edit" @close="snapOpen = false" />
     <div v-if="previewOpen" class="fixed inset-0 z-50 flex items-center justify-center gap-4 bg-black/80" role="dialog" :aria-label="t.preview">
       <button class="absolute top-4 right-4 text-white" :aria-label="t.close" @click="previewOpen = false"><X class="size-6" /></button>
       <button class="text-white disabled:opacity-30" :disabled="previewPage === 0" :aria-label="t.prev" @click="previewPage--"><ChevronLeft class="size-8" /></button>

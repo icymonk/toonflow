@@ -61,6 +61,7 @@
 | `panels/{id}` | `pageId`, `scene`, `place`, `mood`, `characterNames[]`(이름. 캐릭터가 등록되면 `characterIds`로 연결, 1-G), `characterIds[]`, `shot`, `expression`, `action`, `outfit`, `note`, `dialogues: { id, type, speaker, speakerId, text }[]`, `selectedCandidateId`, `crop: { x, y, w, h }`(0~1 비율), `bubbles: { dialogueId, x, y, w, h, shape, tail, fontSize, bold }[]`, `staleFrom`, `deletedAt` | SBD-10~13, ILL-11·23, REV-01~03 |
 | `panels/{id}/candidates/{id}` | `imagePath`, `previewPath`, `width`, `height`, `source: 'ai'\|'upload'`, `jobId`, `input`(생성 입력 스냅숏: 장면·캐릭터·그림체 id와 `version`·모델), `hidden`, `favorite`, `createdAt` — 서버만 만듦 | ILL-01·03·10~14 |
 | `typeset` (문서 하나: `episodes/{id}/meta/typeset`) | `font`, `fontSize`, `lineHeight`, `strokeWidth`, `strokeColor` — 작품 기본값을 복사해 시작 | REV-04 |
+| `snapshots/{id}` | `name`, `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`, `panels[]` — 만들기·지우기만 | STU-23 |
 
 - 장·컷 순서는 부모 쪽 배열(`pageOrder`, `panelIds`)로 둔다. 끌어서 옮기기(SBD-21)가 문서 하나 수정으로 끝난다.
 - 대사는 컷 문서 안 배열. 말풍선은 `dialogueId`로 대사를 가리켜, 대사를 고치면 말풍선 글도 같이 바뀐다(REV-02).
@@ -103,3 +104,4 @@
 - v1.5: 2-E — 변형·부분 수정은 `panel.image` 작업 그대로, 고른 후보 경로를 `refPaths` 맨 앞에(부분 수정은 마스크 PNG `refs/panels/{panelId}/…`를 둘째로) 넘긴다
 - v1.6: 2-F — 후보에 `workspaceId`·`episodeId`·`panelId`(collectionGroup 모아 보기, 색인 2개), 후보 `source`에 `import`, `workspaces/{ws}/assets/{id}`(참고 자료: path·name·size·tags·createdBy·createdAt, Storage `refs/assets/`), callable `cleanupCandidates`·`storageUsage`
 - v1.7: 2-G — 캐릭터 `variants: { kind: 'expression'|'outfit', label, path }[]`(최대 12, 컷 `expression`·`outfit` 글에 `label`이 들어 있으면 대표 이미지 대신 참조), 이미지 작업 `prompts` 최대 6개(캐릭터 시트)
+- v1.8: 2-H — `episodes/{id}/snapshots/{id}`(STU-23): `name`(1~40자), `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`·`panels[]`(각 80개 이하, 컷은 편집자가 쓰는 필드만 복사). 만들기·지우기만, 고치기 없음. 되돌리기는 지금 상태를 먼저 스냅숏으로 남긴 뒤 장·컷을 다시 쓰고, 그 뒤에 생긴 장·컷은 `deletedAt`

@@ -151,6 +151,17 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'logline', 'scenes', 'punchline', 'editedAt'])
             && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
         }
+        // STU-23 스냅숏: 만들기·지우기만 (고치지 않음)
+        match /snapshots/{sid} {
+          allow read: if canView(ws);
+          allow create: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt', 'title', 'pageOrder', 'activeStoryVersionId', 'pages', 'panels'])
+            && strLen(request.resource.data.name, 1, 40)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.pages is list && request.resource.data.pages.size() <= 80
+            && request.resource.data.panels is list && request.resource.data.panels.size() <= 80;
+          allow delete: if canEdit(ws);
+        }
         // REV-04 식자 스타일
         match /meta/{docId} {
           allow read: if canView(ws);

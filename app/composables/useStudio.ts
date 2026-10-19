@@ -2,7 +2,9 @@ import type { Series } from '#shared/episodes'
 import type { Episode, Step } from '#shared/episodes'
 import type { JobStatus, JobType, StartAiJobInput } from '#shared/jobs'
 import type { Page, PageLayout, Panel } from '#shared/studio'
-import { collection, doc, getDoc, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
+import type { Snapshot } from '#shared/snapshot'
+import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { restorePlan, SNAPSHOT_MAX_PANELS, SNAPSHOT_NAME_MAX, takeSnapshot } from '#shared/snapshot'
 import { ACTIVE_STATUSES } from '#shared/jobs'
 import { createHistory, emptyPanel, LAYOUT_BY_COUNT, movedPanelIds, movePage, movePanelTo, orderCuts } from '#shared/studio'
 
@@ -20,9 +22,10 @@ export function useStudio(episodeId: Ref<string>) {
   const pages = ref<Page[]>([])
   const panels = ref<Panel[]>([])
   const jobs = ref<ActiveJob[]>([])
+  const snapshots = ref<Snapshot[]>([])
   const wsPath = () => ['workspaces', auth.workspace!.id] as const
   const epRef = () => doc($firestore, ...wsPath(), 'episodes', episodeId.value)
-  const sub = (name: 'pages' | 'panels') => collection(epRef(), name)
+  const sub = (name: 'pages' | 'panels' | 'snapshots') => collection(epRef(), name)
 
   const stops: (() => void)[] = []
   watch(() => [auth.workspace?.id, episodeId.value] as const, ([ws, id]) => {
@@ -49,6 +52,7 @@ export function useStudio(episodeId: Ref<string>) {
       }, () => (missing.value = true)),
       onSnapshot(sub('pages'), s => (pages.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as Page))),
       onSnapshot(sub('panels'), s => (panels.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as Panel))),
+      onSnapshot(query(sub('snapshots'), orderBy('createdAt', 'desc')), s => (snapshots.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as Snapshot)), () => {}),
       onSnapshot(
         query(collection($firestore, ...wsPath(), 'aiJobs'), where('target.episodeId', '==', id), where('status', 'in', [...ACTIVE_STATUSES])),
         s => (jobs.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as ActiveJob)),
@@ -267,11 +271,35 @@ export function useStudio(episodeId: Ref<string>) {
   }
 
   /** SBD-23 장 배치 */
+  // STU-23 스냅숏
+  const currentSnapshot = () => takeSnapshot(episode.value!, pages.value, panels.value)
+  function saveSnapshot(name: string) {
+    const data = currentSnapshot()
+    if (data.panels.length > SNAPSHOT_MAX_PANELS || data.pages.length > SNAPSHOT_MAX_PANELS) return Promise.reject(new Error('snapshot-too-large'))
+    return track(() => addDoc(sub('snapshots'), { ...data, name: name.trim().slice(0, SNAPSHOT_NAME_MAX), createdBy: auth.user!.uid, createdAt: serverTimestamp() }))
+  }
+  const removeSnapshot = (id: string) => track(() => deleteDoc(doc(sub('snapshots'), id)))
+  /** 지금 상태를 backupName으로 먼저 남기고 되돌린다. 실행 취소 기록은 비운다 */
+  async function restoreSnapshot(snap: Snapshot, backupName: string) {
+    await saveSnapshot(backupName)
+    const plan = restorePlan(snap, pages.value, panels.value)
+    const b = writeBatch($firestore)
+    b.update(epRef(), { ...plan.episode, ...touch() })
+    for (const p of plan.pages) b.set(doc(sub('pages'), p.id), { ...p.data, deletedAt: null, ...touch() })
+    for (const p of plan.panels) b.set(doc(sub('panels'), p.id), { ...p.data, deletedAt: null, ...touch() })
+    for (const id of plan.removePages) b.update(doc(sub('pages'), id), { deletedAt: serverTimestamp(), ...touch() })
+    for (const id of plan.removePanels) b.update(doc(sub('panels'), id), { deletedAt: serverTimestamp(), ...touch() })
+    await track(() => b.commit())
+    history.clear()
+    sync()
+  }
+
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
 
   return {
     episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
+    snapshots, currentSnapshot, saveSnapshot, removeSnapshot, restoreSnapshot,
   }
 }
