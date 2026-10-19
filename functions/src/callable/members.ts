@@ -6,6 +6,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
 import { assignable, canChangeMember, createInviteInput, inviteTokenInput, memberRefInput, revokeInviteInput, setMemberLimitInput, setMemberRoleInput } from '../../../shared/members'
 import { userWorkspaceIds, workspaceRefInput } from '../../../shared/workspaces'
+import { logActivity } from '../lib/activity'
 import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
 
@@ -45,6 +46,7 @@ export const createInvite = authedCallable(createInviteInput, async ({ uid, data
   const token = randomBytes(24).toString('base64url')
   const expiresAt = Timestamp.fromMillis(Date.now() + data.days * DAY)
   await getFirestore().doc(`invites/${hash(token)}`).set({ workspaceId: data.workspaceId, role: data.role, expiresAt, createdBy: uid, usedCount: 0, createdAt: FieldValue.serverTimestamp() })
+  await logActivity(data.workspaceId, uid, 'invite.create', { role: data.role, days: data.days })
   return { token, expiresAt: expiresAt.toMillis() }
 })
 
@@ -81,6 +83,7 @@ export const acceptInvite = authedCallable(inviteTokenInput, async ({ uid, token
     if (user.exists) tx.update(user.ref, { workspaceId: wsId, workspaceIds: [...new Set([...userWorkspaceIds(user.data() ?? {}), wsId])] })
     else tx.set(user.ref, { displayName: displayName ?? email?.split('@')[0] ?? '', email, photoURL: typeof token.picture === 'string' ? token.picture : null, workspaceId: wsId, workspaceIds: [wsId], createdAt: FieldValue.serverTimestamp() })
   })
+  await logActivity(wsId, uid, 'invite.accept', { role: inv.get('role') as string })
   return { workspaceId: wsId }
 })
 
@@ -89,6 +92,7 @@ export const setMemberRole = authedCallable(setMemberRoleInput, async ({ uid, da
   const { actor, ref } = await changeable(data.workspaceId, uid, data.uid)
   if (!assignable(actor).includes(data.role)) throw forbidden()
   await ref.update({ role: data.role })
+  await logActivity(data.workspaceId, uid, 'member.role', { target: data.uid, role: data.role })
   return { ok: true as const }
 })
 
@@ -96,6 +100,7 @@ export const removeMember = authedCallable(memberRefInput, async ({ uid, data })
   const { ref } = await changeable(data.workspaceId, uid, data.uid)
   await ref.delete()
   await detachUser(data.uid, data.workspaceId)
+  await logActivity(data.workspaceId, uid, 'member.remove', { target: data.uid })
   return { ok: true as const }
 })
 
@@ -104,6 +109,7 @@ export const leaveWorkspace = authedCallable(workspaceRefInput, async ({ uid, da
   if ((await requireMember(data.workspaceId, uid)) === 'owner') throw new HttpsError('failed-precondition', ERROR_KEYS.ownerCannotLeave)
   await getFirestore().doc(`workspaces/${data.workspaceId}/members/${uid}`).delete()
   await detachUser(uid, data.workspaceId)
+  await logActivity(data.workspaceId, uid, 'member.leave')
   return { ok: true as const }
 })
 

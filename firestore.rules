@@ -74,6 +74,10 @@ service cloud.firestore {
     match /invites/{id} {
       allow read: if canManage(resource.data.workspaceId);
     }
+    // CMN-54 운영자 열람 기록 모아 보기 (collectionGroup)
+    match /{path=**}/adminViews/{id} {
+      allow read: if isAdmin();
+    }
 
     // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
     // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
@@ -101,6 +105,13 @@ service cloud.firestore {
         && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
         && request.resource.data.defaults is map;
 
+      // CMN-31 활동 기록 · CMN-54 열람 기록: 서버만 쓴다
+      match /activity/{id} {
+        allow read: if canView(ws);
+      }
+      match /adminViews/{id} {
+        allow read: if canManage(ws) || isAdmin();
+      }
       match /members/{uid} {
         allow read: if canView(ws);
         // ACC-22 마지막 활동: 본인이 lastActiveAt만

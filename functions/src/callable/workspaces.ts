@@ -5,6 +5,7 @@ import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
 import { defaultWorkspaceName } from '../../../shared/account'
 import { ACCOUNT_DELETE_DAYS, createWorkspaceInput, daysLater, deleteAccountInput, MAX_OWNED_WORKSPACES, transferOwnershipInput, userWorkspaceIds, workspaceRefInput, WS_DELETE_DAYS } from '../../../shared/workspaces'
+import { logActivity } from '../lib/activity'
 import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
 
@@ -54,6 +55,7 @@ export const deleteWorkspace = authedCallable(workspaceRefInput, async ({ uid, d
   const deleteAt = Timestamp.fromMillis(daysLater(Date.now(), WS_DELETE_DAYS))
   await db.doc(`workspaces/${data.workspaceId}`).update({ deleteAt, deletedBy: uid })
   if (user.get('workspaceId') === data.workspaceId) await user.ref.update({ workspaceId: others[0]!.id })
+  await logActivity(data.workspaceId, uid, 'workspace.delete')
   return { deleteAt: deleteAt.toMillis() }
 })
 
@@ -61,6 +63,7 @@ export const deleteWorkspace = authedCallable(workspaceRefInput, async ({ uid, d
 export const restoreWorkspace = authedCallable(workspaceRefInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'owner')
   await getFirestore().doc(`workspaces/${data.workspaceId}`).update({ deleteAt: null, deletedBy: FieldValue.delete() })
+  await logActivity(data.workspaceId, uid, 'workspace.restore')
   return { ok: true as const }
 })
 
@@ -76,6 +79,7 @@ export const transferOwnership = authedCallable(transferOwnershipInput, async ({
     tx.update(ws.collection('members').doc(uid), { role: 'admin' })
     tx.update(ws, { ownerId: data.toUid })
   })
+  await logActivity(data.workspaceId, uid, 'workspace.transfer', { target: data.toUid })
   return { ok: true as const }
 })
 

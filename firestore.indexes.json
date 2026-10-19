@@ -1,6 +1,13 @@
 {
   "indexes": [
     {
+      "collectionGroup": "adminViews",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "at", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "candidates",
       "queryScope": "COLLECTION_GROUP",
       "fields": [

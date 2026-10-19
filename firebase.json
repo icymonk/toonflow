@@ -246,6 +246,20 @@
         }
       },
       {
+        "source": "/fn/adminOverview",
+        "function": {
+          "functionId": "adminOverview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/logAdminView",
+        "function": {
+          "functionId": "logAdminView",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
