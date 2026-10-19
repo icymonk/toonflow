@@ -20,7 +20,7 @@ beforeAll(async () => {
     await setDoc(doc(f, `${W}/submissions/s1`), { title: 't', body: 'b', note: '', sourceNote: '', tags: [], starred: false, status: 'new', source: 'dm', episodeIds: [] })
     await setDoc(doc(f, `${W}/aiJobs/j1`), { status: 'succeeded' })
     await setDoc(doc(f, `${W}/usage/2026-10`), { costKrw: 0 })
-    await setDoc(doc(f, `${W}/episodes/e1`), { title: '1화', step: 'story', status: 'active', settings: {}, deletedAt: null })
+    await setDoc(doc(f, `${W}/episodes/e1`), { title: '1화', number: 1, step: 'story', status: 'active', settings: {}, deletedAt: null })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1`), { scene: 's', dialogues: [] })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'x' })
     await setDoc(doc(f, `users/editor`), { displayName: 'e', email: 'e@x' })
@@ -40,6 +40,9 @@ describe('roles × paths', () => {
   it('owner/admin/editor edit, viewer does not', async () => {
     for (const r of ['owner', 'admin', 'editor']) await assertSucceeds(updateDoc(doc(db(r), `${W}/episodes/e1`), { title: `by ${r}` }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1`), { title: 'v' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 3 }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 0 }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 1.5 }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/submissions/s1`), { starred: true }))
     await assertFails(updateDoc(doc(db('other'), `${W}/episodes/e1`), { title: 'x' }))
   })

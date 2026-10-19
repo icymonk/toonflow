@@ -50,6 +50,13 @@
         }
       },
       {
+        "source": "/fn/duplicateEpisode",
+        "function": {
+          "functionId": "duplicateEpisode",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/fn/deleteToTrash",
         "function": {
           "functionId": "deleteToTrash",

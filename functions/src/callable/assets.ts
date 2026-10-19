@@ -17,7 +17,11 @@ export const cleanupCandidates = authedCallable(cleanupInput, async ({ uid, data
     if (panel.get('selectedCandidateId') === d.id) continue
     await d.ref.delete()
     const path = d.get('imagePath') as string | undefined
-    if (path?.startsWith(`workspaces/${data.workspaceId}/aiJobs/`)) await bucket.file(path).delete().catch(() => {})
+    if (path?.startsWith(`workspaces/${data.workspaceId}/aiJobs/`)) {
+      // 복제·가져오기로 같은 파일을 가리키는 후보가 남아 있으면 파일은 두기
+      const others = await getFirestore().collectionGroup('candidates').where('workspaceId', '==', data.workspaceId).where('imagePath', '==', path).limit(1).get()
+      if (others.empty) await bucket.file(path).delete().catch(() => {})
+    }
     deleted++
   }
   return { deleted }

@@ -11,7 +11,7 @@ import { ko } from '~/locales/ko'
 const t = ko.stories
 const auth = useAuthStore()
 const route = useRoute()
-const { series, episodes, loading, createSeries, createEpisode, updateEpisode, trash } = useStories()
+const { series, episodes, loading, createSeries, createEpisode, updateEpisode, updateSeries, duplicate, trash } = useStories()
 const { list: submissions } = useSubmissions()
 const edit = computed(() => canEdit(auth.role))
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
@@ -78,7 +78,18 @@ async function submitEpisode() {
 const seriesFilter = ref('')
 const showArchived = ref(false)
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
-const shown = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || !e.archivedAt)))
+const archivedSeries = computed(() => new Set(series.value.filter(s => s.archivedAt).map(s => s.id)))
+const shown = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || (!e.archivedAt && (!archivedSeries.value.has(e.seriesId) || e.seriesId === seriesFilter.value)))))
+const shownSeries = computed(() => series.value.filter(s => showArchived.value || !s.archivedAt || s.id === seriesFilter.value))
+const toggleSeriesArchive = (id: string, archived: boolean) => run(() => updateSeries(id, { archivedAt: archived ? null : serverTimestamp() }))
+// EPI-15 회차 번호 · EPI-14 복제
+function setNumber(e: Episode, v: string) {
+  const n = Number(v)
+  if (Number.isInteger(n) && n >= 1 && n <= 9999 && n !== e.number) run(() => updateEpisode(e.id, { number: n }))
+}
+function dup(e: Episode, mode: string) {
+  if (mode === 'structure' || mode === 'full') return run(() => duplicate(e.id, mode), t.duplicated)
+}
 const liveCount = (id: string) => episodes.value.filter(e => e.seriesId === id).length
 const krw = (n: number) => `₩${(n ?? 0).toLocaleString('ko-KR')}`
 const date = (e: Episode) => (e.updatedAt ? new Date(e.updatedAt.toMillis()).toLocaleDateString('ko-KR') : '')
@@ -242,11 +253,14 @@ function removeSeries(id: string) {
           </div>
         </button>
         <div
-          v-for="s in series" :key="s.id" class="group relative rounded-lg border px-4 py-3 text-left" :class="seriesFilter === s.id ? 'border-primary bg-card' : 'bg-card/60'"
+          v-for="s in shownSeries" :key="s.id" class="group relative rounded-lg border px-4 py-3 text-left" :class="seriesFilter === s.id ? 'border-primary bg-card' : 'bg-card/60'"
         >
           <button class="text-left" @click="seriesFilter = s.id">
             <div class="font-medium">{{ s.name }}</div>
             <div class="text-muted-foreground text-xs">{{ s.intro || t.tones[s.tone] }} · {{ t.episodes(liveCount(s.id)) }}</div>
+          </button>
+          <button v-if="edit && seriesFilter === s.id" class="text-muted-foreground mt-1 block text-xs hover:underline" @click="toggleSeriesArchive(s.id, !!s.archivedAt)">
+            {{ s.archivedAt ? t.unarchiveSeries : t.archiveSeries }}
           </button>
           <button
             v-if="edit && liveCount(s.id) === 0" class="text-muted-foreground absolute top-1 right-1 hidden group-hover:block" :aria-label="t.delete"
@@ -280,6 +294,10 @@ function removeSeries(id: string) {
             </tr>
             <tr v-for="e in shown" :key="e.id" class="border-t" :class="{ 'opacity-60': e.archivedAt }">
               <td class="px-3 py-2">
+                <input
+                  v-if="edit" :value="e.number" type="number" min="1" max="9999" :aria-label="t.numberLabel"
+                  class="mr-2 w-12 rounded border px-1 text-xs" @change="setNumber(e, ($event.target as HTMLInputElement).value)"
+                >
                 <NuxtLink :to="{ path: '/studio', query: { episode: e.id } }" class="font-medium hover:underline">{{ e.title }}</NuxtLink>
               </td>
               <td class="px-3 py-2">{{ seriesName(e.seriesId) }}</td>
@@ -298,6 +316,10 @@ function removeSeries(id: string) {
               <td class="text-muted-foreground px-3 py-2">{{ date(e) }}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <template v-if="edit">
+                  <select :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" value="" @change="dup(e, ($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''">
+                    <option value="" disabled>{{ t.duplicate }}</option>
+                    <option v-for="m in (['structure', 'full'] as const)" :key="m" :value="m">{{ t.duplicateModes[m] }}</option>
+                  </select>
                   <Button size="sm" variant="ghost" @click="toggleArchive(e)">
                     {{ e.archivedAt ? t.unarchive : t.archive }}
                   </Button>

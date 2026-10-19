@@ -33,6 +33,14 @@ export const createEpisodeInput = z.object({
 }).refine(d => d.submissionIds.length > 0 || d.storyText.length > 0, { message: 'material' })
 export type CreateEpisodeInput = z.infer<typeof createEpisodeInput>
 
+/** EPI-14: structure = 장·컷 배치·등장 캐릭터·설정만, full = 장면·대사·말풍선·고른 그림까지 */
+export const duplicateEpisodeInput = z.object({
+  workspaceId: z.string().min(1),
+  episodeId: z.string().min(1),
+  mode: z.enum(['structure', 'full']),
+})
+export type DuplicateEpisodeInput = z.infer<typeof duplicateEpisodeInput>
+
 export const trashInput = z.object({
   workspaceId: z.string().min(1),
   kind: z.enum(['episode', 'series']),
