@@ -4,7 +4,7 @@ import { fontCss, spikyPath } from '#shared/render'
 const INK = '#1F2A44'
 
 // PUB-03: 장 렌더러와 같은 배치(layoutPage)를 Canvas에 그려 JPG/PNG로
-export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, type: 'image/jpeg' | 'image/png'): Promise<Blob> {
+export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null, type: 'image/jpeg' | 'image/png'): Promise<Blob> {
   const font = fontCss(ts.font)
   await Promise.all([document.fonts.load(`500 ${ts.fontSize}px ${font}`), document.fonts.load(`700 ${ts.fontSize}px ${font}`)]).catch(() => {})
   const cv = document.createElement('canvas')
@@ -84,6 +84,13 @@ export async function drawPage(laid: LaidCut[], W: number, H: number, ts: Typese
     ctx.lineWidth = 4
     ctx.strokeStyle = INK
     ctx.strokeRect(r.x, r.y, r.w, r.h)
+  }
+  if (watermark) {
+    ctx.font = '500 18px Pretendard Variable, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
+    ctx.fillStyle = '#71717A'
+    ctx.fillText(watermark, 24, H - 4)
   }
   if (label) {
     ctx.font = '500 18px Pretendard Variable, sans-serif'

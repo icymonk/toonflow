@@ -1,3 +1,4 @@
+import type { JobType } from '#shared/jobs'
 import type { ModelsConfig } from '#shared/config'
 import type { Series } from '#shared/episodes'
 import type { JobStatus } from '#shared/jobs'
@@ -62,6 +63,7 @@ export function useLibrary() {
   const generate = (target: { characterId: string } | { styleId: string }, params: Record<string, unknown>) =>
     callFn($functions, 'startAiJob', { workspaceId: ws(), type: 'style.sample', target, params, idempotencyKey: crypto.randomUUID() })
   const estimate = (images: number) => (models.value ? estimateKrw(models.value, models.value.defaults.image, 'style.sample', { images }) : 0)
+  const estimateText = (type: JobType, inputChars: number) => (models.value ? estimateKrw(models.value, models.value.defaults.text, type, { inputChars }) : 0)
 
   function watchJob(id: Ref<string | null>) {
     const job = ref<LibraryJob | null>(null)
@@ -75,6 +77,6 @@ export function useLibrary() {
     return job
   }
 
-  return { characters, styles, series, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, watchJob }
+  return { characters, styles, series, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, estimateText, watchJob }
 }
 export type Library = ReturnType<typeof useLibrary>

@@ -85,12 +85,12 @@ service cloud.firestore {
       match /series/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100)
           && request.resource.data.episodeCount == 0 && request.resource.data.deletedAt == null
           && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'coverPath', 'archivedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'coverPath', 'archivedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
       // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
@@ -121,7 +121,7 @@ service cloud.firestore {
       match /episodes/{id} {
         allow read: if canView(ws);
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
           && strLen(request.resource.data.title, 1, 80)
           && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
           && request.resource.data.status in ['active', 'done', 'published'];

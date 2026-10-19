@@ -11,6 +11,7 @@ export const fakeText: TextModel = {
       draft: { titles: ['가짜 제목'], logline: '가짜 로그라인', scenes, punchline: '끝' },
       split: { pages: scenes.map((sc, i) => ({ panels: [{ scene: sc.beats, place: '사무실', characters: ['나'], shot: i === 0 ? 'wide' : 'bust', expression: '', action: '', outfit: '', mood: '', dialogues: sc.dialogues }] })) },
       titles: { titles: ['제목 1', '제목 2', '제목 3', '제목 4', '제목 5'] },
+      caption: { caption: '가짜 캡션 본문', hashtags: ['#인스타툰', '#공감툰'] },
     }
     return { text: JSON.stringify(format ? canned[format] : { echo: prompt.slice(0, 200) }), usage: { inTokens: prompt.length, outTokens: 50 }, requestId: `fake-${Date.now()}` }
   },

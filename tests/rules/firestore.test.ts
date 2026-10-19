@@ -47,6 +47,7 @@ describe('roles × paths', () => {
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/submissions/s1`), { maskedBody: 'A씨가 ...' }))
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { caption: { text: 'c', hashtags: [] }, published: { url: 'https://x' } }))
   })
   it('only owner/admin manage workspace settings', async () => {
     await assertSucceeds(updateDoc(doc(db('owner'), W), { name: 'new' }))

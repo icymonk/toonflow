@@ -63,4 +63,13 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   const files = Object.keys(unzipSync(readFileSync((await dl.path())!))).sort()
   expect(files.length).toBeGreaterThan(0)
   expect(files[0]).toMatch(/_1화_01\.jpg$/)
+
+  // 캡션·발행
+  await page.getByRole('button', { name: /AI 캡션 초안/ }).click()
+  await expect(page.getByPlaceholder(/캡션 본문/)).toHaveValue(/가짜 캡션/, { timeout: 60_000 })
+  await page.getByPlaceholder(/게시 링크/).fill('https://www.instagram.com/p/e2e')
+  await page.getByRole('button', { name: '게시함으로 표시' }).click()
+  await expect(page.getByText(/게시함$/)).toBeVisible()
+  await page.goto('/publish')
+  await expect(page.getByRole('link', { name: 'https://www.instagram.com/p/e2e' })).toBeVisible()
 })

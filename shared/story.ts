@@ -34,6 +34,7 @@ export type Draft = z.infer<typeof draftSchema>
 
 // STO-14 제목 후보
 export const titlesSchema = z.object({ titles: z.array(z.string()).min(1).max(5) })
+export const captionSchema = z.object({ caption: z.string().min(1).max(2000), hashtags: z.array(z.string()).max(30).catch([]) })
 
 // SBD-01 자동 콘티
 export const splitSchema = z.object({

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { serverTimestamp } from 'firebase/firestore'
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
@@ -11,6 +12,7 @@ import { autoCheck } from '#shared/render'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
+import { composeCaption } from '#shared/publish'
 import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
 import { errorMessage } from '~/lib/errors'
@@ -45,6 +47,18 @@ const left = computed(() => reviewLeft(rows.value))
 const setCheck = (key: string, st: ReviewState) => run(() => s.updateEpisode({ review: { ...(episode.value?.review ?? {}), [key]: st } }))
 const addItem = (label: string) => run(() => s.setSeriesReviewItems([...new Set([...s.seriesReviewItems.value, label])]))
 const removeItem = (label: string) => run(() => s.setSeriesReviewItems(s.seriesReviewItems.value.filter(x => x !== label)))
+// PUB-10·11·20
+const captionText = computed(() => episode.value?.caption?.text ?? '')
+const fullCaption = computed(() => composeCaption({ greeting: s.series.value?.greeting, text: captionText.value, hashtags: episode.value?.caption?.hashtags, fixedTags: s.series.value?.hashtags, aiLabel: episode.value?.settings.aiLabel !== false }))
+const captionCost = computed(() => lib.estimateText('publish.caption', story.material.value.length))
+const makeCaption = () => (story.active.value ? run(() => story.caption(story.active.value!), t.publish.captionStarted) : toast.warning(t.board.needStory))
+const setCaptionText = (text: string) => run(() => s.updateEpisode({ caption: { text: text.slice(0, 2000), hashtags: episode.value?.caption?.hashtags ?? [] } }))
+const markPublished = (url: string) => run(() => s.updateEpisode({ status: 'published', published: { at: serverTimestamp(), url: url.slice(0, 500) } }), t.publish.published)
+const unpublish = () => run(() => s.updateEpisode({ status: 'done', published: null }))
+const publishedInfo = computed(() => {
+  const p = episode.value?.published
+  return p ? { at: p.at ? new Date(p.at.toMillis()).toLocaleDateString('ko-KR') : '', url: p.url } : null
+})
 function guardExport(fn: () => unknown) {
   if (left.value && !window.confirm(t.review.notPassed(left.value))) return
   return fn()
@@ -426,7 +440,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         </div>
         <StudioExportPreview
           v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportPages" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
-          :ai-label="exp.aiLabel.value" :name="s.seriesName.value || episode.title"
+          :ai-label="exp.aiLabel.value" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
         />
         <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
         <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" @edit="saveNow" @select="select" />
@@ -483,6 +497,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <StudioExportAside
           v-else-if="step === 'export'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
           :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
+          :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
+          :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
+          @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
           @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
         />
         <StudioReviewAside
