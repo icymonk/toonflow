@@ -11,6 +11,7 @@ import { loadModels } from '../lib/models'
 import { settle } from '../lib/usage'
 import { AiError, classify, isLastAttempt } from './errors'
 import { imageModel, textModel } from './providers'
+import { GEMINI_API_KEY } from './providers/gemini'
 
 /** 4:5 출력 (CMN 기본 비율) */
 const PANEL_SIZE = { w: 1080, h: 1350 }
@@ -51,6 +52,7 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
   retryConfig: { maxAttempts: 3, minBackoffSeconds: 10 },
   rateLimits: { maxConcurrentDispatches: 5 },
   timeoutSeconds: 540,
+  secrets: [GEMINI_API_KEY],
 }, async (req) => {
   const { workspaceId, jobId } = req.data
   const ref = getFirestore().doc(`workspaces/${workspaceId}/aiJobs/${jobId}`)

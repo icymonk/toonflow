@@ -79,7 +79,7 @@ interface ImageModel {
   inpaint?(req: { image: Buffer; mask: Buffer; prompt: string }): Promise<{ images: Buffer[]; requestId: string; billedImages: number }>
 }
 ```
-- `functions/src/ai/providers/{제공사}.ts`가 구현. `fake.ts`는 고정 텍스트·단색 이미지를 돌려줘 에뮬레이터·E2E에서 비용 없이 전체 흐름을 돌린다.
+- `functions/src/ai/providers/{제공사}.ts`가 구현. 지금은 `gemini.ts`(Google AI Studio REST, 키는 Secret `GEMINI_API_KEY`, `runAiJob`에 `secrets`로 연결)와 `fake.ts`. `config/models`의 `provider`가 `gemini`면 `id`를 Gemini 모델 이름(예: `gemini-3.5-flash`, `gemini-3.1-flash-image`)으로 쓴다. 이미지는 한 번 호출에 한 장이라 `n`번 나눠 부르고, 생각(thinking) 토큰은 출력 토큰으로 청구한다. 402(선불 잔액 없음)는 다시 시도하지 않는다(internal). `fake.ts`는 고정 텍스트·단색 이미지를 돌려줘 에뮬레이터·E2E에서 비용 없이 전체 흐름을 돌린다.
 - 프롬프트는 `functions/src/ai/prompts/{type}.ts`. 컷 이미지 프롬프트 = 그림체(STL) + 등장 캐릭터 외형(CHR) + 장면·구도·표정(SBD-10) + "글자·말풍선 넣지 않기"(ILL-04).
 - 글 AI 결과는 zod 스키마로 검증한 JSON(각색안 `scenes`, 콘티 `pages/panels`)으로 받는다.
 
