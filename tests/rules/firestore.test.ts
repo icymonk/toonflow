@@ -226,6 +226,17 @@ describe('3단계 출력 보강·확인 링크 (PUB-07·23, ILL-24, INB-12)', ()
   })
 })
 
+describe('4단계 대기 명단 (CMN-41·52)', () => {
+  it('waitlist is operator read only and server write', async () => {
+    await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), 'waitlist/w1'), { email: 'a@x', name: 'a', status: 'pending' }))
+    await assertSucceeds(getDoc(doc(db('ops', true), 'waitlist/w1')))
+    await assertFails(getDoc(doc(db('owner'), 'waitlist/w1')))
+    await assertFails(setDoc(doc(db(null), 'waitlist/w2'), { email: 'b@x', name: 'b', status: 'pending' }))
+    await assertFails(updateDoc(doc(db('ops', true), 'waitlist/w1'), { status: 'approved' }))
+    await assertFails(getDoc(doc(db(null), 'waitlistRate/r_x')))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

@@ -5,6 +5,7 @@ import type { IntakeStatus, IntakeSubmitInput, IntakeTokenInput } from './intake
 import type { ReportPageInput, ReportSubmissionInput, ResolveReportInput } from './reports'
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
+import type { DecideWaitlistInput, JoinWaitlistInput } from './waitlist'
 import type { SetWorkspaceLimitInput } from './usage'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
@@ -46,5 +47,7 @@ export interface Callables {
   reportPage: { input: ReportPageInput, output: { ok: true } }
   reportSubmission: { input: ReportSubmissionInput, output: { ok: true } }
   resolveReport: { input: ResolveReportInput, output: { ok: true } }
+  joinWaitlist: { input: JoinWaitlistInput, output: { ok: true } }
+  decideWaitlist: { input: DecideWaitlistInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }
