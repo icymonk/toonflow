@@ -1,7 +1,7 @@
 import type { JobType } from '../../../shared/jobs'
 import type { z } from 'zod'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { analysisSchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
+import { analysisSchema, captionSchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
 import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
@@ -40,7 +40,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
     return
   }
   const episodeId = job.target?.episodeId
-  if (!episodeId || !(job.type.startsWith('story.') || job.type === 'storyboard.split')) return
+  if (!episodeId || !(job.type.startsWith('story.') || job.type === 'storyboard.split' || job.type === 'publish.caption')) return
   const epRef = db.doc(`workspaces/${wsId}/episodes/${episodeId}`)
   const params = storyParams.parse(job.params)
   const now = FieldValue.serverTimestamp()
@@ -76,6 +76,10 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
   else if (job.type === 'story.titles' && params.versionId) {
     const t = parse(titlesSchema, result)
     await epRef.collection('storyVersions').doc(params.versionId).update({ titleCandidates: t.titles })
+  }
+  else if (job.type === 'publish.caption') {
+    const c = parse(captionSchema, result)
+    await epRef.update({ caption: { text: c.caption, hashtags: c.hashtags }, updatedAt: FieldValue.serverTimestamp() })
   }
   else if (job.type === 'storyboard.split') {
     // SBD-01·02: 지금 콘티를 지우고(휴지통과 같은 soft delete) 새 장·컷으로 바꾼다

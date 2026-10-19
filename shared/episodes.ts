@@ -47,6 +47,9 @@ export interface Series extends SeriesInput {
   styleId?: string | null
   mainCharacterIds?: string[]
   reviewItems?: string[]
+  hashtags?: string
+  greeting?: string
+  watermark?: string
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null
@@ -68,6 +71,8 @@ export interface Episode {
   staleFrom?: 'story' | null
   pageOrder?: string[]
   review?: Record<string, import('./review').ReviewState>
+  caption?: { text: string, hashtags: string[] } | null
+  published?: { at?: Ts, url: string } | null
   costKrw: number
   updatedAt?: Ts
   deletedAt?: Ts | null

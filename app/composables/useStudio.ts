@@ -1,3 +1,4 @@
+import type { Series } from '#shared/episodes'
 import type { Episode, Step } from '#shared/episodes'
 import type { JobStatus, JobType, StartAiJobInput } from '#shared/jobs'
 import type { Page, PageLayout, Panel } from '#shared/studio'
@@ -15,6 +16,7 @@ export function useStudio(episodeId: Ref<string>) {
   const missing = ref(false)
   const seriesName = ref('')
   const seriesReviewItems = ref<string[]>([])
+  const series = ref<Series | null>(null)
   const pages = ref<Page[]>([])
   const panels = ref<Panel[]>([])
   const jobs = ref<ActiveJob[]>([])
@@ -40,6 +42,7 @@ export function useStudio(episodeId: Ref<string>) {
           getDoc(doc($firestore, ...wsPath(), 'series', ep.seriesId)).then((s) => {
             seriesName.value = (s.get('name') as string) ?? ''
             seriesReviewItems.value = (s.get('reviewItems') as string[] | undefined) ?? []
+            series.value = s.exists() ? ({ id: s.id, ...s.data() } as Series) : null
           })
         }
         episode.value = ep
@@ -105,6 +108,13 @@ export function useStudio(episodeId: Ref<string>) {
 
   const touch = () => ({ updatedAt: serverTimestamp() })
   const updateEpisode = (patch: Record<string, unknown>) => track(() => updateDoc(epRef(), { ...patch, ...touch() }))
+  /** PUB-06·10: 작품 워터마크·고정 인사말·해시태그 */
+  async function updateSeries(patch: Partial<Pick<Series, 'hashtags' | 'greeting' | 'watermark'>>) {
+    const id = episode.value?.seriesId
+    if (!id) return
+    if (series.value) series.value = { ...series.value, ...patch }
+    await track(() => updateDoc(doc($firestore, ...wsPath(), 'series', id), { ...patch, updatedAt: serverTimestamp() }))
+  }
   /** REV-14: 작품마다 검수 항목 추가 */
   async function setSeriesReviewItems(items: string[]) {
     const id = episode.value?.seriesId
@@ -231,7 +241,7 @@ export function useStudio(episodeId: Ref<string>) {
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
 
   return {
-    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
+    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
   }

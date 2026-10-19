@@ -45,7 +45,15 @@ const split = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split }
+// PUB-10
+const caption = (p: StoryParams): TextPrompt => ({
+  format: 'caption',
+  system: '너는 인스타툰 작가야. 각색안을 읽고 인스타그램 게시물 캡션을 써. 2~4문장, 공감을 부르는 말투, 결말 스포일러 금지, 마지막 문장은 댓글을 부르는 질문. '
+    + 'hashtags는 한국어 해시태그 후보 8~12개(#포함). 실명·특정 가능한 정보는 쓰지 않는다. 반드시 JSON만: {"caption": str, "hashtags": [str]}',
+  prompt: p.draft || p.material,
+})
+
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption }
 
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {

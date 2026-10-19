@@ -8,6 +8,7 @@ const OUTPUT_TOKENS: Partial<Record<JobType, number>> = {
   'story.draft': 3000,
   'story.titles': 300,
   'storyboard.split': 4000,
+  'publish.caption': 500,
 }
 
 /** AIU-10: 예상 비용(원, 올림). 모델이 없으면 0 */

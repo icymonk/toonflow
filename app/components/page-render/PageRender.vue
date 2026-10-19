@@ -6,7 +6,7 @@ import { candidatePath } from '#shared/illustrate'
 import { cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
-const props = defineProps<{ cuts: Cut[], aspect?: string, typeset: Typeset, edit?: boolean, selectedPanelId?: string, selectedBubble?: string | null, label?: string | null }>()
+const props = defineProps<{ cuts: Cut[], aspect?: string, typeset: Typeset, edit?: boolean, selectedPanelId?: string, selectedBubble?: string | null, label?: string | null, watermark?: string | null }>()
 const emit = defineEmits<{ select: [panelId: string, dialogueId: string | null], move: [panelId: string, dialogueId: string, patch: Pick<Bubble, 'x' | 'y' | 'w' | 'h'>] }>()
 const { $storage } = useNuxtApp()
 const auth = useAuthStore()
@@ -109,5 +109,6 @@ defineExpose({ svg })
       <rect :x="it.r.x" :y="it.r.y" :width="it.r.w" :height="it.r.h" fill="none" :stroke="it.cut.panel.id === selectedPanelId && edit ? '#FF735C' : '#1F2A44'" stroke-width="4" pointer-events="none" />
     </g>
     <text v-if="label" :x="size.w - 24" :y="size.h - 4" text-anchor="end" font-size="18" fill="#71717A" font-family="Pretendard Variable, sans-serif">{{ label }}</text>
+    <text v-if="watermark" x="24" :y="size.h - 4" font-size="18" fill="#71717A" font-family="Pretendard Variable, sans-serif">{{ watermark }}</text>
   </svg>
 </template>
