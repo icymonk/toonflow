@@ -139,3 +139,13 @@ export const SHEET = [
 export const CONSISTENCY_SCENES = ['카페에서 커피를 마시는 장면', '퇴근길 지하철에서 휴대폰을 보는 장면', '집 소파에 누워 있는 장면', '사무실 책상에서 일하는 장면'] as const
 export const withHint = (base: string, hint: string, sheet = false) =>
   `${base}\n\n이번 그림: ${hint}.${sheet ? ' 단색 배경의 캐릭터 설정화.' : ''}`.slice(0, 4000)
+
+/** STL-03: 새 워크스페이스에 복사해 넣는 기본 그림체 */
+export const STYLE_PRESETS: StyleInput[] = [
+  { ...defaultStyle(), name: '말랑 파스텔', description: '부드러운 파스텔 색, 얇은 선, 단순한 배경의 일상툰', line: 'thin', coloring: 'flat', palette: 'pastel', background: 'simple' },
+  { ...defaultStyle(), name: '선명한 셀', description: '굵은 외곽선과 셀 채색, 또렷한 색의 코믹툰', line: 'bold', coloring: 'cel', palette: 'vivid', background: 'simple' },
+  { ...defaultStyle(), name: '수채 감성', description: '선 없이 번지는 수채 채색, 잔잔한 감성툰', line: 'none', coloring: 'watercolor', palette: 'pastel', background: 'detailed' },
+  { ...defaultStyle(), name: '흑백 낙서', description: '흑백 얇은 선, 여백 많은 낙서풍', line: 'thin', coloring: 'flat', palette: 'mono', background: 'plain' },
+]
+export const presetStyleDocs = <T>(uid: string, now: T) =>
+  STYLE_PRESETS.map(p => ({ ...p, refImages: [], version: 1, preset: true, archivedAt: null, deletedAt: null, createdBy: uid, createdAt: now, updatedAt: now }))

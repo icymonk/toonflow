@@ -215,6 +215,17 @@ service cloud.firestore {
       // EPI-10~12: 만들기·삭제는 서버(createEpisode·deleteToTrash). 제목·단계·상태·보관·설정만 직접 고친다
       match /episodes/{id} {
         allow read: if canView(ws);
+        // STU-24: 같은 에피소드를 보는 사람 표시. 각자 자기 문서만 쓴다
+        match /presence/{uid} {
+          allow read: if canView(ws);
+          allow create, update: if canView(ws) && request.auth.uid == uid
+            && request.resource.data.keys().hasOnly(['name', 'photoURL', 'panelId', 'at'])
+            && request.resource.data.at == request.time
+            && (request.resource.data.panelId == null || (request.resource.data.panelId is string && request.resource.data.panelId.size() <= 64))
+            && (request.resource.data.name == null || (request.resource.data.name is string && request.resource.data.name.size() <= 100))
+            && (request.resource.data.photoURL == null || (request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 1000));
+          allow delete: if signedIn() && request.auth.uid == uid;
+        }
         allow update: if canEdit(ws) && resource.data.deletedAt == null
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
           && strLen(request.resource.data.title, 1, 80)

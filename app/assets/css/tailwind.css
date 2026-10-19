@@ -78,6 +78,38 @@
     --sidebar-border: #2d3349;
     --sidebar-ring: #ff735c;
 }
+/* 다크 모드 (ui-system 6절, 같은 이름에 값만) */
+.dark {
+    --background: #171b29;
+    --foreground: #f1efea;
+    --card: #202538;
+    --card-foreground: #f1efea;
+    --popover: #202538;
+    --popover-foreground: #f1efea;
+    --primary: #ff735c;
+    --primary-foreground: #202538;
+    --secondary: #2d3349;
+    --secondary-foreground: #f1efea;
+    --muted: #2d3349;
+    --muted-foreground: #a9adb9;
+    --accent: #4a2f33;
+    --accent-foreground: #ffe3dd;
+    --destructive: #e07a62;
+    --success: #5fb39c;
+    --warning: #e0a050;
+    --border: #343a52;
+    --input: #343a52;
+    --ring: #ff735c;
+    --sidebar: #11141f;
+    --sidebar-foreground: #faf8f4;
+    --sidebar-primary: #ff735c;
+    --sidebar-primary-foreground: #202538;
+    --sidebar-accent: #2d3349;
+    --sidebar-accent-foreground: #faf8f4;
+    --sidebar-border: #2d3349;
+    --sidebar-ring: #ff735c;
+}
+
 
 @layer base {
   * {

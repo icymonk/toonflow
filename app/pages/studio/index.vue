@@ -39,6 +39,7 @@ const story = useStory(episode, computed(() => cuts.value.length > 0), storyCtx)
 const lib = useLibrary()
 const selectedPanelId = computed(() => String(route.query.panel ?? '') || cuts.value[0]?.panel.id || '')
 const ill = useIllustrate(s, lib, selectedPanelId)
+const presence = usePresence(episodeId, selectedPanelId)
 const illN = useLocalStorage('toonflow:studio:candidates', 2)
 const illBusy = computed(() => cuts.value.filter(c => s.busyPanels.value.has(c.panel.id)).length)
 const failedPanel = (id: string) => ill.latest.value.get(id)?.status === 'failed'
@@ -432,6 +433,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <button v-for="v in (['cut', 'board', 'script'] as const)" :key="v" class="rounded px-2 py-1 text-xs" :class="view === v ? 'bg-muted font-semibold' : ''" :aria-pressed="view === v" @click="view = v">
           {{ t.board.views[v] }}
         </button>
+      </div>
+      <span v-if="presence.samePanel.value.length" class="bg-warning/15 text-warning rounded px-2 py-1 text-xs" role="status">{{ ko.presence.samePanel(presence.samePanel.value.map(p => p.name ?? '?').join(', ')) }}</span>
+      <div v-if="presence.others.value.length" class="flex -space-x-2" :aria-label="ko.presence.viewing(presence.others.value.length)">
+        <span v-for="p in presence.others.value.slice(0, 4)" :key="p.id" class="bg-muted ring-background flex size-7 items-center justify-center overflow-hidden rounded-full text-xs font-semibold ring-2" :title="p.name ?? ''">
+          <img v-if="p.photoURL" :src="p.photoURL" alt="" class="size-full object-cover">
+          <template v-else>{{ (p.name ?? '?').slice(0, 1) }}</template>
+        </span>
+        <span v-if="presence.others.value.length > 4" class="bg-muted ring-background flex size-7 items-center justify-center rounded-full text-xs ring-2">+{{ presence.others.value.length - 4 }}</span>
       </div>
       <Button size="sm" variant="outline" :disabled="!cuts.length" @click="openPreview">
         <Eye class="size-4" /> {{ t.preview }}
