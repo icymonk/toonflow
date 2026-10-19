@@ -10,6 +10,9 @@ const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
 const TIMEOUT_MS = 240_000
 const BLOCKED = ['SAFETY', 'PROHIBITED_CONTENT', 'IMAGE_SAFETY', 'IMAGE_PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION']
 
+/** 올린 참조 이미지 형식 (JPG·WebP·PNG) */
+const mimeOf = (b: Buffer) => (b[0] === 0xFF ? 'image/jpeg' : b.subarray(8, 12).toString() === 'WEBP' ? 'image/webp' : 'image/png')
+
 interface Part { text?: string, thought?: boolean, inlineData?: { mimeType: string, data: string } }
 interface GenerateResponse {
   responseId?: string
@@ -78,7 +81,7 @@ export function geminiImage(m: ModelEntry, key = () => GEMINI_API_KEY.value(), f
     async generate({ prompt, negative, refImages = [], size, n }) {
       const text = negative ? `${prompt}\n\nAvoid: ${negative}` : prompt
       const body = {
-        contents: [{ role: 'user', parts: [...refImages.map(b => ({ inlineData: { mimeType: 'image/png', data: b.toString('base64') } })), { text }] }],
+        contents: [{ role: 'user', parts: [...refImages.map(b => ({ inlineData: { mimeType: mimeOf(b), data: b.toString('base64') } })), { text }] }],
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: aspectRatio(size.w, size.h) } },
       }
       // 한 번 호출에 한 장이라 n번 나눠 부른다

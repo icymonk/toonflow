@@ -8,6 +8,19 @@ service firebase.storage {
         || firestore.exists(/databases/(default)/documents/workspaces/$(ws)/members/$(request.auth.uid)));
     }
 
+    function canEdit(ws) {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/workspaces/$(ws)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'editor'];
+    }
+
+    // CHR-04·STL-02: 캐릭터·그림체 참조 이미지 (이미지, 10MB 이하)
+    match /workspaces/{ws}/refs/{kind}/{id}/{file} {
+      allow read: if canView(ws);
+      allow create: if canEdit(ws) && kind in ['characters', 'styles']
+        && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*');
+      allow delete: if canEdit(ws);
+    }
+
     // AI 작업 결과 이미지: 서버만 쓴다
     match /workspaces/{ws}/aiJobs/{jobId}/{file} {
       allow read: if canView(ws);

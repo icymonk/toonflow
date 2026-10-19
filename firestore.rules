@@ -93,6 +93,30 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'coverPath', 'archivedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
+      // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
+      match /characters/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
+      }
+      // STL-01~09: samples·sampleJobId는 서버(style.sample)만
+      match /styles/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'description', 'line', 'coloring', 'palette', 'paletteColors', 'background', 'negative', 'rightsConfirmed', 'refImages', 'version', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'line', 'coloring', 'palette', 'paletteColors', 'background', 'negative', 'rightsConfirmed', 'refImages', 'version', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
+      }
       // EPI-10~12: 만들기·삭제는 서버(createEpisode·deleteToTrash). 제목·단계·상태·보관·설정만 직접 고친다
       match /episodes/{id} {
         allow read: if canView(ws);

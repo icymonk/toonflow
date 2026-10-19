@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, C
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
+import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import { firstUnmetBefore, remaining } from '#shared/studio'
 import { errorMessage } from '~/lib/errors'
@@ -19,6 +20,19 @@ const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
 const story = useStory(episode, computed(() => cuts.value.length > 0))
+const lib = useLibrary()
+// SBD-12: 인물 이름을 고치면 캐릭터 연결도 다시
+function editPanel(panel: Panel, field: keyof Panel, value: unknown) {
+  queueEdit(panel, field, value)
+  if (field === 'characterNames') queueEdit(panel, 'characterIds', matchCharacters(value as string[], lib.characters.value))
+}
+// CHR-10 즉석 캐릭터
+async function makeCharacter(panel: Panel, name: string, once: boolean) {
+  await run(async () => {
+    const ref = await lib.createCharacter({ name, episodeId: once ? episode.value!.id : null })
+    queueEdit(panel, 'characterIds', [...new Set([...(panel.characterIds ?? []), ref.id])])
+  }, ko.library.created)
+}
 const storySel = computed(() => String(route.query.version ?? '') || story.active.value?.id || story.versions.value.at(-1)?.id || '')
 const storyVersion = computed(() => story.versions.value.find(v => v.id === storySel.value) ?? null)
 const running = (type: string) => s.jobs.value.filter(j => j.type === type).length
@@ -386,7 +400,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" @edit="(f, v) => queueEdit(selected!.panel, f, v)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>

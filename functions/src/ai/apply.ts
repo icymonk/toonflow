@@ -2,10 +2,12 @@ import type { JobType } from '../../../shared/jobs'
 import type { z } from 'zod'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { analysisSchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
+import type { Character } from '../../../shared/library'
+import { matchCharacters } from '../../../shared/library'
 import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
 import { AiError } from './errors'
 
-interface JobDoc { type: JobType, target?: { episodeId?: string }, params?: Record<string, unknown> }
+interface JobDoc { type: JobType, target?: { episodeId?: string, styleId?: string }, params?: Record<string, unknown> }
 
 function parse<T>(schema: z.ZodType<T>, result: unknown): T {
   const out = typeof result === 'string' ? parseJson(schema, result) : null
@@ -15,9 +17,14 @@ function parse<T>(schema: z.ZodType<T>, result: unknown): T {
 
 /** ai-jobs.md 1절 8: 결과 반영. 문서 id를 jobId로 써서 다시 실행해도 한 번만 만든다 */
 export async function applyResult(wsId: string, jobId: string, job: JobDoc, result: unknown) {
+  const db = getFirestore()
+  // STL-04: 그림체 미리 보기는 그림체 문서에. 캐릭터 후보(CHR-04)는 작업 결과에서 작가가 고른다
+  if (job.type === 'style.sample' && job.target?.styleId && Array.isArray(result)) {
+    await db.doc(`workspaces/${wsId}/styles/${job.target.styleId}`).update({ samples: result, sampleJobId: jobId, updatedAt: FieldValue.serverTimestamp() })
+    return
+  }
   const episodeId = job.target?.episodeId
   if (!episodeId || !(job.type.startsWith('story.') || job.type === 'storyboard.split')) return
-  const db = getFirestore()
   const epRef = db.doc(`workspaces/${wsId}/episodes/${episodeId}`)
   const params = storyParams.parse(job.params)
   const now = FieldValue.serverTimestamp()
@@ -57,6 +64,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
   else if (job.type === 'storyboard.split') {
     // SBD-01·02: 지금 콘티를 지우고(휴지통과 같은 soft delete) 새 장·컷으로 바꾼다
     const sb = parse(splitSchema, result)
+    const chars = (await db.collection(`workspaces/${wsId}/characters`).where('deletedAt', '==', null).get()).docs.map(d => ({ id: d.id, ...d.data() }) as Character)
     const pagesCol = epRef.collection('pages')
     const panelsCol = epRef.collection('panels')
     await db.runTransaction(async (tx) => {
@@ -70,7 +78,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
           const ref = panelsCol.doc()
           tx.set(ref, {
             ...emptyPanel(pageRef.id),
-            scene: pn.scene, place: pn.place, characterNames: pn.characters, shot: pn.shot,
+            scene: pn.scene, place: pn.place, characterNames: pn.characters, characterIds: matchCharacters(pn.characters, chars), shot: pn.shot,
             expression: pn.expression, action: pn.action, outfit: pn.outfit, mood: pn.mood,
             dialogues: pn.dialogues.map((d, i) => ({ id: `d${i + 1}`, type: d.type, speaker: d.speaker, speakerId: null, text: d.text })),
             updatedAt: now,

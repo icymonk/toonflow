@@ -44,6 +44,8 @@ interface Ts { toMillis: () => number }
 
 export interface Series extends SeriesInput {
   id: string
+  styleId?: string | null
+  mainCharacterIds?: string[]
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null
