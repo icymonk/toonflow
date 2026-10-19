@@ -1,12 +1,15 @@
 import type { Cut } from '#shared/studio'
 import type { ClipSettings, VideoSettings } from '#shared/video'
 import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
-import { AI_LABEL } from '#shared/render'
+import { deleteObject, getBlob, getDownloadURL, ref as sref, uploadBytes } from 'firebase/storage'
+import { AI_LABEL, exportName } from '#shared/render'
 import { buildClips, clampMs, DEFAULT_VIDEO, REELS_MAX_MS, totalMs, VIDEO_SIZES } from '#shared/video'
-import { loadImages } from '~/lib/export'
+import { download, loadFonts, loadImages } from '~/lib/export'
+import { canExportMp4, encodeMp4 } from '~/lib/mp4'
 import { frameRenderer } from '~/lib/video'
+import { ko } from '~/locales/ko'
 
-/** 영상 설정(meta/video)·타임라인·프레임 렌더러 (PUB-30~35·37) */
+/** 영상 설정(meta/video)·타임라인·프레임 렌더러·배경음악·MP4 (PUB-30~38) */
 export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>) {
   const { $firestore, $storage } = useNuxtApp()
   const auth = useAuthStore()
@@ -53,5 +56,54 @@ export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typ
     label: s.episode.value?.settings.aiLabel !== false ? AI_LABEL : null,
     watermark: s.series.value?.watermark?.trim() || null,
   }))
-  return { settings, save, setClip, autoDuration, allDuration, clips, total, over, size, draw }
+
+  // PUB-36 배경음악: workspaces/{ws}/refs/music/{episodeId}/{file}, audio/* 20MB 미만
+  const MUSIC_MAX = 20 * 1024 * 1024
+  async function uploadMusic(f: File) {
+    if (!f.type.startsWith('audio/')) throw new Error(ko.studio.video.musicNotAudio)
+    if (f.size >= MUSIC_MAX) throw new Error(ko.studio.video.musicTooBig)
+    const old = settings.value.musicPath
+    const path = `workspaces/${auth.workspace!.id}/refs/music/${s.episode.value!.id}/${Date.now()}-${f.name.replace(/[^\w.-]/g, '_')}`
+    await uploadBytes(sref($storage, path), f, { contentType: f.type })
+    await save({ musicPath: path })
+    if (old) await deleteObject(sref($storage, old)).catch(() => {})
+  }
+  async function removeMusic() {
+    const old = settings.value.musicPath
+    await save({ musicPath: null })
+    if (old) await deleteObject(sref($storage, old)).catch(() => {})
+  }
+  const musicUrl = ref<string | null>(null)
+  watch(() => settings.value.musicPath, async (p) => {
+    musicUrl.value = null
+    if (p) musicUrl.value = await getDownloadURL(sref($storage, p)).catch(() => null)
+  }, { immediate: true })
+  const musicName = computed(() => settings.value.musicPath?.split('/').pop()?.replace(/^\d+-/, '') ?? null)
+
+  // PUB-38 MP4 내려받기
+  const supported = ref<boolean | null>(null)
+  watch(size, async v => (supported.value = await canExportMp4(v.w, v.h)), { immediate: true })
+  const progress = ref<number | null>(null)
+  let abort: AbortController | null = null
+  async function exportMp4() {
+    const ep = s.episode.value!
+    abort = new AbortController()
+    progress.value = 0
+    try {
+      await loadFonts(review.typeset.value)
+      imgs.value = await loadImages($storage, auth.workspace!.id, s.cuts.value.map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x), new Map(imgs.value))
+      const m = settings.value
+      const music = m.musicPath ? { blob: await getBlob(sref($storage, m.musicPath)), volume: m.musicVolume, fadeOutMs: m.musicFadeOutMs, loop: m.musicLoop } : null
+      const out = await encodeMp4({ W: size.value.w, H: size.value.h, totalMs: total.value, draw: draw.value, music, onProgress: r => (progress.value = r), signal: abort.signal })
+      download(out.blob, exportName(s.seriesName.value || ep.title, ep.number, 0, 'mp4').replace(/_00\.mp4$/, '_릴스.mp4'))
+      return { music: !!music, audio: out.audio }
+    }
+    finally {
+      progress.value = null
+      abort = null
+    }
+  }
+  const cancelExport = () => abort?.abort()
+
+  return { settings, save, setClip, autoDuration, allDuration, clips, total, over, size, draw, uploadMusic, removeMusic, musicUrl, musicName, supported, progress, exportMp4, cancelExport }
 }
