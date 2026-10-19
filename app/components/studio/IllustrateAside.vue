@@ -19,7 +19,7 @@ const props = defineProps<{
   estimate: (n: number) => number
   edit: boolean
 }>()
-const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null] }>()
+const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }] }>()
 const t = ko.studio.illustrate
 const n = useLocalStorage('toonflow:studio:candidates', CANDIDATE_DEFAULT)
 const leaveRoom = useLocalStorage('toonflow:studio:leaveRoom', true)
@@ -45,6 +45,10 @@ function resetCrop() {
   emit('crop', null)
 }
 const has = computed(() => props.candidates.length > 0)
+// ILL-14: 별표 먼저, 숨긴 후보는 접어 둔다
+const showHidden = ref(false)
+const hiddenCount = computed(() => props.candidates.filter(c => c.hidden).length)
+const shown = computed(() => props.candidates.filter(c => showHidden.value || !c.hidden || c.id === props.cut.panel.selectedCandidateId).sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite)))
 </script>
 
 <template>
@@ -52,6 +56,7 @@ const has = computed(() => props.candidates.length > 0)
     <div v-if="failed" class="bg-destructive/10 text-destructive flex flex-col gap-1 rounded-md px-2 py-1.5 text-xs" role="alert">
       <span class="font-medium">{{ t.failed }}</span>
       <span>{{ t.errors[job!.error?.code ?? 'internal'] }}</span>
+      <span v-if="job!.error?.code === 'policy_rejected'" class="basis-full">{{ t.policyTips }}</span>
       <button v-if="edit && job!.error?.code !== 'policy_rejected'" class="self-start underline" @click="emit('retry', job!.id)">{{ ko.studio.retry }}</button>
     </div>
 
@@ -91,14 +96,19 @@ const has = computed(() => props.candidates.length > 0)
     <div class="flex flex-col gap-1.5">
       <span class="text-sm font-medium">{{ t.candidates }} <span class="text-muted-foreground text-xs">{{ candidates.length }}</span></span>
       <p v-if="!has" class="text-muted-foreground text-xs">{{ t.noCandidates }}</p>
+      <button v-if="hiddenCount" class="text-muted-foreground self-start text-xs underline" @click="showHidden = !showHidden">{{ showHidden ? t.hideHidden : t.showHidden(hiddenCount) }}</button>
       <div class="grid grid-cols-2 gap-2">
-        <div v-for="c in candidates" :key="c.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': c.id === cut.panel.selectedCandidateId }">
+        <div v-for="c in shown" :key="c.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': c.id === cut.panel.selectedCandidateId }">
           <button class="block w-full" :aria-label="t.choose" :disabled="!edit" @click="emit('choose', c.id)">
             <AppStorageImg :path="c.imagePath" class="aspect-[4/5] w-full" />
           </button>
           <button class="bg-card absolute top-1 right-1 rounded p-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100" :aria-label="t.compare" :title="t.compare" @click="emit('compare', c.id)">
             <Columns2 class="size-3.5" />
           </button>
+          <div v-if="edit" class="absolute top-1 left-1 flex gap-0.5">
+            <button class="bg-card rounded px-1 text-xs" :class="c.favorite ? 'text-amber-500' : 'opacity-0 group-hover:opacity-100'" :aria-label="t.favorite" :title="t.favorite" @click="emit('flag', c.id, { favorite: !c.favorite })">★</button>
+            <button class="bg-card rounded px-1 text-xs opacity-0 group-hover:opacity-100" :aria-label="c.hidden ? t.unhide : t.hide" :title="c.hidden ? t.unhide : t.hide" @click="emit('flag', c.id, { hidden: !c.hidden })">{{ c.hidden ? t.unhide : t.hide }}</button>
+          </div>
         </div>
       </div>
     </div>

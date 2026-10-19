@@ -54,6 +54,8 @@ export interface Panel {
   bubbles?: Bubble[] | null
   /** SBD-15 구도·포즈 참고 이미지 */
   refImage?: string | null
+  /** STL-07 이 컷만 다른 그림체 */
+  styleId?: string | null
   staleFrom: StaleFrom
   deletedAt?: Ts | null
 }

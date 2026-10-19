@@ -14,6 +14,8 @@ export interface Candidate {
   height: number
   source: 'ai' | 'upload'
   jobId: string
+  favorite?: boolean
+  hidden?: boolean
   input?: CandidateInput | null
   createdAt?: { toMillis: () => number } | null
 }

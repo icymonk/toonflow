@@ -2,7 +2,7 @@ import type { Candidate, CandidateInput } from '#shared/illustrate'
 import type { JobError, JobStatus } from '#shared/jobs'
 import type { Crop, Cut } from '#shared/studio'
 import type { Library } from '~/composables/useLibrary'
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore'
+import { collection, onSnapshot, orderBy, query, where, updateDoc, doc } from 'firebase/firestore'
 import { panelPrompt, panelRefPaths } from '#shared/illustrate'
 import { callFn } from '~/lib/functions'
 
@@ -60,12 +60,13 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
     return lib.styles.value.find(x => x.id === id) ?? null
   })
   const charsOf = (cut: Cut) => lib.characters.value.filter(c => cut.panel.characterIds?.includes(c.id))
-  const promptOf = (cut: Cut, opts: { extra?: string, leaveRoom?: boolean }) => panelPrompt(cut.panel, charsOf(cut), style.value, opts)
+  const styleOf = (cut: Cut) => (cut.panel.styleId && lib.styles.value.find(x => x.id === cut.panel.styleId)) || style.value
+  const promptOf = (cut: Cut, opts: { extra?: string, leaveRoom?: boolean }) => panelPrompt(cut.panel, charsOf(cut), styleOf(cut), opts)
 
   /** ILL-01·02·20 */
   async function generate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
-    const st = style.value
     await Promise.all(list.map((cut) => {
+      const st = styleOf(cut)
       const input: CandidateInput = { scene: cut.panel.scene, characterIds: cut.panel.characterIds ?? [], styleId: st?.id ?? null, styleVersion: st?.version ?? null, extra: opts.extra ?? '' }
       return callFn($functions, 'startAiJob', {
         workspaceId: ws(),
@@ -76,11 +77,16 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
       })
     }))
   }
+  /** ILL-14 */
+  const setFlag = (panelId: string, id: string, patch: { favorite?: boolean, hidden?: boolean }) => {
+    const c = candidates.value.find(x => x.id === id)
+    return updateDoc(doc($firestore, 'workspaces', ws(), 'episodes', s.episode.value!.id, 'panels', panelId, 'candidates', id), { favorite: c?.favorite ?? false, hidden: c?.hidden ?? false, ...patch })
+  }
   const cancel = (jobId: string) => callFn($functions, 'cancelAiJob', { workspaceId: ws(), jobId })
   const retry = (jobId: string) => callFn($functions, 'retryAiJob', { workspaceId: ws(), jobId })
   /** ILL-11: 이전 선택은 후보로 남는다 */
   const choose = (id: string, candidateId: string) => s.updatePanel(id, { selectedCandidateId: candidateId, staleFrom: null, crop: null })
   const setCrop = (id: string, crop: Crop | null) => s.updatePanel(id, { crop })
 
-  return { candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
+  return { setFlag, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
 }

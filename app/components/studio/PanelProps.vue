@@ -7,7 +7,7 @@ import { DIALOGUE_WARN_CHARS, layoutOptions, SHOTS } from '#shared/studio'
 import { ko } from '~/locales/ko'
 
 // SBD-10·11·13·23: 선택한 컷의 항목·대사·메모, 선택한 장의 배치
-const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[], refining?: boolean }>()
+const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[], refining?: boolean, styles?: { id: string, name: string }[] }>()
 const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], create: [name: string, once: boolean], refine: [], split: [], merge: [], refUpload: [file: File], refRemove: [] }>()
 const hasNext = computed(() => props.page.panelIds.indexOf(props.panel.id) < props.page.panelIds.length - 1)
 function pickRef(e: Event) {
@@ -55,6 +55,12 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
       <Button size="sm" variant="outline" :disabled="panel.dialogues.length < 2" @click="emit('split')">{{ ko.studio.board.split }}</Button>
       <Button size="sm" variant="outline" :disabled="!hasNext" @click="emit('merge')">{{ ko.studio.board.merge }}</Button>
     </div>
+    <label v-if="styles?.length" class="flex items-center gap-2 text-xs">{{ ko.studio.illustrate.panelStyle }}
+      <select :value="panel.styleId ?? ''" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :disabled="!edit" @change="emit('edit', 'styleId', ($event.target as HTMLSelectElement).value || null)">
+        <option value="">{{ ko.studio.illustrate.seriesStyle }}</option>
+        <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
+      </select>
+    </label>
     <Label for="p-scene">{{ ko.studio.scene }}</Label>
     <Textarea id="p-scene" :model-value="panel.scene" :disabled="!edit" rows="4" maxlength="2000" @update:model-value="emit('edit', 'scene', String($event))" />
     <Button v-if="edit" size="sm" variant="outline" class="self-start" :disabled="refining || !panel.scene.trim()" @click="emit('refine')">{{ refining ? ko.studio.board.refining : ko.studio.board.refine }}</Button>

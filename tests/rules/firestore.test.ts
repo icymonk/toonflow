@@ -63,6 +63,7 @@ describe('server-only fields', () => {
     await assertFails(updateDoc(doc(e, `${W}/aiJobs/j1`), { status: 'failed' }))
     await assertFails(setDoc(doc(e, `${W}/usage/2026-10`), { costKrw: 0 }))
     await assertFails(setDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c2`), { imagePath: 'y' }))
+    await assertFails(updateDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'z' }))
     await assertFails(addDoc(collection(e, `${W}/episodes`), { title: 'x', step: 'story', status: 'active' }))
     await assertFails(updateDoc(doc(e, `${W}/episodes/e1`), { deletedAt: new Date() }))
     await assertFails(updateDoc(doc(e, `${W}/submissions/s1`), { episodeIds: ['e1'] }))
