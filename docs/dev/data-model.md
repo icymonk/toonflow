@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.6 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.7 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -116,3 +116,4 @@
 - v2.4: 3-F — 컷 `adjust { brightness, contrast, saturate }`(%, 없으면 그대로. 화면은 CSS filter, 출력·릴스는 Canvas filter), 에피소드 `settings.hiRes`(PUB-07 2배 크기 출력)·`settings.plannedAt`(PUB-23 YYYY-MM-DD 메모, Home 오늘 할 일에 표시). 콘티 내보내기(SBD-32)는 저장 없이 대본 보기에서 .txt 내려받기·인쇄 창(PDF 저장)
 - v2.5: 3-G — 에피소드 `aiCheck: { mode: 'quality'|'consistency', items: [{ panelId, issue }], count, jobId, at }`(서버만, 마지막 결과 하나). AI 작업 `panel.check`: 글 모델에 컷마다 고른 그림(후보 문서 `imagePath`)을 같이 넘김, 12컷까지. `workspaces/{ws}/bubbleTemplates/{id}` `{ name, shape, tail, fontSize, bold, w, h, createdBy, createdAt }`(고치기 없음)
 - v2.6: 4-A — `waitlist/{sha256(email) 앞 32자}` `{ email, name, handle, note, status: 'pending'|'approved'|'rejected', createdAt, decidedAt?, decidedBy? }`. 공개 callable `joinWaitlist`(같은 곳에서 10분 3회 `waitlistRate/r_{sha}`, 숨은 칸이 채워지면 조용히 버림, 같은 이메일은 한 건), `decideWaitlist`(admin 클레임, 승인 시 `config/access.allowedEmails`에 arrayUnion)
+- v2.7: 4-B — `users/{uid}.workspaceIds[]`(속한 워크스페이스, 4-B 전 계정은 `workspaceId` 하나로 대신), `workspaceId`는 마지막으로 연 워크스페이스. 워크스페이스 `deleteAt`(삭제 예약, 7일 뒤)·`deletedBy`, 멤버 문서 `email`·`displayName`(만들 때 토큰에서). 계정 삭제는 `users/{uid}.deletedAt`·`purgeAt`(30일 뒤) + Auth 계정 사용 중지. callable `createWorkspace`(소유 10개까지)·`switchWorkspace`·`deleteWorkspace`(소유자, 마지막 남은 것은 거절)·`restoreWorkspace`·`transferOwnership`(관리자에게만)·`deleteAccount`(소유한 워크스페이스가 남아 있으면 거절). 매일 04:30 `purgeDeleted`가 유예가 끝난 워크스페이스(Firestore·Storage)와 계정을 지운다

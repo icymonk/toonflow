@@ -41,9 +41,7 @@ async function signOut() {
           <PanelLeft class="size-4" />
         </button>
       </div>
-      <p v-if="!collapsed" class="truncate px-3 pb-3 text-xs opacity-70">
-        {{ auth.workspace?.name }}
-      </p>
+      <AppWorkspaceSwitcher :collapsed="collapsed" />
       <nav class="flex flex-col gap-0.5">
         <NuxtLink
           v-for="item in NAV_MAIN"
@@ -98,6 +96,12 @@ async function signOut() {
         </div>
       </header>
       <main class="min-w-0 flex-1">
+        <div v-if="auth.workspace?.deleteAt" class="bg-destructive/10 text-destructive flex flex-wrap items-center gap-3 px-4 py-2 text-sm" role="alert">
+          {{ ko.workspaces.banner(new Date(auth.workspace.deleteAt).toLocaleDateString('ko-KR')) }}
+          <Button v-if="auth.role === 'owner'" size="sm" variant="outline" @click="auth.restoreWorkspace()">
+            {{ ko.workspaces.restore }}
+          </Button>
+        </div>
         <slot />
       </main>
       <AppCommandPalette v-if="paletteOpen" @close="paletteOpen = false" />
