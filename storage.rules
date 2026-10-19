@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// 경로별 규칙은 docs/dev/security.md 3절. 기능을 만들 때 그 경로를 연다. 정의하지 않은 경로는 모두 막는다.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function canView(ws) {
+      return request.auth != null && (request.auth.token.admin == true
+        || firestore.exists(/databases/(default)/documents/workspaces/$(ws)/members/$(request.auth.uid)));
+    }
+
+    function canEdit(ws) {
+      return request.auth != null
+        && firestore.get(/databases/(default)/documents/workspaces/$(ws)/members/$(request.auth.uid)).data.role in ['owner', 'admin', 'editor'];
+    }
+
+    // CHR-04·STL-02: 캐릭터·그림체 참조 이미지 (이미지, 10MB 이하)
+    match /workspaces/{ws}/refs/{kind}/{id}/{file} {
+      allow read: if canView(ws);
+      allow create: if canEdit(ws) && ((kind in ['characters', 'styles', 'panels', 'assets']
+        && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType.matches('image/.*'))
+        // PUB-36 배경음악 (refs/music/{episodeId}/{file})
+        || (kind == 'music' && request.resource.size < 20 * 1024 * 1024 && request.resource.contentType.matches('audio/.*')));
+      allow delete: if canEdit(ws);
+    }
+
+    // INB-06: 제보 링크 첨부 이미지. 서버(submitIntake)만 쓴다
+    match /workspaces/{ws}/intake/{sid}/{file} {
+      allow read: if canView(ws);
+    }
+
+    // AI 작업 결과 이미지: 서버만 쓴다
+    match /workspaces/{ws}/aiJobs/{jobId}/{file} {
+      allow read: if canView(ws);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,7 @@
+[
+  {
+    "origin": ["https://toonflow-351ed.web.app", "https://toonflow-351ed.firebaseapp.com", "https://toonflow-351ed--*.web.app", "http://localhost:3000"],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600
+  }
+]

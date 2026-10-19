@@ -1,0 +1,296 @@
+rules_version = '2';
+
+// 경로별 규칙은 docs/dev/security.md 2절. 기능을 만들 때 그 경로를 연다. 정의하지 않은 경로는 모두 막는다.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+    function roleIn(ws) {
+      let m = /databases/$(database)/documents/workspaces/$(ws)/members/$(request.auth.uid);
+      return signedIn() && exists(m) ? get(m).data.role : null;
+    }
+    // 운영자는 모든 워크스페이스를 읽는다 (#18)
+    function canView(ws) {
+      return isAdmin() || roleIn(ws) in ['owner', 'admin', 'editor', 'viewer'];
+    }
+    function validVideo(ws, d) {
+      return d.keys().hasOnly(['aspect', 'unit', 'clips', 'musicPath', 'musicVolume', 'musicFadeOutMs', 'musicLoop', 'coverId', 'updatedAt'])
+        && d.get('aspect', '9:16') in ['9:16', '4:5']
+        && d.get('unit', 'panel') in ['panel', 'page']
+        && d.get('clips', {}) is map && d.get('clips', {}).size() <= 400
+        && (d.get('musicPath', null) == null || (d.musicPath is string && d.musicPath.matches('workspaces/' + ws + '/refs/music/.+')))
+        && (d.get('musicVolume', 1) is number && d.get('musicVolume', 1) >= 0 && d.get('musicVolume', 1) <= 1)
+        && (d.get('musicFadeOutMs', 0) is int && d.get('musicFadeOutMs', 0) >= 0 && d.get('musicFadeOutMs', 0) <= 10000)
+        && d.get('musicLoop', true) is bool
+        && (d.get('coverId', null) == null || d.coverId is string);
+    }
+    function canEdit(ws) {
+      return roleIn(ws) in ['owner', 'admin', 'editor'];
+    }
+    function strLen(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+    function canManage(ws) {
+      return roleIn(ws) in ['owner', 'admin'];
+    }
+
+    // AST-01: 워크스페이스 전체 후보 모아 보기 (collectionGroup)
+    match /{path=**}/candidates/{cid} {
+      allow read: if canView(resource.data.workspaceId);
+    }
+
+    // ACC-03: 본인은 이름·사진만 바꾼다. 만들기는 서버(completeOnboarding)
+    match /users/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1 && request.resource.data.displayName.size() <= 30;
+    }
+
+    // CMN-50, AIU: 모델·한도 설정은 로그인한 사람이 읽는다. 가입 허용 목록은 운영자만
+    match /config/{id} {
+      allow read: if (signedIn() && id in ['models', 'limits']) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // CMN-53: 운영자가 막은 제보 페이지. 누구나 읽고 서버(resolveReport)만 쓴다
+    match /intakeBlocks/{slug} {
+      allow get: if true;
+    }
+    // CMN-40: 신고는 서버(reportPage·reportSubmission)가 만들고 운영자만 읽는다
+    match /reports/{id} {
+      allow read: if isAdmin();
+    }
+    // CMN-41·52 대기 명단: 서버(joinWaitlist·decideWaitlist)만 쓰고 운영자만 읽는다. waitlistRate는 규칙이 없어 서버만
+    match /waitlist/{id} {
+      allow read: if isAdmin();
+    }
+    // ACC-20 초대 링크: id는 토큰의 해시, 서버만 쓴다. 관리자 이상은 자기 워크스페이스 것을 본다(목록·취소)
+    match /invites/{id} {
+      allow read: if canManage(resource.data.workspaceId);
+    }
+    // CMN-54 운영자 열람 기록 모아 보기 (collectionGroup)
+    match /{path=**}/adminViews/{id} {
+      allow read: if isAdmin();
+    }
+
+    // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
+    // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
+    match /intake/{slug} {
+      function validIntake(slug, d) {
+        return slug.matches('[a-z0-9]{8,32}')
+          && d.keys().hasOnly(['workspaceId', 'enabled', 'name', 'intro', 'topics', 'questions', 'images', 'consentText', 'updatedAt'])
+          && d.enabled is bool && d.images is bool
+          && strLen(d.name, 0, 40) && strLen(d.intro, 0, 300) && strLen(d.topics, 0, 300)
+          && d.questions is list && d.questions.size() <= 5
+          && (!('consentText' in d) || strLen(d.consentText, 0, 500));
+      }
+      allow get: if true;
+      allow create: if canManage(request.resource.data.workspaceId) && validIntake(slug, request.resource.data);
+      allow update: if canManage(resource.data.workspaceId)
+        && request.resource.data.workspaceId == resource.data.workspaceId && validIntake(slug, request.resource.data);
+    }
+
+    // ACC-11: 소유자·관리자는 이름·기본값만 바꾼다
+    match /workspaces/{ws} {
+      allow read: if canView(ws);
+      allow update: if canManage(ws)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'defaults'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+        && request.resource.data.defaults is map;
+
+      // CMN-31 활동 기록 · CMN-54 열람 기록: 서버만 쓴다
+      match /activity/{id} {
+        allow read: if canView(ws);
+      }
+      match /adminViews/{id} {
+        allow read: if canManage(ws) || isAdmin();
+      }
+      match /members/{uid} {
+        allow read: if canView(ws);
+        // ACC-22 마지막 활동: 본인이 lastActiveAt만
+        allow update: if signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lastActiveAt'])
+          && request.resource.data.lastActiveAt == request.time;
+      }
+      // INB-03·05: 제보 링크 주소·금칙어
+      match /config/{id} {
+        allow read: if canView(ws);
+        allow write: if canManage(ws) && id == 'intake'
+          && request.resource.data.keys().hasOnly(['slug', 'bannedWords', 'updatedAt'])
+          && request.resource.data.slug is string && request.resource.data.slug.matches('[a-z0-9]{8,32}')
+          && request.resource.data.bannedWords is list && request.resource.data.bannedWords.size() <= 100;
+      }
+      // AIU-20·21: 사용량은 서버만 쓴다
+      match /usage/{month} {
+        allow read: if canView(ws);
+      }
+      // INB-01·20~22: 편집자 이상이 직접 등록·상태·메모·태그·별표. used·withdrawn·episodeIds·deletedAt은 서버만
+      match /submissions/{id} {
+        function validFields(d) {
+          return strLen(d.title, 1, 80) && strLen(d.body, 1, 20000) && strLen(d.note, 0, 2000)
+            && strLen(d.sourceNote, 0, 200) && d.tags is list && d.tags.size() <= 10 && d.starred is bool;
+        }
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['title', 'body', 'source', 'sourceNote', 'tags', 'starred', 'note', 'status', 'episodeIds', 'createdBy', 'createdAt'])
+          && validFields(request.resource.data)
+          && request.resource.data.source in ['dm', 'comment', 'form', 'self', 'other']
+          && request.resource.data.status == 'new' && request.resource.data.episodeIds == []
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if canEdit(ws)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'body', 'sourceNote', 'tags', 'starred', 'note', 'status', 'maskedBody'])
+          && validFields(request.resource.data)
+          && resource.data.status in ['new', 'reviewing', 'accepted', 'onHold', 'rejected']
+          && request.resource.data.status in ['new', 'reviewing', 'accepted', 'onHold', 'rejected'];
+        // INB-15: 제보자 연락처는 소유자·관리자만 읽는다. 쓰기는 서버
+        match /private/{doc} {
+          allow read: if canManage(ws);
+        }
+      }
+      // AIU-02: 작업 상태는 서버만 쓴다
+      match /aiJobs/{jobId} {
+        allow read: if canView(ws);
+      }
+      // EPI-01·02: 편집자 이상이 직접 만들고 고친다. episodeCount·deletedAt은 서버만
+      match /series/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100)
+          && request.resource.data.episodeCount == 0 && request.resource.data.deletedAt == null
+          && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'archivedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
+      }
+      // REV-07 말풍선 템플릿. 고치지 않고 지우고 새로 만든다
+      match /bubbleTemplates/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['name', 'shape', 'tail', 'fontSize', 'bold', 'w', 'h', 'createdBy', 'createdAt'])
+          && strLen(request.resource.data.name, 1, 20) && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.fontSize is number && request.resource.data.w is number && request.resource.data.h is number;
+        allow delete: if canEdit(ws);
+      }
+      // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
+      // AST-03 참고 자료
+      match /assets/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['path', 'name', 'size', 'tags', 'createdBy', 'createdAt'])
+          && request.resource.data.path.matches('workspaces/' + ws + '/refs/assets/.*') && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.tags is list && request.resource.data.tags.size() <= 10;
+        allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tags']) && request.resource.data.tags.size() <= 10;
+        allow delete: if canEdit(ws);
+      }
+      match /characters/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (!('variants' in request.resource.data) || request.resource.data.variants.size() <= 12)
+          && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
+      }
+      // STL-01~09: samples·sampleJobId는 서버(style.sample)만
+      match /styles/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'description', 'line', 'coloring', 'palette', 'paletteColors', 'background', 'negative', 'rightsConfirmed', 'refImages', 'version', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'description', 'line', 'coloring', 'palette', 'paletteColors', 'background', 'negative', 'rightsConfirmed', 'refImages', 'version', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
+      }
+      // EPI-10~12: 만들기·삭제는 서버(createEpisode·deleteToTrash). 제목·단계·상태·보관·설정만 직접 고친다
+      match /episodes/{id} {
+        allow read: if canView(ws);
+        // STU-24: 같은 에피소드를 보는 사람 표시. 각자 자기 문서만 쓴다
+        match /presence/{uid} {
+          allow read: if canView(ws);
+          allow create, update: if canView(ws) && request.auth.uid == uid
+            && request.resource.data.keys().hasOnly(['name', 'photoURL', 'panelId', 'at'])
+            && request.resource.data.at == request.time
+            && (request.resource.data.panelId == null || (request.resource.data.panelId is string && request.resource.data.panelId.size() <= 64))
+            && (request.resource.data.name == null || (request.resource.data.name is string && request.resource.data.name.size() <= 100))
+            && (request.resource.data.photoURL == null || (request.resource.data.photoURL is string && request.resource.data.photoURL.size() <= 1000));
+          allow delete: if signedIn() && request.auth.uid == uid;
+        }
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
+          && strLen(request.resource.data.title, 1, 80)
+          && request.resource.data.number is int && request.resource.data.number >= 1 && request.resource.data.number <= 9999
+          && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
+          && request.resource.data.status in ['active', 'done', 'published'];
+
+        // STO-11·20·21: AI 안은 서버가 만들고, 직접 고치기·내가 만든 안은 편집자가 쓴다
+        match /storyVersions/{vid} {
+          allow read: if canView(ws);
+          allow create: if canEdit(ws) && request.resource.data.source == 'manual'
+            && request.resource.data.keys().hasOnly(['label', 'source', 'logline', 'scenes', 'punchline', 'titleCandidates', 'settings', 'jobId', 'basedOn', 'editedAt', 'createdAt'])
+            && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
+          allow update: if canEdit(ws)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'logline', 'scenes', 'punchline', 'editedAt'])
+            && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
+        }
+        // STU-23 스냅숏: 만들기·지우기만 (고치지 않음)
+        match /snapshots/{sid} {
+          allow read: if canView(ws);
+          allow create: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt', 'title', 'pageOrder', 'activeStoryVersionId', 'pages', 'panels'])
+            && strLen(request.resource.data.name, 1, 40)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.pages is list && request.resource.data.pages.size() <= 80
+            && request.resource.data.panels is list && request.resource.data.panels.size() <= 80;
+          allow delete: if canEdit(ws);
+        }
+        // REV-04 식자 스타일, PUB-30~38 영상 설정
+        match /meta/{docId} {
+          allow read: if canView(ws);
+          allow write: if canEdit(ws) && ((docId == 'typeset'
+            && request.resource.data.keys().hasOnly(['font', 'fontSize', 'lineHeight', 'strokeWidth', 'strokeColor', 'updatedAt'])
+            && request.resource.data.font in ['pretendard', 'gowun-dodum', 'jua']
+            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 12 && request.resource.data.fontSize <= 96)
+            || (docId == 'video' && validVideo(ws, request.resource.data)));
+        }
+        // STU·SBD: 장·컷은 편집자가 직접 쓴다. 지우기는 deletedAt(실행 취소용). 이미지 후보는 서버만
+        match /pages/{pageId} {
+          allow read: if canView(ws);
+          allow create, update: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['layout', 'panelIds', 'deletedAt', 'updatedAt'])
+            && request.resource.data.layout in ['1', '2v', '2h', '3', '4']
+            && request.resource.data.panelIds is list && request.resource.data.panelIds.size() <= 4;
+        }
+        match /panels/{panelId} {
+          allow read: if canView(ws);
+          allow create, update: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'adjust', 'bubbles', 'refImage', 'styleId', 'staleFrom', 'deletedAt', 'updatedAt'])
+            && request.resource.data.pageId is string
+            && strLen(request.resource.data.scene, 0, 2000)
+            && strLen(request.resource.data.note, 0, 2000);
+          match /candidates/{candidateId} {
+            allow read: if canView(ws);
+            // ILL-30 내 그림 올리기 (refs/panels 경로만)
+            allow create: if canEdit(ws) && request.resource.data.source in ['upload', 'import']
+              && request.resource.data.keys().hasOnly(['imagePath', 'width', 'height', 'source', 'jobId', 'input', 'hidden', 'favorite', 'createdAt', 'workspaceId', 'episodeId', 'panelId'])
+              && request.resource.data.workspaceId == ws
+              && request.resource.data.imagePath.matches('workspaces/' + ws + '/(refs|aiJobs)/.*');
+            // ILL-14 즐겨찾기·숨기기만
+            allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorite', 'hidden'])
+              && request.resource.data.favorite is bool && request.resource.data.hidden is bool;
+          }
+        }
+      }
+    }
+  }
+}

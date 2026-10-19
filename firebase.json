@@ -1,0 +1,315 @@
+{
+  "hosting": {
+    "site": "toonflow-studio",
+    "public": ".output/public",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/fn/completeOnboarding",
+        "function": {
+          "functionId": "completeOnboarding",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/setWorkspaceLimit",
+        "function": {
+          "functionId": "setWorkspaceLimit",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/startAiJob",
+        "function": {
+          "functionId": "startAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/cancelAiJob",
+        "function": {
+          "functionId": "cancelAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/retryAiJob",
+        "function": {
+          "functionId": "retryAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/createEpisode",
+        "function": {
+          "functionId": "createEpisode",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/duplicateEpisode",
+        "function": {
+          "functionId": "duplicateEpisode",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteToTrash",
+        "function": {
+          "functionId": "deleteToTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/restoreFromTrash",
+        "function": {
+          "functionId": "restoreFromTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/purgeFromTrash",
+        "function": {
+          "functionId": "purgeFromTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/cleanupCandidates",
+        "function": {
+          "functionId": "cleanupCandidates",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/storageUsage",
+        "function": {
+          "functionId": "storageUsage",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/submitIntake",
+        "function": {
+          "functionId": "submitIntake",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/intakeStatus",
+        "function": {
+          "functionId": "intakeStatus",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/withdrawIntake",
+        "function": {
+          "functionId": "withdrawIntake",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/reportPage",
+        "function": {
+          "functionId": "reportPage",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/reportSubmission",
+        "function": {
+          "functionId": "reportSubmission",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/resolveReport",
+        "function": {
+          "functionId": "resolveReport",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/joinWaitlist",
+        "function": {
+          "functionId": "joinWaitlist",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/decideWaitlist",
+        "function": {
+          "functionId": "decideWaitlist",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/createWorkspace",
+        "function": {
+          "functionId": "createWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/switchWorkspace",
+        "function": {
+          "functionId": "switchWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteWorkspace",
+        "function": {
+          "functionId": "deleteWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/restoreWorkspace",
+        "function": {
+          "functionId": "restoreWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/transferOwnership",
+        "function": {
+          "functionId": "transferOwnership",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteAccount",
+        "function": {
+          "functionId": "deleteAccount",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/createInvite",
+        "function": {
+          "functionId": "createInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/revokeInvite",
+        "function": {
+          "functionId": "revokeInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/inviteInfo",
+        "function": {
+          "functionId": "inviteInfo",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/acceptInvite",
+        "function": {
+          "functionId": "acceptInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/setMemberRole",
+        "function": {
+          "functionId": "setMemberRole",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/removeMember",
+        "function": {
+          "functionId": "removeMember",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/leaveWorkspace",
+        "function": {
+          "functionId": "leaveWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/setMemberLimit",
+        "function": {
+          "functionId": "setMemberLimit",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/adminOverview",
+        "function": {
+          "functionId": "adminOverview",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/logAdminView",
+        "function": {
+          "functionId": "logAdminView",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "runtime": "nodejs22",
+      "ignore": [
+        "node_modules",
+        "src",
+        "build.mjs",
+        "tsconfig.json",
+        "*.log"
+      ],
+      "predeploy": [
+        "pnpm --filter functions build"
+      ]
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true,
+    "tasks": {
+      "port": 9499
+    }
+  }
+}

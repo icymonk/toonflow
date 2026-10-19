@@ -1,0 +1,40 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Firebase
+functions/lib
+.firebase
+firebase-debug*.log
+firestore-debug.log
+ui-debug.log
+emulator-data
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# E2E
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
+# Playwright
+/test-results/
+/playwright-report/
