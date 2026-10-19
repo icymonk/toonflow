@@ -89,10 +89,13 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(preview).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: /초/ }).first()).toBeVisible()
   await page.getByLabel('움직임', { exact: true }).selectOption('zoomIn')
-  await page.getByLabel('보여 줄 시간(초)').fill('3')
-  await page.getByLabel('보여 줄 시간(초)').blur()
   await expect(page.getByLabel('움직임', { exact: true })).toHaveValue('zoomIn')
-  await expect(page.getByLabel('보여 줄 시간(초)')).toHaveValue('3')
+  // 저장된 값이 다시 그려질 때까지 확인한다 (느린 CI에서 입력 직후 화면이 새로 그려지면 다시 입력)
+  await expect(async () => {
+    await page.getByLabel('보여 줄 시간(초)').fill('3')
+    await page.getByLabel('보여 줄 시간(초)').blur()
+    await expect(page.getByLabel('보여 줄 시간(초)')).toHaveValue('3', { timeout: 3_000 })
+  }).toPass({ timeout: 45_000 })
   await expect.poll(() => preview.evaluate((cv: HTMLCanvasElement) => {
     const d = cv.getContext('2d')!.getImageData(0, 0, cv.width, cv.height).data
     let n = 0
