@@ -48,6 +48,12 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('tab', { name: /Storyboard/ }).click()
   await page.getByRole('button', { name: '자동 콘티' }).click()
   await expect(page.getByRole('button', { name: '다시 나누기' })).toBeVisible({ timeout: 90_000 })
+  // 콘티 내보내기 (SBD-32): 대본 보기 → 글로 내려받기
+  await page.getByRole('button', { name: '대본 보기', exact: true }).click()
+  const [txt] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: '글로 내려받기' }).click()])
+  expect(txt.suggestedFilename()).toMatch(/_대본\.txt$/)
+  expect(readFileSync((await txt.path())!, 'utf8')).toMatch(/# 1장\n## 1컷/)
+  await page.getByRole('button', { name: '컷', exact: true }).click()
 
   // 그림
   await page.getByRole('tab', { name: /Illustrate/ }).click()

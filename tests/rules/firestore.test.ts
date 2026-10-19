@@ -212,6 +212,20 @@ describe('3단계 AI 점검·말풍선 템플릿 (ILL-43·REV-07·13)', () => {
   })
 })
 
+describe('3단계 출력 보강·확인 링크 (PUB-07·23, ILL-24, INB-12)', () => {
+  it('panels accept adjust only among new keys; episode settings carry hiRes/plannedAt; tokens and consents are server-only', async () => {
+    await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), `${W}/episodes/e1/panels/p2`), { pageId: 'pg1', scene: 's', note: '', dialogues: [] }))
+    const p2 = (uid: string) => doc(db(uid), `${W}/episodes/e1/panels/p2`)
+    await assertSucceeds(updateDoc(p2('editor'), { adjust: { brightness: 110, contrast: 100, saturate: 90 } }))
+    await assertFails(updateDoc(p2('editor'), { filter: 'blur(2px)' }))
+    await assertFails(updateDoc(p2('viewer'), { adjust: null }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { settings: { hiRes: true, plannedAt: '2026-11-01' } }))
+    await assertFails(getDoc(doc(db('owner'), 'intakeTokens/abc')))
+    await assertFails(setDoc(doc(db(null), 'intakeTokens/abc'), { workspaceId: 'w1', submissionId: 's1' }))
+    await assertFails(setDoc(doc(db('owner'), `${W}/consents/c1`), { at: 1 }))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))
