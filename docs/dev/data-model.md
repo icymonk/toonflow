@@ -100,3 +100,4 @@
 - v1.2: 2-C — `series.memo`(연재 메모), `characters.personality`·`speech`(말투 예시 3개까지), 글 작업 params `context`(작품 참고)·`rewrite`(부분 다시 쓰기, 새 작업 `story.rewrite`. 결과는 앱이 받아서 그 장면에 넣음)
 - v1.3: 2-D — `panels.refImage`(구도·포즈 참고, Storage `refs/panels/{panelId}/…`, 그림 생성 참조 이미지 맨 앞), `series.coverText`·`outroText`(고정 장 문구). 장면 다듬기는 `story.rewrite`의 `refine` 모드
 - v1.4: 2-E — 후보 `favorite`·`hidden`은 편집자가 바꿀 수 있음(그 두 필드만), `panels.styleId`(이 컷만 다른 그림체)
+- v1.5: 2-E — 변형·부분 수정은 `panel.image` 작업 그대로, 고른 후보 경로를 `refPaths` 맨 앞에(부분 수정은 마스크 PNG `refs/panels/{panelId}/…`를 둘째로) 넘긴다

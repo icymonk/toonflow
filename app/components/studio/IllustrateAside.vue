@@ -19,7 +19,7 @@ const props = defineProps<{
   estimate: (n: number) => number
   edit: boolean
 }>()
-const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }] }>()
+const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }], variant: [id: string], inpaint: [id: string, mask: Blob, change: string] }>()
 const t = ko.studio.illustrate
 const n = useLocalStorage('toonflow:studio:candidates', CANDIDATE_DEFAULT)
 const leaveRoom = useLocalStorage('toonflow:studio:leaveRoom', true)
@@ -47,6 +47,12 @@ function resetCrop() {
 const has = computed(() => props.candidates.length > 0)
 // ILL-14: 별표 먼저, 숨긴 후보는 접어 둔다
 const showHidden = ref(false)
+const maskId = ref<string | null>(null)
+const maskPath = computed(() => props.candidates.find(c => c.id === maskId.value)?.imagePath)
+function onMask(mask: Blob, change: string) {
+  if (maskId.value) emit('inpaint', maskId.value, mask, change)
+  maskId.value = null
+}
 const hiddenCount = computed(() => props.candidates.filter(c => c.hidden).length)
 const shown = computed(() => props.candidates.filter(c => showHidden.value || !c.hidden || c.id === props.cut.panel.selectedCandidateId).sort((a, b) => Number(!!b.favorite) - Number(!!a.favorite)))
 </script>
@@ -118,9 +124,15 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
         <span class="text-sm font-medium">{{ t.crop }}</span>
         <button class="text-muted-foreground flex items-center gap-0.5 text-xs underline" @click="resetCrop"><RotateCcw class="size-3" />{{ t.resetCrop }}</button>
       </div>
+      <div class="flex items-center gap-1 text-xs">
+        <span class="text-muted-foreground">{{ t.editWith }}</span>
+        <Button size="sm" variant="outline" @click="emit('variant', cut.panel.selectedCandidateId!)">{{ t.variant }}</Button>
+        <Button size="sm" variant="outline" @click="maskId = cut.panel.selectedCandidateId!">{{ t.inpaint }}</Button>
+      </div>
       <label class="flex items-center gap-2 text-xs">{{ t.zoom }}<input v-model.number="zoom" type="range" min="1" max="3" step="0.05" class="flex-1" @input="saveCrop"></label>
       <label class="flex items-center gap-2 text-xs">{{ t.x }}<input v-model.number="cx" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
       <label class="flex items-center gap-2 text-xs">{{ t.y }}<input v-model.number="cy" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
     </div>
+    <StudioMaskEditor v-if="maskPath" :path="maskPath" @close="maskId = null" @done="onMask" />
   </div>
 </template>

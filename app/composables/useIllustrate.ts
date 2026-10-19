@@ -77,6 +77,21 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
       })
     }))
   }
+  /** ILL-21 변형 · ILL-22 부분 수정: 고른 후보를 첫 참조 이미지로 넘겨 같은 구도로 새 후보 */
+  function edit(cut: Cut, base: Candidate, kind: 'variant' | 'inpaint', opts: { change: string, maskPath?: string }) {
+    const st = styleOf(cut)
+    const hint = kind === 'variant'
+      ? `첫 번째 참조 이미지와 같은 구도·배경·인물 배치를 유지하고 표정과 세부만 조금 바꾼 변형. ${opts.change}`
+      : `첫 번째 참조 이미지를 그대로 두고, 두 번째 참조 이미지(마스크)의 흰 부분만 다음 내용으로 다시 그려: ${opts.change}. 나머지는 바꾸지 않는다.`
+    const input: CandidateInput = { scene: cut.panel.scene, characterIds: cut.panel.characterIds ?? [], styleId: st?.id ?? null, styleVersion: st?.version ?? null, extra: opts.change }
+    return callFn($functions, 'startAiJob', {
+      workspaceId: ws(),
+      type: 'panel.image',
+      target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
+      params: { prompt: `${hint}\n\n${promptOf(cut, {})}`.slice(0, 4000), n: 1, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [base.imagePath, ...(opts.maskPath ? [opts.maskPath] : []), ...panelRefPaths(charsOf(cut), st)].slice(0, 5), input },
+      idempotencyKey: crypto.randomUUID(),
+    })
+  }
   /** ILL-14 */
   const setFlag = (panelId: string, id: string, patch: { favorite?: boolean, hidden?: boolean }) => {
     const c = candidates.value.find(x => x.id === id)
@@ -88,5 +103,5 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   const choose = (id: string, candidateId: string) => s.updatePanel(id, { selectedCandidateId: candidateId, staleFrom: null, crop: null })
   const setCrop = (id: string, crop: Crop | null) => s.updatePanel(id, { crop })
 
-  return { setFlag, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
+  return { setFlag, edit, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
 }

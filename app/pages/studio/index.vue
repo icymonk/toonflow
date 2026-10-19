@@ -53,6 +53,19 @@ const left = computed(() => reviewLeft(rows.value))
 const setCheck = (key: string, st: ReviewState) => run(() => s.updateEpisode({ review: { ...(episode.value?.review ?? {}), [key]: st } }))
 const addItem = (label: string) => run(() => s.setSeriesReviewItems([...new Set([...s.seriesReviewItems.value, label])]))
 const removeItem = (label: string) => run(() => s.setSeriesReviewItems(s.seriesReviewItems.value.filter(x => x !== label)))
+// ILL-21·22
+async function illVariant(id: string) {
+  const c = ill.candidates.value.find(x => x.id === id)
+  const change = window.prompt(t.illustrate.variantPrompt)
+  if (!c || change === null || !selected.value) return
+  await run(() => ill.edit(selected.value!, c, 'variant', { change }), t.illustrate.started(1))
+}
+async function illInpaint(id: string, mask: Blob, change: string) {
+  const c = ill.candidates.value.find(x => x.id === id)
+  const cut = selected.value
+  if (!c || !cut) return
+  await run(async () => ill.edit(cut, c, 'inpaint', { change, maskPath: await lib.upload('panels', cut.panel.id, new File([mask], 'mask.png', { type: 'image/png' })) }), t.illustrate.started(1))
+}
 // PUB-10·11·20
 const captionText = computed(() => episode.value?.caption?.text ?? '')
 const fullCaption = computed(() => composeCaption({ greeting: s.series.value?.greeting, text: captionText.value, hashtags: episode.value?.caption?.hashtags, fixedTags: s.series.value?.hashtags, aiLabel: episode.value?.settings.aiLabel !== false }))
@@ -530,7 +543,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
           :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
           @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
-          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint"
         />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
