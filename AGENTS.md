@@ -1,6 +1,6 @@
 # toonflow
 
-AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (2026-10-19). 다음은 개발 문서 `docs/dev/` (코드 없음).
+AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (2026-10-19). 개발 문서 `docs/dev/` 초안 (코드 없음).
 
 ## Docs
 - 기획 문서는 `docs/` (목차·문서 상태: `docs/README.md`). 기본 기획 `docs/planning/`, 기능명세 `docs/features/`, 브랜드·UI 디자인 `docs/design/`.
@@ -13,7 +13,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (
 - 제품 안 용어(메뉴명, 제작 단계명, 상태명)는 `docs/planning/glossary.md`가 원본. 화면 문구·문서 모두 이 표를 따른다.
 
 ## Dev decisions
-- Nuxt 5 nightly SPA + shadcn-vue + Tailwind + Firebase, pnpm (open-questions #1, memorize·boardlab과 같은 구성). 상세는 개발 문서 단계에서 `docs/dev/`.
+- Nuxt 5 nightly SPA + shadcn-vue + Tailwind + Firebase, pnpm (open-questions #1, memorize·boardlab과 같은 구성). 개발 결정·작업 순서는 `docs/dev/README.md`, `docs/dev/phase-plan.md`.
 
 ## Branches
 - `main`(운영) ← `develop`(기본) ← 기능 브랜치. 기능 PR은 `develop`으로.
