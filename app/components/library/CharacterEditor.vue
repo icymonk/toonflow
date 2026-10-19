@@ -17,8 +17,10 @@ const fail = (e: unknown) => toast.error(errorMessage(e) ?? ko.errors.unknown)
 
 const form = reactive<CharacterInput>(structuredClone(toRaw({ ...props.character, aliases: [...props.character.aliases] })))
 const aliases = ref(props.character.aliases.join(', '))
-watchDebounced([form, aliases], () => {
+const speech = ref((props.character.speech ?? []).join('\n'))
+watchDebounced([form, aliases, speech], () => {
   form.aliases = aliases.value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 5)
+  form.speech = speech.value.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 3)
   const p = characterInput.safeParse(form)
   if (p.success) lib.update('characters', props.character.id, p.data).catch(fail)
 }, { debounce: 800, deep: true })
@@ -73,6 +75,12 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
     <div class="flex flex-col gap-1.5">
       <Label for="c-intro" class="text-xs">{{ t.intro }}</Label>
       <Input id="c-intro" v-model="form.intro" :disabled="!edit" maxlength="100" />
+    </div>
+    <div class="flex flex-col gap-1.5">
+      <Label for="c-persona" class="text-xs">{{ t.personality }}</Label>
+      <Input id="c-persona" v-model="form.personality" :disabled="!edit" maxlength="100" />
+      <Label for="c-speech" class="text-xs">{{ t.speech }}</Label>
+      <Textarea id="c-speech" v-model="speech" rows="3" :disabled="!edit" />
     </div>
     <p v-if="character.episodeId" class="text-muted-foreground text-xs">
       {{ t.episodeOnly }}

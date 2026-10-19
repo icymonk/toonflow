@@ -109,7 +109,7 @@ export function useStudio(episodeId: Ref<string>) {
   const touch = () => ({ updatedAt: serverTimestamp() })
   const updateEpisode = (patch: Record<string, unknown>) => track(() => updateDoc(epRef(), { ...patch, ...touch() }))
   /** PUB-06·10: 작품 워터마크·고정 인사말·해시태그 */
-  async function updateSeries(patch: Partial<Pick<Series, 'hashtags' | 'greeting' | 'watermark'>>) {
+  async function updateSeries(patch: Partial<Pick<Series, 'hashtags' | 'greeting' | 'watermark' | 'memo'>>) {
     const id = episode.value?.seriesId
     if (!id) return
     if (series.value) series.value = { ...series.value, ...patch }

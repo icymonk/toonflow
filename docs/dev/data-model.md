@@ -97,3 +97,4 @@
 - v0.9: 1-K — 휴지통 되살리기·바로 삭제는 callable `restoreFromTrash`·`purgeFromTrash`(하위 문서까지 `recursiveDelete`), 30일 지난 것은 `purgeExpiredTrash`(매일 04:00 KST). 알림은 `aiJobs` 최근 30개 + 사용량으로 앱에서 계산하고 읽은 시각은 브라우저에 저장
 - v1.0: 2-A — `submissions.maskedBody`(가린 글, 각색 재료로 우선), `episodes.review`(검수 항목별 `unchecked`·`needs`·`pass`, 작품 항목은 `custom:<이름>`), `series.reviewItems`(작품별 검수 항목)
 - v1.1: 2-B — `episodes.caption`(`text`·`hashtags`, AI 작업 `publish.caption`이 채우고 작가가 고침), `episodes.published`(`at`·`url`, 상태 `published`와 함께), `series.hashtags`·`greeting`·`watermark`
+- v1.2: 2-C — `series.memo`(연재 메모), `characters.personality`·`speech`(말투 예시 3개까지), 글 작업 params `context`(작품 참고)·`rewrite`(부분 다시 쓰기, 새 작업 `story.rewrite`. 결과는 앱이 받아서 그 장면에 넣음)

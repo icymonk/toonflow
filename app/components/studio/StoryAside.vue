@@ -7,13 +7,17 @@ import { TONES } from '#shared/episodes'
 import { ko } from '~/locales/ko'
 
 // STO-02 설정 · STO-10 분석 · STO-14 제목 후보 · STO-24 원문
-const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean }>()
-const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string] }>()
+const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string }>()
+const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string] }>()
 const t = ko.studio.story
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
 const extra = ref(props.episode.settings.extraRequest ?? '')
 const saveExtra = useDebounceFn(() => emit('settings', { extraRequest: extra.value }), 800)
 const a = computed(() => props.episode.analysis)
+// EPI-04·STO-03
+const memo = ref(props.seriesMemo)
+watch(() => props.seriesMemo, v => (memo.value = v))
+const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000)), 800)
 </script>
 
 <template>
@@ -81,6 +85,11 @@ const a = computed(() => props.episode.analysis)
     </button>
   </section>
 
+  <section class="flex flex-col gap-2 border-t pt-3">
+    <h3 class="text-sm font-semibold">{{ t.seriesMemo }}</h3>
+    <Textarea v-model="memo" rows="3" class="text-xs" :placeholder="t.seriesMemoPh" :disabled="!edit" maxlength="1000" @input="saveMemo" />
+    <p class="text-muted-foreground text-xs">{{ t.contextNote }}</p>
+  </section>
   <section class="flex flex-col gap-2 border-t pt-3">
     <h3 class="text-sm font-semibold">
       {{ t.source }}

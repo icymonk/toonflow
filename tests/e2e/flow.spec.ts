@@ -40,6 +40,8 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   // 각색
   await page.getByRole('button', { name: '각색안 만들기' }).click()
   await expect(page.getByText('사용 중').first()).toBeVisible({ timeout: 90_000 })
+  await page.getByRole('button', { name: '더 짧게' }).first().click()
+  await expect(page.getByLabel(/^대사 \(한 줄에 하나/).first()).toHaveValue(/가짜 다시 쓰기/, { timeout: 60_000 })
 
   // 콘티
   await page.getByRole('tab', { name: /Storyboard/ }).click()

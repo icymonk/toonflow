@@ -55,6 +55,10 @@ export const splitSchema = z.object({
 export type Split = z.infer<typeof splitSchema>
 
 /** story.* 작업의 params. 앱이 재료·설정을 담아 보낸다 (예상 비용도 이 길이로 계산) */
+export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone'] as const
+export type RewriteMode = (typeof REWRITE_MODES)[number]
+export const rewriteSchema = z.object({ text: z.string().min(1).max(3000) })
+
 export const storyParams = z.object({
   material: z.string().trim().min(1).max(20000),
   tone: z.enum(TONES),
@@ -64,6 +68,10 @@ export const storyParams = z.object({
   basedOn: z.string().optional(),
   versionId: z.string().optional(),
   draft: z.string().max(20000).optional(),
+  /** STO-03: 작품 메모·캐릭터 성격·말투 */
+  context: z.string().max(4000).optional(),
+  /** STO-13: 부분 다시 쓰기 */
+  rewrite: z.object({ mode: z.enum(REWRITE_MODES), text: z.string().min(1).max(3000), tone: z.string().max(40).catch('') }).optional(),
 })
 export type StoryParams = z.infer<typeof storyParams>
 
@@ -119,3 +127,32 @@ export function textToDialogues(text: string): StoryLine[] {
 /** 제목 후보·Storyboard 입력용 평문 */
 export const versionToText = (v: Pick<StoryVersion, 'logline' | 'scenes' | 'punchline'>) =>
   [v.logline, ...v.scenes.map((s, i) => `#${i + 1} ${s.heading}\n${s.beats}\n${dialoguesToText(s.dialogues)}`), v.punchline].filter(Boolean).join('\n\n')
+
+/** STO-03: 각색 때 함께 넘기는 작품 참고 글 */
+export function storyContext(memo: string | undefined, chars: { name: string, personality?: string, speech?: string[] }[]): string {
+  const lines: string[] = []
+  if (memo?.trim()) lines.push(`작품 메모: ${memo.trim()}`)
+  for (const c of chars) {
+    const speech = (c.speech ?? []).map(x => x.trim()).filter(Boolean)
+    const parts = [c.personality?.trim() && `성격 ${c.personality.trim()}`, speech.length && `말투 예: ${speech.map(x => `"${x}"`).join(' ')}`].filter(Boolean)
+    if (parts.length) lines.push(`${c.name}: ${parts.join(' / ')}`)
+  }
+  return lines.join('\n').slice(0, 4000)
+}
+
+/** STO-23: 두 각색안을 장면별로 나란히, 바뀐 부분 표시 */
+export interface SceneSide { heading: string, beats: string, headingChanged: boolean, beatsChanged: boolean, lines: { text: string, changed: boolean }[] }
+export function sceneDiff(a: Pick<StoryVersion, 'scenes'>, b: Pick<StoryVersion, 'scenes'>): { a: SceneSide | null, b: SceneSide | null }[] {
+  const side = (s?: StoryScene, o?: StoryScene): SceneSide | null => {
+    if (!s) return null
+    const other = new Set(o ? dialoguesToText(o.dialogues).split('\n') : [])
+    return {
+      heading: s.heading,
+      beats: s.beats,
+      headingChanged: s.heading.trim() !== (o?.heading.trim() ?? ''),
+      beatsChanged: s.beats.trim() !== (o?.beats.trim() ?? ''),
+      lines: dialoguesToText(s.dialogues).split('\n').filter(Boolean).map(text => ({ text, changed: !other.has(text) })),
+    }
+  }
+  return Array.from({ length: Math.max(a.scenes.length, b.scenes.length) }, (_, i) => ({ a: side(a.scenes[i], b.scenes[i]), b: side(b.scenes[i], a.scenes[i]) }))
+}
