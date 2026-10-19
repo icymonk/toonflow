@@ -34,6 +34,15 @@ export type Draft = z.infer<typeof draftSchema>
 
 // STO-14 제목 후보
 export const titlesSchema = z.object({ titles: z.array(z.string()).min(1).max(5) })
+// INB-23 제보 AI 요약: 세 줄 요약·장르 추천·웹툰 거리 점수(0~100)
+export const summarySchema = z.object({
+  summary: z.array(z.string()).min(1).max(3),
+  genre: z.enum(TONES).catch('empathy'),
+  score: z.number().int().min(0).max(100).catch(50),
+  reason: z.string().max(300).catch(''),
+})
+export type SubmissionSummary = z.infer<typeof summarySchema>
+
 export const captionSchema = z.object({ caption: z.string().min(1).max(2000), hashtags: z.array(z.string()).max(30).catch([]) })
 
 // SBD-01 자동 콘티
@@ -55,7 +64,7 @@ export const splitSchema = z.object({
 export type Split = z.infer<typeof splitSchema>
 
 /** story.* 작업의 params. 앱이 재료·설정을 담아 보낸다 (예상 비용도 이 길이로 계산) */
-export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone'] as const
+export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone', 'refine'] as const
 export type RewriteMode = (typeof REWRITE_MODES)[number]
 export const rewriteSchema = z.object({ text: z.string().min(1).max(3000) })
 

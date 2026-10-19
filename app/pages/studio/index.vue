@@ -3,7 +3,7 @@ import { serverTimestamp } from 'firebase/firestore'
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
-import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, History, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
@@ -53,6 +53,25 @@ const left = computed(() => reviewLeft(rows.value))
 const setCheck = (key: string, st: ReviewState) => run(() => s.updateEpisode({ review: { ...(episode.value?.review ?? {}), [key]: st } }))
 const addItem = (label: string) => run(() => s.setSeriesReviewItems([...new Set([...s.seriesReviewItems.value, label])]))
 const removeItem = (label: string) => run(() => s.setSeriesReviewItems(s.seriesReviewItems.value.filter(x => x !== label)))
+// ILL-31: 다른 컷 후보 + 참고 자료
+const assetLib = useAssets()
+const pickList = computed(() => [
+  ...assetLib.generated.value.filter(g => g.panelId !== selected.value?.panel.id).slice(0, 60).map(g => ({ id: g.id, path: g.imagePath })),
+  ...assetLib.assets.value.map(x => ({ id: x.id, path: x.path })),
+])
+// ILL-21·22
+async function illVariant(id: string) {
+  const c = ill.candidates.value.find(x => x.id === id)
+  const change = window.prompt(t.illustrate.variantPrompt)
+  if (!c || change === null || !selected.value) return
+  await run(() => ill.edit(selected.value!, c, 'variant', { change }), t.illustrate.started(1))
+}
+async function illInpaint(id: string, mask: Blob, change: string) {
+  const c = ill.candidates.value.find(x => x.id === id)
+  const cut = selected.value
+  if (!c || !cut) return
+  await run(async () => ill.edit(cut, c, 'inpaint', { change, maskPath: await lib.upload('panels', cut.panel.id, new File([mask], 'mask.png', { type: 'image/png' })) }), t.illustrate.started(1))
+}
 // PUB-10·11·20
 const captionText = computed(() => episode.value?.caption?.text ?? '')
 const fullCaption = computed(() => composeCaption({ greeting: s.series.value?.greeting, text: captionText.value, hashtags: episode.value?.caption?.hashtags, fixedTags: s.series.value?.hashtags, aiLabel: episode.value?.settings.aiLabel !== false }))
@@ -280,6 +299,7 @@ onKeyStroke(['z', 'Z'], (e) => {
 
 // STU-31·32 이동·전체 미리보기
 const previewOpen = ref(false)
+const snapOpen = ref(false)
 const previewPage = ref(0)
 function openPreview() {
   previewPage.value = selected.value?.pageIndex ?? 0
@@ -297,6 +317,20 @@ onKeyStroke(['ArrowLeft', 'ArrowRight', 'Escape'], (e) => {
     step1(dir)
   }
 })
+
+// STU-30 단축키: 1~5 단계, J/K 이전·다음 컷, G 선택 컷 그림 생성, ? 단축키 목록
+const keysOpen = ref(false)
+onKeyStroke(['1', '2', '3', '4', '5', 'j', 'J', 'k', 'K', 'g', 'G', '?'], (e) => {
+  if (typing() || e.metaKey || e.ctrlKey || e.altKey || previewOpen.value || snapOpen.value) return
+  const k = e.key.toLowerCase()
+  if (k === '?') keysOpen.value = !keysOpen.value
+  else if (k === 'j' || k === 'k') step1(k === 'j' ? 1 : -1)
+  else if (k === 'g') {
+    if (step.value === 'illustrate' && edit.value && selected.value && !s.busyPanels.value.has(selected.value.panel.id)) illGenerate([selected.value], illN.value, {})
+  }
+  else goStep(STEPS[Number(k) - 1]!)
+})
+onKeyStroke('Escape', () => (keysOpen.value = false))
 
 const aspect = computed(() => (episode.value?.settings.aspect ?? '4:5').replace(':', ' / '))
 const krw = (n: number) => `₩${(n ?? 0).toLocaleString('ko-KR')}`
@@ -356,6 +390,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <Button size="sm" variant="outline" :disabled="!cuts.length" @click="openPreview">
         <Eye class="size-4" /> {{ t.preview }}
       </Button>
+      <Button size="sm" variant="outline" @click="snapOpen = true">
+        <History class="size-4" /> {{ t.snap.button }}
+      </Button>
     </div>
 
     <div class="flex min-h-0 flex-1">
@@ -381,6 +418,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             </p>
             <Button v-else size="sm" :variant="cuts.length ? 'outline' : 'default'" :disabled="!story.active.value" :title="story.active.value ? '' : t.board.needStory" @click="autoSplit">
               <Sparkles class="size-4" /> {{ cuts.length ? t.board.resplit : t.board.auto }}
+            </Button>
+            <Button v-if="edit && cuts.length && (s.series.value?.coverText || s.series.value?.outroText)" size="sm" variant="ghost" @click="run(() => s.addFixedPages(s.series.value?.coverText, s.series.value?.outroText), t.board.fixedDone)">
+              {{ t.board.fixed }}
             </Button>
             <Button v-if="!cuts.length" size="sm" variant="ghost" @click="addPage">
               {{ t.board.blank }}
@@ -504,6 +544,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-if="step === 'story'" :episode="episode" :version="storyVersion" :sources="story.sources.value" :edit="edit"
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
           :series-memo="s.series.value?.memo ?? ''" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
+          :cover-text="s.series.value?.coverText ?? ''" :outro-text="s.series.value?.outroText ?? ''" @series-fixed="p => run(() => s.updateSeries(p))"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
@@ -526,14 +567,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
           :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
           @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
-          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" :library="pickList" @import="p => run(() => ill.importCandidate(selected!, p), t.illustrate.uploaded)" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
         />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :styles="lib.styles.value" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>
@@ -547,6 +588,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       @close="compareId = null" @choose="id => { run(() => ill.choose(selected!.panel.id, id)); compareId = null }"
     />
     <!-- STU-32 전체 미리보기 -->
+    <StudioSnapshots v-if="snapOpen" :s="s" :edit="edit" @close="snapOpen = false" />
     <div v-if="previewOpen" class="fixed inset-0 z-50 flex items-center justify-center gap-4 bg-black/80" role="dialog" :aria-label="t.preview">
       <button class="absolute top-4 right-4 text-white" :aria-label="t.close" @click="previewOpen = false"><X class="size-6" /></button>
       <button class="text-white disabled:opacity-30" :disabled="previewPage === 0" :aria-label="t.prev" @click="previewPage--"><ChevronLeft class="size-8" /></button>
@@ -560,6 +602,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <span class="text-sm text-white">{{ previewPage + 1 }} / {{ pageCount }}</span>
       </div>
       <button class="text-white disabled:opacity-30" :disabled="previewPage >= pageCount - 1" :aria-label="t.next" @click="previewPage++"><ChevronRight class="size-8" /></button>
+    </div>
+    <div v-if="keysOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" @click.self="keysOpen = false">
+      <div class="bg-popover w-80 rounded-lg border p-4 text-sm shadow-lg" role="dialog" :aria-label="t.keys.title">
+        <h2 class="mb-2 font-semibold">{{ t.keys.title }}</h2>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+          <template v-for="(d, k) in t.keys.list" :key="k"><dt><kbd class="bg-muted rounded px-1.5 text-xs">{{ k }}</kbd></dt><dd>{{ d }}</dd></template>
+        </dl>
+      </div>
     </div>
   </div>
 </template>

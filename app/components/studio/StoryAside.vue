@@ -7,8 +7,8 @@ import { TONES } from '#shared/episodes'
 import { ko } from '~/locales/ko'
 
 // STO-02 설정 · STO-10 분석 · STO-14 제목 후보 · STO-24 원문
-const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string }>()
-const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string] }>()
+const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string, coverText: string, outroText: string }>()
+const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string], seriesFixed: [patch: { coverText?: string, outroText?: string }] }>()
 const t = ko.studio.story
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
 const extra = ref(props.episode.settings.extraRequest ?? '')
@@ -89,6 +89,10 @@ const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000
     <h3 class="text-sm font-semibold">{{ t.seriesMemo }}</h3>
     <Textarea v-model="memo" rows="3" class="text-xs" :placeholder="t.seriesMemoPh" :disabled="!edit" maxlength="1000" @input="saveMemo" />
     <p class="text-muted-foreground text-xs">{{ t.contextNote }}</p>
+    <Label for="s-cover" class="text-xs">{{ t.coverText }}</Label>
+    <Input id="s-cover" :model-value="coverText" class="h-8 text-xs" :disabled="!edit" @change="emit('seriesFixed', { coverText: ($event.target as HTMLInputElement).value.slice(0, 200) })" />
+    <Label for="s-outro" class="text-xs">{{ t.outroText }}</Label>
+    <Input id="s-outro" :model-value="outroText" class="h-8 text-xs" :disabled="!edit" @change="emit('seriesFixed', { outroText: ($event.target as HTMLInputElement).value.slice(0, 200) })" />
   </section>
   <section class="flex flex-col gap-2 border-t pt-3">
     <h3 class="text-sm font-semibold">

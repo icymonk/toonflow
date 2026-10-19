@@ -46,7 +46,7 @@ const split = (p: StoryParams): TextPrompt => ({
 })
 
 // STO-13
-const MODE_KO = { rewrite: '새롭게 다시 써', shorter: '뜻은 그대로 두고 더 짧게 줄여', funnier: '더 웃기게 고쳐', tone: '' } as const
+const MODE_KO = { rewrite: '새롭게 다시 써', shorter: '뜻은 그대로 두고 더 짧게 줄여', funnier: '더 웃기게 고쳐', tone: '', refine: '그림 AI가 그리기 좋게 구체적인 장면 묘사(장소·시간·조명·인물 배치·구도)로 바꿔. 글자·말풍선 내용은 넣지 않는다' } as const
 const rewrite = (p: StoryParams): TextPrompt => {
   const r = p.rewrite
   if (!r) throw new AiError('internal', 'rewrite params missing')
@@ -68,8 +68,18 @@ const caption = (p: StoryParams): TextPrompt => ({
 
 const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite }
 
+// INB-23
+const summarize = (material: string): TextPrompt => ({
+  format: 'summary',
+  system: '너는 인스타툰 편집자야. 제보 썰을 읽고 세 줄로 요약해. genre는 empathy(공감)|comedy(코믹)|touching(감동)|cider(사이다)|horror(공포)|info(정보) 중 가장 어울리는 톤 하나. '
+    + 'score는 6장 안팎 인스타툰으로 만들었을 때의 재미·공감·반전 기준 웹툰 거리 점수(0~100 정수), reason은 점수 이유 한 문장. 실명·특정 가능한 정보는 요약에 쓰지 않는다. '
+    + '반드시 JSON만: {"summary": [str, str, str], "genre": str, "score": int, "reason": str}',
+  prompt: material,
+})
+
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
+  if (type === 'submission.summary') return summarize(String(params.material ?? '').slice(0, 20000))
   const build = BUILDERS[type]
   if (!build) return { system: '', prompt: JSON.stringify(params) }
   const p = storyParams.safeParse(params)

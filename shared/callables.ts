@@ -1,5 +1,6 @@
+import type { CleanupInput, UsageInput } from './assets'
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
-import type { CreateEpisodeInput, TrashInput } from './episodes'
+import type { CreateEpisodeInput, DuplicateEpisodeInput, TrashInput } from './episodes'
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { SetWorkspaceLimitInput } from './usage'
@@ -27,7 +28,10 @@ export interface Callables {
   cancelAiJob: { input: JobRefInput, output: { ok: true } }
   retryAiJob: { input: JobRefInput, output: { ok: true } }
   createEpisode: { input: CreateEpisodeInput, output: { episodeId: string } }
+  duplicateEpisode: { input: DuplicateEpisodeInput, output: { episodeId: string } }
   deleteToTrash: { input: TrashInput, output: { ok: true } }
   restoreFromTrash: { input: TrashItemInput, output: { ok: true } }
   purgeFromTrash: { input: TrashItemInput, output: { ok: true } }
+  cleanupCandidates: { input: CleanupInput, output: { deleted: number } }
+  storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }

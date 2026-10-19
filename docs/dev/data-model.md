@@ -61,6 +61,7 @@
 | `panels/{id}` | `pageId`, `scene`, `place`, `mood`, `characterNames[]`(이름. 캐릭터가 등록되면 `characterIds`로 연결, 1-G), `characterIds[]`, `shot`, `expression`, `action`, `outfit`, `note`, `dialogues: { id, type, speaker, speakerId, text }[]`, `selectedCandidateId`, `crop: { x, y, w, h }`(0~1 비율), `bubbles: { dialogueId, x, y, w, h, shape, tail, fontSize, bold }[]`, `staleFrom`, `deletedAt` | SBD-10~13, ILL-11·23, REV-01~03 |
 | `panels/{id}/candidates/{id}` | `imagePath`, `previewPath`, `width`, `height`, `source: 'ai'\|'upload'`, `jobId`, `input`(생성 입력 스냅숏: 장면·캐릭터·그림체 id와 `version`·모델), `hidden`, `favorite`, `createdAt` — 서버만 만듦 | ILL-01·03·10~14 |
 | `typeset` (문서 하나: `episodes/{id}/meta/typeset`) | `font`, `fontSize`, `lineHeight`, `strokeWidth`, `strokeColor` — 작품 기본값을 복사해 시작 | REV-04 |
+| `snapshots/{id}` | `name`, `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`, `panels[]` — 만들기·지우기만 | STU-23 |
 
 - 장·컷 순서는 부모 쪽 배열(`pageOrder`, `panelIds`)로 둔다. 끌어서 옮기기(SBD-21)가 문서 하나 수정으로 끝난다.
 - 대사는 컷 문서 안 배열. 말풍선은 `dialogueId`로 대사를 가리켜, 대사를 고치면 말풍선 글도 같이 바뀐다(REV-02).
@@ -98,3 +99,10 @@
 - v1.0: 2-A — `submissions.maskedBody`(가린 글, 각색 재료로 우선), `episodes.review`(검수 항목별 `unchecked`·`needs`·`pass`, 작품 항목은 `custom:<이름>`), `series.reviewItems`(작품별 검수 항목)
 - v1.1: 2-B — `episodes.caption`(`text`·`hashtags`, AI 작업 `publish.caption`이 채우고 작가가 고침), `episodes.published`(`at`·`url`, 상태 `published`와 함께), `series.hashtags`·`greeting`·`watermark`
 - v1.2: 2-C — `series.memo`(연재 메모), `characters.personality`·`speech`(말투 예시 3개까지), 글 작업 params `context`(작품 참고)·`rewrite`(부분 다시 쓰기, 새 작업 `story.rewrite`. 결과는 앱이 받아서 그 장면에 넣음)
+- v1.3: 2-D — `panels.refImage`(구도·포즈 참고, Storage `refs/panels/{panelId}/…`, 그림 생성 참조 이미지 맨 앞), `series.coverText`·`outroText`(고정 장 문구). 장면 다듬기는 `story.rewrite`의 `refine` 모드
+- v1.4: 2-E — 후보 `favorite`·`hidden`은 편집자가 바꿀 수 있음(그 두 필드만), `panels.styleId`(이 컷만 다른 그림체)
+- v1.5: 2-E — 변형·부분 수정은 `panel.image` 작업 그대로, 고른 후보 경로를 `refPaths` 맨 앞에(부분 수정은 마스크 PNG `refs/panels/{panelId}/…`를 둘째로) 넘긴다
+- v1.6: 2-F — 후보에 `workspaceId`·`episodeId`·`panelId`(collectionGroup 모아 보기, 색인 2개), 후보 `source`에 `import`, `workspaces/{ws}/assets/{id}`(참고 자료: path·name·size·tags·createdBy·createdAt, Storage `refs/assets/`), callable `cleanupCandidates`·`storageUsage`
+- v1.7: 2-G — 캐릭터 `variants: { kind: 'expression'|'outfit', label, path }[]`(최대 12, 컷 `expression`·`outfit` 글에 `label`이 들어 있으면 대표 이미지 대신 참조), 이미지 작업 `prompts` 최대 6개(캐릭터 시트)
+- v1.8: 2-H — `episodes/{id}/snapshots/{id}`(STU-23): `name`(1~40자), `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`·`panels[]`(각 80개 이하, 컷은 편집자가 쓰는 필드만 복사). 만들기·지우기만, 고치기 없음. 되돌리기는 지금 상태를 먼저 스냅숏으로 남긴 뒤 장·컷을 다시 쓰고, 그 뒤에 생긴 장·컷은 `deletedAt`
+- v1.9: 2-I — `episodes.number`는 편집자가 고칠 수 있음(정수 1~9999), `episodes.duplicatedFrom`(복제 원본, `duplicateEpisode`만 씀), `submissions.aiSummary`(`summary[≤3]`·`genre`·`score` 0~100·`reason`·`jobId`, 서버만 씀), collectionGroup `candidates(workspaceId, imagePath)` 색인(정리 때 같은 파일을 쓰는 후보 확인)

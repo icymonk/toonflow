@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { monthStats, todayTasks } from '#shared/home'
 import { ko } from '~/locales/ko'
 
 // CMN-01 이어서 하기, CMN-04 빠른 시작, CMN-05 처음 사용 안내
@@ -9,6 +10,20 @@ const { episodes, series } = useStories()
 const { characters, styles } = useLibrary()
 const recent = computed(() => episodes.value.filter(e => !e.archivedAt).slice(0, 5))
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
+// CMN-02 오늘 할 일 · CMN-03 이번 달 현황
+const { list: subs } = useSubmissions()
+const { jobs } = useNotifications()
+const { usedKrw } = useUsage()
+const dayAgo = Date.now() - 86_400_000
+const today = computed(() => todayTasks(episodes.value, subs.value, jobs.value.filter(j => j.status === 'failed' && j.finishedAt!.toMillis() > dayAgo).length))
+const todo = computed(() => [
+  { n: today.value.newSubs, label: t.today.newSubs(today.value.newSubs), to: '/inbox' },
+  { n: today.value.review.length, label: t.today.review(today.value.review.length), to: today.value.review.length === 1 ? `/studio?episode=${today.value.review[0]}` : '/stories' },
+  { n: today.value.illustrate.length, label: t.today.illustrate(today.value.illustrate.length), to: today.value.illustrate.length === 1 ? `/studio?episode=${today.value.illustrate[0]}` : '/stories' },
+  { n: today.value.failedJobs, label: t.today.failed(today.value.failedJobs), to: '/stories' },
+].filter(x => x.n > 0))
+const month = computed(() => monthStats(episodes.value))
+const krw = (n: number) => `₩${n.toLocaleString('ko-KR')}`
 const hideGuide = useLocalStorage('toonflow:guideHidden', false)
 const guide = computed(() => [
   { done: styles.value.length > 0, label: t.guide.style, to: '/styles' },
@@ -27,6 +42,24 @@ const guide = computed(() => [
     <div class="flex gap-2">
       <Button as-child><NuxtLink to="/stories">{{ t.start }}</NuxtLink></Button>
       <Button variant="outline" as-child><NuxtLink to="/inbox">{{ t.addStory }}</NuxtLink></Button>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <section class="bg-card flex flex-col gap-2 rounded-lg border p-4">
+        <h2 class="font-semibold">{{ t.today.title }}</h2>
+        <p v-if="!todo.length" class="text-muted-foreground text-sm">{{ t.today.none }}</p>
+        <NuxtLink v-for="x in todo" :key="x.label" :to="x.to" class="text-sm hover:underline">· {{ x.label }}</NuxtLink>
+      </section>
+      <section class="bg-card flex flex-col gap-2 rounded-lg border p-4">
+        <h2 class="font-semibold">{{ t.month.title }}</h2>
+        <dl class="grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+          <dt class="text-muted-foreground">{{ t.month.created }}</dt><dd>{{ month.created }}</dd>
+          <dt class="text-muted-foreground">{{ t.month.published }}</dt><dd>{{ month.published }}</dd>
+          <dt class="text-muted-foreground">{{ t.month.avgCost }}</dt><dd>{{ krw(month.avgCostKrw) }}</dd>
+          <dt class="text-muted-foreground">{{ t.month.avgHours }}</dt><dd>{{ t.month.hours(month.avgHours) }}</dd>
+          <dt class="text-muted-foreground">{{ t.month.spent }}</dt><dd>{{ krw(usedKrw) }}</dd>
+        </dl>
+      </section>
     </div>
 
     <section v-if="!hideGuide && guide.some(g => !g.done)" class="bg-card flex flex-col gap-2 rounded-lg border p-4">

@@ -13,6 +13,7 @@ export const fakeText: TextModel = {
       titles: { titles: ['제목 1', '제목 2', '제목 3', '제목 4', '제목 5'] },
       caption: { caption: '가짜 캡션 본문', hashtags: ['#인스타툰', '#공감툰'] },
       rewrite: { text: '가짜 다시 쓰기' },
+      summary: { summary: ['첫째 줄', '둘째 줄', '셋째 줄'], genre: 'comedy', score: 72, reason: '반전이 뚜렷해요' },
     }
     return { text: JSON.stringify(format ? canned[format] : { echo: prompt.slice(0, 200) }), usage: { inTokens: prompt.length, outTokens: 50 }, requestId: `fake-${Date.now()}` }
   },

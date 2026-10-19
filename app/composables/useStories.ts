@@ -47,10 +47,13 @@ export function useStories() {
   const createEpisode = (input: Omit<CreateEpisodeInput, 'workspaceId'>) =>
     callFn($functions, 'createEpisode', { ...input, workspaceId: ws().id })
 
-  const updateEpisode = (id: string, patch: Partial<Pick<Episode, 'title' | 'step' | 'status'>> & { archivedAt?: unknown }) =>
+  const updateEpisode = (id: string, patch: Partial<Pick<Episode, 'title' | 'number' | 'step' | 'status'>> & { archivedAt?: unknown }) =>
     updateDoc(doc(col('episodes'), id), { ...patch, updatedAt: serverTimestamp() })
+
+  const duplicate = (episodeId: string, mode: 'structure' | 'full') => callFn($functions, 'duplicateEpisode', { workspaceId: ws().id, episodeId, mode })
+  const updateSeries = (id: string, patch: { archivedAt: unknown }) => updateDoc(doc(col('series'), id), { ...patch, updatedAt: serverTimestamp() })
 
   const trash = (kind: 'episode' | 'series', id: string) => callFn($functions, 'deleteToTrash', { workspaceId: ws().id, kind, id })
 
-  return { series, episodes, loading, createSeries, createEpisode, updateEpisode, trash }
+  return { series, episodes, loading, createSeries, createEpisode, updateEpisode, updateSeries, duplicate, trash }
 }

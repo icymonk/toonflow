@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import type { Character, CharacterInput } from '#shared/library'
+import type { Character, CharacterInput, CharacterVariant } from '#shared/library'
 import type { Library } from '~/composables/useLibrary'
 import { Archive, Loader2, Sparkles, Trash2 } from '@lucide/vue'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
-import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, describeAppearance } from '#shared/library'
+import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, SHEET, withHint } from '#shared/library'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
 
@@ -53,6 +53,48 @@ async function generate() {
   catch (e) { fail(e) }
 }
 const addCandidate = (path: string) => (refs.value.includes(path) || refs.value.length >= 5 ? undefined : lib.update('characters', props.character.id, { refImages: [...refs.value, path], coverPath: props.character.coverPath ?? path }).catch(fail))
+
+// CHR-05 시트 · CHR-12 일관성 테스트
+const multiKind = ref<'sheet' | 'consistency' | null>(null)
+const multiJobId = ref<string | null>(null)
+const multiJob = lib.watchJob(multiJobId)
+const busy = computed(() => multiJob.value?.status === 'queued' || multiJob.value?.status === 'running')
+async function generateMany(kind: 'sheet' | 'consistency') {
+  const style = lib.styles.value.find(s => s.id === styleId.value) ?? null
+  const base = characterPrompt(form, style)
+  const prompts = kind === 'sheet' ? SHEET.map(s => withHint(base, s.hint, true)) : CONSISTENCY_SCENES.map(h => withHint(base, h))
+  try {
+    const out = await lib.generate({ characterId: props.character.id }, { prompts, negative: style?.negative || undefined, refPaths: [...refs.value, ...(style?.refImages ?? [])].slice(0, 5) })
+    multiKind.value = kind
+    multiJobId.value = out.jobId
+  }
+  catch (e) { fail(e) }
+}
+// CHR-06 표정·의상
+const variants = computed(() => props.character.variants ?? [])
+const addVariant = (v: CharacterVariant) => (variants.value.length >= 12 || variants.value.some(x => x.path === v.path) ? undefined : lib.update('characters', props.character.id, { variants: [...variants.value, v] }).catch(fail))
+const removeVariant = (path: string) => lib.update('characters', props.character.id, { variants: variants.value.filter(v => v.path !== path) }).catch(fail)
+function keepSheet(i: number, path: string) {
+  const s = SHEET[i]
+  if (!s) return
+  if (s.kind === 'view') return addCandidate(path)
+  return addVariant({ kind: 'expression', label: s.label, path })
+}
+const vKind = ref<CharacterVariant['kind']>('expression')
+const vLabel = ref('')
+async function uploadVariant(file: File) {
+  if (!vLabel.value.trim()) return toast.error(t.variantLabelNeeded)
+  try {
+    await addVariant({ kind: vKind.value, label: vLabel.value.trim().slice(0, 20), path: await lib.upload('characters', props.character.id, file) })
+    vLabel.value = ''
+  }
+  catch (e) { fail(e) }
+}
+// CHR-08 등장 기록
+const appearances = ref<{ episodeId: string, title: string, panels: number }[] | null>(null)
+async function loadAppearances() {
+  appearances.value = await lib.appearances(props.character.id).catch(() => [])
+}
 
 const archive = () => lib.update('characters', props.character.id, { archivedAt: props.character.archivedAt ? null : new Date() }).catch(fail)
 async function remove() {
@@ -144,6 +186,55 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
           </div>
         </template>
       </div>
+    </div>
+
+    <div class="flex flex-col gap-2">
+      <span class="text-sm font-medium">{{ t.variants }}</span>
+      <div v-if="variants.length" class="grid grid-cols-3 gap-2">
+        <div v-for="v in variants" :key="v.path" class="relative overflow-hidden rounded-md border">
+          <AppStorageImg :path="v.path" class="aspect-[4/5] w-full" />
+          <span class="bg-background/80 absolute bottom-0 left-0 px-1 text-[11px]">{{ t.variantKinds[v.kind] }} · {{ v.label }}</span>
+          <button v-if="edit" class="bg-background/80 absolute top-0 right-0 px-1 text-xs" :aria-label="t.remove" @click="removeVariant(v.path)">×</button>
+        </div>
+      </div>
+      <p v-else class="text-muted-foreground text-xs">{{ t.variantsHint }}</p>
+      <div v-if="edit" class="flex items-center gap-1.5">
+        <select v-model="vKind" :class="selectClass" :aria-label="t.variants">
+          <option value="expression">{{ t.variantKinds.expression }}</option>
+          <option value="outfit">{{ t.variantKinds.outfit }}</option>
+        </select>
+        <Input v-model="vLabel" class="h-8" maxlength="20" :placeholder="t.variantLabel" />
+        <label class="hover:bg-muted shrink-0 cursor-pointer rounded-md border px-2 py-1 text-xs">{{ t.uploadVariant }}<input type="file" accept="image/*" class="hidden" @change="(e: Event) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) uploadVariant(f); (e.target as HTMLInputElement).value = '' }"></label>
+      </div>
+      <div v-if="edit" class="flex flex-wrap gap-1.5">
+        <Button size="sm" variant="outline" :disabled="busy" @click="generateMany('sheet')">
+          <Sparkles class="size-4" /> {{ t.sheet(lib.estimate(6)) }}
+        </Button>
+        <Button size="sm" variant="outline" :disabled="busy" @click="generateMany('consistency')">
+          <Sparkles class="size-4" /> {{ t.consistency(lib.estimate(4)) }}
+        </Button>
+      </div>
+      <p v-if="busy" class="text-muted-foreground flex items-center gap-1.5 text-xs">
+        <Loader2 class="size-3.5 animate-spin" /> {{ t.generating }}
+      </p>
+      <p v-else-if="multiJob?.status === 'failed'" class="text-destructive text-xs">
+        {{ t.failed }}
+      </p>
+      <template v-else-if="multiJob?.status === 'succeeded' && multiJob.providerResult?.length">
+        <span class="text-muted-foreground text-xs">{{ multiKind === 'sheet' ? t.sheetPick : t.consistencyHint }}</span>
+        <div class="grid gap-2" :class="multiKind === 'sheet' ? 'grid-cols-3' : 'grid-cols-2'">
+          <button v-for="(p, i) in multiJob.providerResult" :key="p" class="relative overflow-hidden rounded-md border" :disabled="multiKind !== 'sheet'" @click="keepSheet(i, p)">
+            <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
+            <span class="bg-background/80 absolute bottom-0 left-0 px-1 text-[11px]">{{ multiKind === 'sheet' ? SHEET[i]?.label : CONSISTENCY_SCENES[i] }}</span>
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <button class="self-start text-sm font-medium underline-offset-2 hover:underline" @click="loadAppearances">{{ t.appearances }}</button>
+      <p v-if="appearances && !appearances.length" class="text-muted-foreground text-xs">{{ t.noAppearances }}</p>
+      <NuxtLink v-for="a in appearances ?? []" :key="a.episodeId" class="text-sm underline" :to="`/studio?episode=${a.episodeId}&step=storyboard`">{{ a.title }} · {{ t.panelCount(a.panels) }}</NuxtLink>
     </div>
 
     <div v-if="edit" class="flex gap-2 border-t pt-3">

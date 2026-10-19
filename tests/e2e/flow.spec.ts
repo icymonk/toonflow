@@ -4,6 +4,7 @@ import { unzipSync } from 'fflate'
 import { E2E_EMAIL } from './global-setup'
 
 const AUTH = 'http://127.0.0.1:9099/emulator/v1/projects/demo-toonflow'
+const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64')
 const STORY = '회사 엘리베이터에서 부장님 앞에서 방귀를 뀌었는데 부장님이 내 탓을 해 줬다. 알고 보니 부장님도 뀌었던 거였다.'
 
 test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async ({ page }) => {
@@ -53,10 +54,16 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: /빈 컷 모두 생성 \([1-9]\d*\)/ }).click()
   await expect(page.getByRole('button', { name: '빈 컷 모두 생성 (0)' })).toBeVisible({ timeout: 150_000 })
 
-  // 말풍선
+  // 내 그림 올리기 (ILL-30)
+  await page.getByText('내 그림 올리기').locator('input[type=file]').setInputFiles({ name: 'mine.png', mimeType: 'image/png', buffer: PNG_1PX })
+  await expect(page.getByText('후보로 올렸어요')).toBeVisible({ timeout: 30_000 })
+
+  // 말풍선·검수 완료 (REV-20)
   await page.getByRole('tab', { name: /Review/ }).click()
   await page.getByRole('button', { name: '말풍선 자동 배치' }).click()
   await expect(page.locator('svg text').first()).toBeVisible()
+  for (const item of ['오탈자', '개인정보', '출처·크레딧']) await page.getByLabel(item, { exact: true }).selectOption('pass')
+  await expect(page.getByText('모두 통과')).toBeVisible()
 
   // ZIP
   await page.getByRole('tab', { name: /Export/ }).click()

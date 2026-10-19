@@ -25,6 +25,8 @@ export interface Character extends CharacterInput {
   id: string
   refImages: string[]
   coverPath: string | null
+  /** CHR-06 */
+  variants?: CharacterVariant[]
   archivedAt?: Ts | null
   deletedAt?: Ts | null
 }
@@ -104,7 +106,7 @@ export const characterPrompt = (c: CharacterInput, s: StyleInput | null) =>
 /** 이미지 작업 params (style.sample · panel.image) */
 export const imageParams = z.object({
   prompt: z.string().max(4000).optional(),
-  prompts: z.array(z.string().max(4000)).min(1).max(4).optional(),
+  prompts: z.array(z.string().max(4000)).min(1).max(6).optional(),
   n: z.number().int().min(1).max(4).optional(),
   negative: z.string().max(300).nullish(),
   refPaths: z.array(z.string()).max(5).nullish(),
@@ -114,3 +116,26 @@ export const imageCount = (p: Record<string, unknown>) => {
   if (!q.success) return 1
   return (q.data.prompts?.length ?? 1) * (q.data.n ?? 1)
 }
+
+/** CHR-06: 표정·의상별 참조 이미지 */
+export interface CharacterVariant { kind: 'expression' | 'outfit', label: string, path: string }
+/** 컷의 표정·의상 글에 이름이 들어 있는 참조 이미지, 없으면 대표 이미지 */
+export function variantFor(c: Character, panel?: { expression?: string, outfit?: string }): string | null {
+  const hit = (kind: CharacterVariant['kind'], text?: string) =>
+    text?.trim() ? (c.variants ?? []).find(v => v.kind === kind && v.label.trim() && text.includes(v.label.trim()))?.path : undefined
+  return hit('expression', panel?.expression) ?? hit('outfit', panel?.outfit) ?? c.coverPath
+}
+
+/** CHR-05 캐릭터 시트 */
+export const SHEET = [
+  { label: '정면', kind: 'view', hint: '정면을 바라보는 상반신, 무표정' },
+  { label: '옆모습', kind: 'view', hint: '옆모습(측면) 상반신' },
+  { label: '전신', kind: 'view', hint: '정면 전신, 서 있는 자세' },
+  { label: '기쁨', kind: 'expression', hint: '활짝 웃는 표정 상반신' },
+  { label: '화남', kind: 'expression', hint: '화난 표정 상반신' },
+  { label: '놀람', kind: 'expression', hint: '깜짝 놀란 표정 상반신' },
+] as const
+/** CHR-12 일관성 테스트 장면 */
+export const CONSISTENCY_SCENES = ['카페에서 커피를 마시는 장면', '퇴근길 지하철에서 휴대폰을 보는 장면', '집 소파에 누워 있는 장면', '사무실 책상에서 일하는 장면'] as const
+export const withHint = (base: string, hint: string, sheet = false) =>
+  `${base}\n\n이번 그림: ${hint}.${sheet ? ' 단색 배경의 캐릭터 설정화.' : ''}`.slice(0, 4000)

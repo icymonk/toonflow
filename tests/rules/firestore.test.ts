@@ -20,9 +20,12 @@ beforeAll(async () => {
     await setDoc(doc(f, `${W}/submissions/s1`), { title: 't', body: 'b', note: '', sourceNote: '', tags: [], starred: false, status: 'new', source: 'dm', episodeIds: [] })
     await setDoc(doc(f, `${W}/aiJobs/j1`), { status: 'succeeded' })
     await setDoc(doc(f, `${W}/usage/2026-10`), { costKrw: 0 })
-    await setDoc(doc(f, `${W}/episodes/e1`), { title: '1화', step: 'story', status: 'active', settings: {}, deletedAt: null })
+    await setDoc(doc(f, `${W}/episodes/e1`), { title: '1화', number: 1, step: 'story', status: 'active', settings: {}, deletedAt: null })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1`), { scene: 's', dialogues: [] })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'x' })
+    await setDoc(doc(f, `${W}/series/sr1`), { name: '작품', intro: '', episodeCount: 1, deletedAt: null })
+    await setDoc(doc(f, `${W}/characters/ch1`), { name: '나', refImages: [], deletedAt: null })
+    await setDoc(doc(f, `${W}/assets/a1`), { path: `${W}/refs/assets/a.png`, name: 'a.png', size: 1, tags: [], createdBy: 'editor' })
     await setDoc(doc(f, `users/editor`), { displayName: 'e', email: 'e@x' })
   })
 })
@@ -40,6 +43,9 @@ describe('roles × paths', () => {
   it('owner/admin/editor edit, viewer does not', async () => {
     for (const r of ['owner', 'admin', 'editor']) await assertSucceeds(updateDoc(doc(db(r), `${W}/episodes/e1`), { title: `by ${r}` }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1`), { title: 'v' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 3 }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 0 }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { number: 1.5 }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/submissions/s1`), { starred: true }))
     await assertFails(updateDoc(doc(db('other'), `${W}/episodes/e1`), { title: 'x' }))
   })
@@ -63,6 +69,11 @@ describe('server-only fields', () => {
     await assertFails(updateDoc(doc(e, `${W}/aiJobs/j1`), { status: 'failed' }))
     await assertFails(setDoc(doc(e, `${W}/usage/2026-10`), { costKrw: 0 }))
     await assertFails(setDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c2`), { imagePath: 'y' }))
+    await assertFails(updateDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'z' }))
+    const up = { imagePath: `${W}/refs/panels/p1/a.png`, width: 1080, height: 1350, source: 'upload', jobId: '', input: null, hidden: false, favorite: false, workspaceId: W.split('/')[1], episodeId: 'e1', panelId: 'p1', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u1`), up))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u2`), { ...up, source: 'ai' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u3`), { ...up, imagePath: 'workspaces/w2/refs/panels/p1/a.png' }))
     await assertFails(addDoc(collection(e, `${W}/episodes`), { title: 'x', step: 'story', status: 'active' }))
     await assertFails(updateDoc(doc(e, `${W}/episodes/e1`), { deletedAt: new Date() }))
     await assertFails(updateDoc(doc(e, `${W}/submissions/s1`), { episodeIds: ['e1'] }))
@@ -75,6 +86,60 @@ describe('server-only fields', () => {
     await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/meta/typeset`), ts))
     await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/meta/typeset`), { ...ts, font: 'comic' }))
     await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/meta/typeset`), ts))
+  })
+})
+
+describe('2단계 경로', () => {
+  it('series: editors archive and set notes; server-only counters are blocked', async () => {
+    const ref = (u: string) => doc(db(u), `${W}/series/sr1`)
+    await assertSucceeds(updateDoc(ref('editor'), { archivedAt: new Date(), memo: '세계관', reviewItems: ['로고'], hashtags: ['#툰'], greeting: '안녕', watermark: '@me' }))
+    await assertFails(updateDoc(ref('viewer'), { archivedAt: null }))
+    await assertFails(updateDoc(ref('editor'), { episodeCount: 9 }))
+    await assertFails(updateDoc(ref('editor'), { deletedAt: new Date() }))
+  })
+  it('characters: variants up to 12, persona fields', async () => {
+    const v = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: 'expression', label: `${i}`, path: `${W}/refs/characters/ch1/${i}.png` }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/characters/ch1`), { variants: v(12), personality: ['소심'], speech: ['어...'] }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/characters/ch1`), { variants: v(13) }))
+    await assertFails(updateDoc(doc(db('viewer'), `${W}/characters/ch1`), { personality: [] }))
+  })
+  it('assets: own uploads under refs/assets only; tags only on update', async () => {
+    const a = { path: `${W}/refs/assets/b.png`, name: 'b.png', size: 2, tags: ['배경'], createdBy: 'editor', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/assets/a2`), a))
+    await assertFails(setDoc(doc(db('editor'), `${W}/assets/a3`), { ...a, path: 'workspaces/w2/refs/assets/b.png' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/assets/a4`), { ...a, createdBy: 'owner' }))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/assets/a5`), { ...a, createdBy: 'viewer' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { tags: ['x'] }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/assets/a1`), { path: `${W}/refs/assets/c.png` }))
+  })
+  it('candidates: editors import from aiJobs path and flag favorite/hidden only', async () => {
+    const imp = { imagePath: `${W}/aiJobs/j1/0.png`, width: 1080, height: 1350, source: 'import', jobId: '', input: null, hidden: false, favorite: false, workspaceId: 'w1', episodeId: 'e1', panelId: 'p1', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), imp))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i2`), imp))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: true, hidden: false }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: 'yes' }))
+    await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: false }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i1`)))
+    await assertFails(getDoc(doc(db('other'), `${W}/episodes/e1/panels/p1/candidates/i1`)))
+  })
+  it('submissions: AI summary and links are server-only', async () => {
+    await assertFails(updateDoc(doc(db('owner'), `${W}/submissions/s1`), { aiSummary: { summary: ['x'], genre: 'comedy', score: 100, reason: '', jobId: 'j' } }))
+    await assertFails(updateDoc(doc(db('owner'), `${W}/episodes/e1`), { duplicatedFrom: { id: 'e0' } }))
+  })
+})
+
+describe('snapshots', () => {
+  const snap = (uid: string) => ({ name: '1차 완성', createdBy: uid, createdAt: new Date(), title: '1화', pageOrder: [], activeStoryVersionId: null, pages: [], panels: [] })
+  it('editors create their own snapshot and delete; viewers and updates are blocked', async () => {
+    const ref = doc(db('editor'), `${W}/episodes/e1/snapshots/s1`)
+    await assertSucceeds(setDoc(ref, snap('editor')))
+    await assertFails(updateDoc(ref, { name: 'x' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/snapshots/s2`), snap('owner')))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s3`), snap('viewer')))
+    await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/snapshots/s4`), { ...snap('editor'), extra: 1 }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s1`)))
+    await assertFails(deleteDoc(doc(db('viewer'), `${W}/episodes/e1/snapshots/s1`)))
+    await assertSucceeds(deleteDoc(ref))
   })
 })
 

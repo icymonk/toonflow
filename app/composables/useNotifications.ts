@@ -10,6 +10,8 @@ export function useNotifications() {
   const auth = useAuthStore()
   const jobs = ref<JobNote[]>([])
   const seen = useLocalStorage('toonflow:notesSeen', 0)
+  // CMN-11 받을 알림 종류 (이 브라우저에만 저장)
+  const prefs = useLocalStorage('toonflow:notePrefs', { done: true, failed: true, usage: true }, { mergeDefaults: true })
   let stop: (() => void) | undefined
   watch(() => auth.workspace?.id, (w) => {
     stop?.()
@@ -20,7 +22,8 @@ export function useNotifications() {
     }, () => {})
   }, { immediate: true })
   onScopeDispose(() => stop?.())
-  const unread = computed(() => jobs.value.filter(j => j.finishedAt!.toMillis() > seen.value).length)
+  const shown = computed(() => jobs.value.filter(j => (j.status === 'failed' ? prefs.value.failed : prefs.value.done)))
+  const unread = computed(() => shown.value.filter(j => j.finishedAt!.toMillis() > seen.value).length)
   const markSeen = () => (seen.value = Date.now())
-  return { jobs, unread, markSeen }
+  return { jobs, shown, prefs, unread, markSeen }
 }

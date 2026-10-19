@@ -10,7 +10,14 @@ import { ko } from '~/locales/ko'
 
 const t = ko.inbox
 const auth = useAuthStore()
-const { list, loading, add, update, setStatus } = useSubmissions()
+const { list, loading, add, update, setStatus, summarize } = useSubmissions()
+const { estimateText } = useLibrary()
+const summaryCost = computed(() => estimateText('submission.summary', (current.value?.maskedBody || current.value?.body || '').length))
+const summarizing = ref('')
+const runSummary = () => current.value && run(async () => {
+  summarizing.value = current.value!.id
+  await summarize(current.value!)
+}, t.summary.started)
 const edit = computed(() => canEdit(auth.role))
 
 const STATUS_CLASS: Record<SubmissionStatus, string> = {
@@ -65,7 +72,9 @@ const counts = computed(() => {
 const allTags = computed(() => [...new Set(list.value.flatMap(s => s.tags))].sort())
 
 // INB-21 선택·상태
-const currentId = ref<string>()
+const route = useRoute()
+const currentId = ref<string | undefined>(route.query.id ? String(route.query.id) : undefined)
+watch(() => route.query.id, id => id && (currentId.value = String(id)))
 const current = computed(() => list.value.find(s => s.id === currentId.value))
 const checked = ref<string[]>([])
 watch(shown, (items) => {
@@ -272,6 +281,21 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
               {{ current.body }}
             </p>
+            <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-medium">{{ t.summary.title }}</span>
+                <Button v-if="edit" size="sm" variant="outline" :disabled="summarizing === current.id && !current.aiSummary" @click="runSummary">
+                  {{ current.aiSummary ? t.summary.again : t.summary.run }} · {{ t.summary.cost(summaryCost) }}
+                </Button>
+              </div>
+              <template v-if="current.aiSummary">
+                <ol class="list-decimal pl-4 text-xs">
+                  <li v-for="(l, i) in current.aiSummary.summary" :key="i">{{ l }}</li>
+                </ol>
+                <p class="text-xs">{{ t.summary.genre }} <b>{{ ko.stories.tones[current.aiSummary.genre] }}</b> · {{ t.summary.score }} <b>{{ current.aiSummary.score }}</b>/100 <span class="text-muted-foreground">{{ current.aiSummary.reason }}</span></p>
+              </template>
+              <p v-else class="text-muted-foreground text-xs">{{ t.summary.hint }}</p>
+            </section>
             <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
               <span class="font-medium">{{ t.pii.title }}</span>
               <p v-if="!pii.length" class="text-muted-foreground text-xs">{{ t.pii.none }}</p>

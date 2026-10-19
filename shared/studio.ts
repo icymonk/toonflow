@@ -52,6 +52,10 @@ export interface Panel {
   crop?: Crop | null
   /** REV-01~03 */
   bubbles?: Bubble[] | null
+  /** SBD-15 구도·포즈 참고 이미지 */
+  refImage?: string | null
+  /** STL-07 이 컷만 다른 그림체 */
+  styleId?: string | null
   staleFrom: StaleFrom
   deletedAt?: Ts | null
 }
@@ -171,6 +175,10 @@ export function createHistory(limit = 50) {
       await c.redo()
       done.push(c)
       return c
+    },
+    clear() {
+      done.length = 0
+      undone.length = 0
     },
     get canUndo() { return done.length > 0 },
     get canRedo() { return undone.length > 0 },

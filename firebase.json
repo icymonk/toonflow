@@ -50,6 +50,13 @@
         }
       },
       {
+        "source": "/fn/duplicateEpisode",
+        "function": {
+          "functionId": "duplicateEpisode",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/fn/deleteToTrash",
         "function": {
           "functionId": "deleteToTrash",
@@ -67,6 +74,20 @@
         "source": "/fn/purgeFromTrash",
         "function": {
           "functionId": "purgeFromTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/cleanupCandidates",
+        "function": {
+          "functionId": "cleanupCandidates",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/storageUsage",
+        "function": {
+          "functionId": "storageUsage",
           "region": "asia-northeast3"
         }
       },

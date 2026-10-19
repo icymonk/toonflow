@@ -58,11 +58,17 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const split = (v: StoryVersion, pageCount?: number) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(pageCount ? { pageCount } : {}) })
   const titles = (v: StoryVersion) => start('story.titles', { versionId: v.id, draft: versionToText(v) })
   /** STO-13: 장면 본문이나 대사만 다시 쓰고, 끝나면 그 자리에 넣는다 */
-  const rewriting = ref<{ jobId: string, versionId: string, sceneId: string, field: 'beats' | 'dialogues' } | null>(null)
+  const rewriting = ref<{ jobId: string, versionId?: string, sceneId?: string, field?: 'beats' | 'dialogues', panelId?: string } | null>(null)
   const rewriteRev = ref(0)
   async function rewrite(v: StoryVersion, sceneId: string, field: 'beats' | 'dialogues', text: string, mode: RewriteMode, tone = '') {
     const out = await start('story.rewrite', { versionId: v.id, draft: versionToText(v), rewrite: { mode, text, tone } })
     rewriting.value = { jobId: out.jobId, versionId: v.id, sceneId, field }
+  }
+  /** SBD-14 장면 설명을 그림 생성에 맞게 */
+  async function refine(panelId: string, scene: string) {
+    const v = active.value
+    const out = await start('story.rewrite', { ...(v ? { draft: versionToText(v) } : {}), rewrite: { mode: 'refine', text: scene, tone: '' } })
+    rewriting.value = { jobId: out.jobId, panelId }
   }
   let stopRw: (() => void) | undefined
   watch(rewriting, (rw) => {
@@ -79,6 +85,11 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       const out = parseJson(rewriteSchema, String(snap.get('providerResult') ?? ''))
       const v = versions.value.find(x => x.id === rw.versionId)
       rewriting.value = null
+      if (out && rw.panelId) {
+        await updateDoc(doc(epRef(), 'panels', rw.panelId), { scene: out.text.slice(0, 2000), updatedAt: serverTimestamp() })
+        toast.success(ko.studio.story.rewritten)
+        return
+      }
       if (!out || !v) return
       await updateVersion(v.id, { scenes: v.scenes.map(sc => sc.id !== rw.sceneId ? sc : { ...sc, ...(rw.field === 'beats' ? { beats: out.text } : { dialogues: textToDialogues(out.text) }) }) })
       rewriteRev.value++
@@ -100,5 +111,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, draft, split, titles, caption, rewrite, rewriting, rewriteRev, updateVersion, setActive, keepStale, updateSettings }
+  return { versions, sources, material, active, analyze, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, updateVersion, setActive, keepStale, updateSettings }
 }

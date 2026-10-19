@@ -27,6 +27,11 @@ service cloud.firestore {
       return roleIn(ws) in ['owner', 'admin'];
     }
 
+    // AST-01: 워크스페이스 전체 후보 모아 보기 (collectionGroup)
+    match /{path=**}/candidates/{cid} {
+      allow read: if canView(resource.data.workspaceId);
+    }
+
     // ACC-03: 본인은 이름·사진만 바꾼다. 만들기는 서버(completeOnboarding)
     match /users/{uid} {
       allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
@@ -85,24 +90,34 @@ service cloud.firestore {
       match /series/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100)
           && request.resource.data.episodeCount == 0 && request.resource.data.deletedAt == null
           && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverPath', 'archivedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'archivedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
       // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
+      // AST-03 참고 자료
+      match /assets/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['path', 'name', 'size', 'tags', 'createdBy', 'createdAt'])
+          && request.resource.data.path.matches('workspaces/' + ws + '/refs/assets/.*') && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.tags is list && request.resource.data.tags.size() <= 10;
+        allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tags']) && request.resource.data.tags.size() <= 10;
+        allow delete: if canEdit(ws);
+      }
       match /characters/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
           && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (!('variants' in request.resource.data) || request.resource.data.variants.size() <= 12)
           && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
       }
       // STL-01~09: samples·sampleJobId는 서버(style.sample)만
@@ -121,8 +136,9 @@ service cloud.firestore {
       match /episodes/{id} {
         allow read: if canView(ws);
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
           && strLen(request.resource.data.title, 1, 80)
+          && request.resource.data.number is int && request.resource.data.number >= 1 && request.resource.data.number <= 9999
           && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
           && request.resource.data.status in ['active', 'done', 'published'];
 
@@ -135,6 +151,17 @@ service cloud.firestore {
           allow update: if canEdit(ws)
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'logline', 'scenes', 'punchline', 'editedAt'])
             && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
+        }
+        // STU-23 스냅숏: 만들기·지우기만 (고치지 않음)
+        match /snapshots/{sid} {
+          allow read: if canView(ws);
+          allow create: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['name', 'createdBy', 'createdAt', 'title', 'pageOrder', 'activeStoryVersionId', 'pages', 'panels'])
+            && strLen(request.resource.data.name, 1, 40)
+            && request.resource.data.createdBy == request.auth.uid
+            && request.resource.data.pages is list && request.resource.data.pages.size() <= 80
+            && request.resource.data.panels is list && request.resource.data.panels.size() <= 80;
+          allow delete: if canEdit(ws);
         }
         // REV-04 식자 스타일
         match /meta/{docId} {
@@ -155,12 +182,20 @@ service cloud.firestore {
         match /panels/{panelId} {
           allow read: if canView(ws);
           allow create, update: if canEdit(ws)
-            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'bubbles', 'staleFrom', 'deletedAt', 'updatedAt'])
+            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'bubbles', 'refImage', 'styleId', 'staleFrom', 'deletedAt', 'updatedAt'])
             && request.resource.data.pageId is string
             && strLen(request.resource.data.scene, 0, 2000)
             && strLen(request.resource.data.note, 0, 2000);
           match /candidates/{candidateId} {
             allow read: if canView(ws);
+            // ILL-30 내 그림 올리기 (refs/panels 경로만)
+            allow create: if canEdit(ws) && request.resource.data.source in ['upload', 'import']
+              && request.resource.data.keys().hasOnly(['imagePath', 'width', 'height', 'source', 'jobId', 'input', 'hidden', 'favorite', 'createdAt', 'workspaceId', 'episodeId', 'panelId'])
+              && request.resource.data.workspaceId == ws
+              && request.resource.data.imagePath.matches('workspaces/' + ws + '/(refs|aiJobs)/.*');
+            // ILL-14 즐겨찾기·숨기기만
+            allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorite', 'hidden'])
+              && request.resource.data.favorite is bool && request.resource.data.hidden is bool;
           }
         }
       }
