@@ -29,7 +29,19 @@ export const modelsConfig = z.object({
   usdToKrw: z.number().positive(),
 })
 export type ModelsConfig = z.infer<typeof modelsConfig>
-export const DEFAULT_MODELS: ModelsConfig = { models: [], defaults: {}, usdToKrw: 1400 }
+/** S1·S2 비교 결과(docs/dev/phase-plan.md 검증 결과) 기준 기본값. 가격은 2026-10 공개가 × usdToKrw, 이미지는 실측 출력 토큰 기준으로 올림 */
+export const DEFAULT_MODELS: ModelsConfig = {
+  models: [
+    { id: 'gemini-3.8-flash', kind: 'text', provider: 'gemini', label: 'Gemini 3.8 Flash (기본)', priceKrw: { perKTokensIn: 1.05, perKTokensOut: 5.25 }, enabled: true },
+    { id: 'gemini-3.5-flash-lite', kind: 'text', provider: 'gemini', label: 'Gemini 3.5 Flash-Lite (빠름·저렴)', priceKrw: { perKTokensIn: 0.42, perKTokensOut: 3.5 }, enabled: true },
+    { id: 'gemini-3.1-pro-preview', kind: 'text', provider: 'gemini', label: 'Gemini 3.1 Pro (미리보기)', priceKrw: { perKTokensIn: 2.8, perKTokensOut: 16.8 }, enabled: false },
+    { id: 'gemini-3.1-flash-lite-image', kind: 'image', provider: 'gemini', label: 'Gemini 3.1 Flash-Lite Image (기본)', priceKrw: { perImage: 65 }, enabled: true },
+    { id: 'gemini-3-pro-image', kind: 'image', provider: 'gemini', label: 'Gemini 3 Pro Image (고품질)', priceKrw: { perImage: 215 }, enabled: true },
+    { id: 'gemini-3.1-flash-image', kind: 'image', provider: 'gemini', label: 'Gemini 3.1 Flash Image', priceKrw: { perImage: 65 }, enabled: false },
+  ],
+  defaults: { text: 'gemini-3.8-flash', image: 'gemini-3.1-flash-lite-image' },
+  usdToKrw: 1400,
+}
 
 /** config/access (ACC-02): 한 줄에 이메일 하나 */
 export function parseEmails(text: string): string[] {
