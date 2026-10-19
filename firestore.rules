@@ -48,6 +48,10 @@ service cloud.firestore {
       match /members/{uid} {
         allow read: if canView(ws);
       }
+      // AIU-20·21: 사용량은 서버만 쓴다
+      match /usage/{month} {
+        allow read: if canView(ws);
+      }
     }
   }
 }

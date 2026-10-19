@@ -6,6 +6,7 @@ import { ko } from '~/locales/ko'
 
 // 앱 셸: docs/design/ui-system.md 6절. 사이드바는 Ink Navy, 선택한 메뉴는 코랄 + Ink Navy 글자
 const auth = useAuthStore()
+const { ratio, level } = useUsage()
 const route = useRoute()
 const collapsed = useLocalStorage('toonflow:sidebarCollapsed', false)
 
@@ -53,7 +54,9 @@ async function signOut() {
       <div class="mt-auto flex flex-col gap-0.5">
         <div v-if="!collapsed" class="px-3 py-2 text-xs opacity-70">
           {{ ko.nav.usage }}
-          <div class="bg-sidebar-accent mt-1 h-1.5 rounded-full" />
+          <div class="bg-sidebar-accent mt-1 h-1.5 overflow-hidden rounded-full">
+            <div class="h-full rounded-full" :class="level === 'ok' ? 'bg-sidebar-primary' : level === 'warn' ? 'bg-warning' : 'bg-destructive'" :style="{ width: `${Math.min(100, ratio * 100)}%` }" />
+          </div>
         </div>
         <NuxtLink
           :to="NAV_SETTINGS.to"

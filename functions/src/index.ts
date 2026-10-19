@@ -3,3 +3,4 @@
 import './global'
 
 export { completeOnboarding } from './callable/account'
+export { setWorkspaceLimit } from './callable/usage'
