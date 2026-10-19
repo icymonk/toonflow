@@ -17,6 +17,7 @@ concurrency:
 env:
   # 서비스 계정 시크릿을 등록하기 전에는 배포 단계를 건너뛴다
   HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+  ONLY: ${{ inputs.only || vars.FIREBASE_DEPLOY_ONLY || 'hosting,firestore' }}
   NUXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NUXT_PUBLIC_FIREBASE_API_KEY }}
   # 운영은 앱과 같은 사이트에서 로그인 처리(서드파티 저장소 차단 대응). PR 미리보기는 기본 authDomain 사용
   NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ github.event_name != 'pull_request' && (vars.FIREBASE_PROD_AUTH_DOMAIN || 'toonflow-351ed.web.app') || vars.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
@@ -61,7 +62,15 @@ jobs:
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      # GitHub 시크릿 GEMINI_API_KEY를 Functions 시크릿(Secret Manager)으로 옮긴다. 값이 같으면 새 버전을 만들지 않는다
+      - if: env.HAS_SA == 'true' && github.event_name != 'pull_request' && contains(env.ONLY, 'functions')
+        run: |
+          if [ -z "$GEMINI_API_KEY" ]; then echo "::warning::GEMINI_API_KEY 시크릿이 없어 Functions 시크릿을 갱신하지 않아요"; exit 0; fi
+          current="$(pnpm exec firebase functions:secrets:access GEMINI_API_KEY --project default 2>/dev/null || true)"
+          if [ "$current" != "$GEMINI_API_KEY" ]; then
+            printf '%s' "$GEMINI_API_KEY" | pnpm exec firebase functions:secrets:set GEMINI_API_KEY --project default --non-interactive --data-file=-
+          fi
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       - if: env.HAS_SA == 'true' && github.event_name != 'pull_request'
         run: pnpm exec firebase deploy --project default --non-interactive --force --only "$ONLY"
-        env:
-          ONLY: ${{ inputs.only || vars.FIREBASE_DEPLOY_ONLY || 'hosting,firestore' }}
