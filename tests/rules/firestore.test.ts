@@ -153,6 +153,32 @@ describe('snapshots', () => {
   })
 })
 
+describe('3단계 제보 링크 (INB-02~06·15)', () => {
+  const page = { workspaceId: 'w1', enabled: true, name: '작가', intro: '', topics: '', questions: ['언제?'], images: false }
+  it('owner/admin create and edit the public page; anyone reads it', async () => {
+    await assertSucceeds(setDoc(doc(db('owner'), 'intake/abcd2345efgh'), page))
+    await assertFails(setDoc(doc(db('editor'), 'intake/zzzz2345efgh'), page))
+    await assertFails(setDoc(doc(db('other'), 'intake/abcd2345efgh'), { ...page, workspaceId: 'w2' }))
+    await assertFails(setDoc(doc(db('owner'), 'intake/BAD'), page))
+    await assertFails(setDoc(doc(db('owner'), 'intake/abcd2345efgh'), { ...page, extra: 1 }))
+    await assertSucceeds(getDoc(doc(db(null), 'intake/abcd2345efgh')))
+    await assertSucceeds(setDoc(doc(db('admin'), 'intake/abcd2345efgh'), { ...page, enabled: false }))
+  })
+  it('config: managers write slug and banned words; members read', async () => {
+    await assertSucceeds(setDoc(doc(db('owner'), `${W}/config/intake`), { slug: 'abcd2345efgh', bannedWords: ['광고'] }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/config/intake`), { slug: 'abcd2345efgh', bannedWords: [] }))
+    await assertFails(setDoc(doc(db('owner'), `${W}/config/other`), { slug: 'abcd2345efgh', bannedWords: [] }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/config/intake`)))
+  })
+  it('contact is readable by owner/admin only and written by the server only', async () => {
+    await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), `${W}/submissions/s1/private/contact`), { nickname: 'n', email: 'e@x.co' }))
+    await assertSucceeds(getDoc(doc(db('owner'), `${W}/submissions/s1/private/contact`)))
+    await assertFails(getDoc(doc(db('editor'), `${W}/submissions/s1/private/contact`)))
+    await assertFails(setDoc(doc(db('owner'), `${W}/submissions/s1/private/contact`), { nickname: 'x', email: '' }))
+    await assertFails(getDoc(doc(db(null), 'intake/abcd2345efgh/rate/k')))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

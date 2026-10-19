@@ -23,6 +23,11 @@ service firebase.storage {
       allow delete: if canEdit(ws);
     }
 
+    // INB-06: 제보 링크 첨부 이미지. 서버(submitIntake)만 쓴다
+    match /workspaces/{ws}/intake/{sid}/{file} {
+      allow read: if canView(ws);
+    }
+
     // AI 작업 결과 이미지: 서버만 쓴다
     match /workspaces/{ws}/aiJobs/{jobId}/{file} {
       allow read: if canView(ws);

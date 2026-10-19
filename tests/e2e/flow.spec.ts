@@ -7,7 +7,7 @@ const AUTH = 'http://127.0.0.1:9099/emulator/v1/projects/demo-toonflow'
 const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64')
 const STORY = '회사 엘리베이터에서 부장님 앞에서 방귀를 뀌었는데 부장님이 내 탓을 해 줬다. 알고 보니 부장님도 뀌었던 거였다.'
 
-test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async ({ page }) => {
+test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async ({ page, browser }) => {
   page.on('dialog', d => d.accept())
 
   // 이메일 링크 로그인 (Auth 에뮬레이터의 oobCode)
@@ -120,4 +120,25 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(page.getByText(/게시함$/)).toBeVisible()
   await page.goto('/publish')
   await expect(page.getByRole('link', { name: 'https://www.instagram.com/p/e2e' })).toBeVisible()
+
+  // 공개 제보 링크 (INB-02~05): 설정 → 로그인 없는 브라우저에서 제출 → Inbox
+  await page.goto('/settings')
+  await page.getByLabel('제보 받기').check()
+  await page.getByLabel('작가 소개').fill('회사 썰 그리는 작가예요')
+  await page.getByLabel(/질문 칸/).fill('언제 있었던 일이에요?')
+  await page.getByRole('button', { name: '저장' }).last().click()
+  const link = await page.getByTestId('intake-link').textContent()
+  const guest = await (await browser.newContext()).newPage()
+  await guest.goto(link!)
+  await guest.getByLabel('이야기', { exact: true }).fill(`${STORY} 다음 날 부장님이 커피를 사 주셨다.`)
+  await guest.getByLabel('언제 있었던 일이에요?').fill('지난주 금요일')
+  await guest.getByLabel('이메일 (선택, 게시되면 알려 드려요)').fill('reader@example.com')
+  await guest.getByLabel('동의 (필수)').check()
+  await guest.getByRole('button', { name: '썰 보내기' }).click()
+  await expect(guest.getByText('썰을 보냈어요. 고마워요!')).toBeVisible()
+  await page.goto('/inbox')
+  await page.locator('li', { hasText: '제보 링크 ·' }).first().click()
+  await expect(page.getByText('[언제 있었던 일이에요?]').last()).toBeVisible()
+  await expect(page.getByText('알림 받기 켜짐')).toBeVisible()
+  await expect(page.getByText('reader@example.com')).toBeVisible()
 })

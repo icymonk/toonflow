@@ -25,6 +25,10 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.limitExceeded': 'limitExceeded',
   'error.seriesNotEmpty': 'seriesNotEmpty',
   'error.modelUnavailable': 'modelUnavailable',
+  'error.intakeClosed': 'intakeClosed',
+  'error.tooShort': 'tooShort',
+  'error.bannedWord': 'bannedWord',
+  'error.tooMany': 'tooMany',
 }
 
 /** Firebase·서버 오류를 화면 문구로. 사용자가 닫은 팝업 등은 null */

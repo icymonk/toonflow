@@ -134,5 +134,7 @@ function saveWorkspace() {
         </form>
       </CardContent>
     </Card>
+
+    <SettingsIntakeCard />
   </div>
 </template>

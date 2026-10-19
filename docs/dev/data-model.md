@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v2.0 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v2.1 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -69,8 +69,9 @@
 ### 3단계 이후 (제보함·발행)
 | 경로 | 내용 |
 | --- | --- |
-| `intake/{slug}` | 공개 제보 링크 → `workspaceId`, `enabled`, 안내·주제·동의 문구 (INB-02~04) |
-| `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 이메일·닉네임. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
+| `intake/{slug}` | 공개 제보 링크 → `workspaceId`, `enabled`, `name`(작가 이름), `intro`, `topics`, `questions[]`(5개까지), `images`(첨부 받기, 기본 끔). `slug`는 무작위 12자. 하위 `rate/{ip해시}`(`times[]`, 서버만)로 10분 3번 제한 (INB-02~06) |
+| `workspaces/{ws}/config/intake` | `slug`, `bannedWords[]`(100개까지). 멤버 읽기, 소유자·관리자 쓰기 (INB-03·05) |
+| `workspaces/{ws}/submissions/{id}/private/contact` | 제보자 `email`·`nickname`. 제보 문서에는 `notify`(이메일 남김)·`attachments[]`(Storage `workspaces/{ws}/intake/{id}/`, 서버만 씀)·`consent`(`text`·`at`)·`createdBy: 'intake'`만. 소유자·관리자만 읽기, 편집자 화면에는 "알림 받기 켜짐"만 (INB-15) |
 | `workspaces/{ws}/consents/{id}` | 동의 기록: 문구 버전, 체크 항목, 시각, 철회 시각 (INB-10~12) |
 | `workspaces/{ws}/publications/{id}` | 발행 기록: 에피소드, 게시일, 링크, 캡션 (PUB-20~23) |
 | `episodes/{id}/meta/video` | 영상 설정: `aspect: '9:16'\|'4:5'`, `unit: 'panel'\|'page'`, `clips: { [panelId 또는 pageId]: { durationMs, motion, strength, transition, transitionMs, reveal } }`(고친 컷만, 순서는 콘티 순서를 따른다). 표지 화면 시간은 `cover:{id}` 키, `musicPath`, `musicVolume`, `musicFadeOutMs`, `musicLoop`, `coverId` (PUB-30~38) |
@@ -107,3 +108,4 @@
 - v1.8: 2-H — `episodes/{id}/snapshots/{id}`(STU-23): `name`(1~40자), `createdBy`, `createdAt`, `title`, `pageOrder`, `activeStoryVersionId`, `pages[]`·`panels[]`(각 80개 이하, 컷은 편집자가 쓰는 필드만 복사). 만들기·지우기만, 고치기 없음. 되돌리기는 지금 상태를 먼저 스냅숏으로 남긴 뒤 장·컷을 다시 쓰고, 그 뒤에 생긴 장·컷은 `deletedAt`
 - v1.9: 2-I — `episodes.number`는 편집자가 고칠 수 있음(정수 1~9999), `episodes.duplicatedFrom`(복제 원본, `duplicateEpisode`만 씀), `submissions.aiSummary`(`summary[≤3]`·`genre`·`score` 0~100·`reason`·`jobId`, 서버만 씀), collectionGroup `candidates(workspaceId, imagePath)` 색인(정리 때 같은 파일을 쓰는 후보 확인)
 - v2.0: 3-A — `meta/video` `clips`를 컷·장 ID 키의 맵(고친 컷만)으로, `musicLoop`·`coverId` 추가, 음원 경로 `refs/music/{episodeId}/{file}`
+- v2.1: 3-C — `intake/{slug}` 필드·`rate` 하위, `workspaces/{ws}/config/intake`, 링크 제보의 `notify`·`attachments`·`consent`, 공개 callable `submitIntake`(받기 꺼짐·30자 미만·금칙어·10분 3번 초과 거절, 이미지는 머리 바이트로 PNG/JPEG/WebP만·장당 2MB). 올리거나 가져온 후보(id에 `_` 없음)의 그림은 후보 문서 `imagePath`에서 찾는다
