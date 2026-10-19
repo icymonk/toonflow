@@ -4,6 +4,7 @@ import { deleteField, doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/
 import { deleteObject, getBlob, getDownloadURL, ref as sref, uploadBytes } from 'firebase/storage'
 import { AI_LABEL, exportName } from '#shared/render'
 import { buildClips, clampMs, DEFAULT_VIDEO, REELS_MAX_MS, totalMs, VIDEO_SIZES } from '#shared/video'
+import { selectedRefs } from '~/lib/candidates'
 import { download, loadFonts, loadImages } from '~/lib/export'
 import { canExportMp4, encodeMp4 } from '~/lib/mp4'
 import { frameRenderer } from '~/lib/video'
@@ -39,10 +40,10 @@ export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typ
     return m
   })
   const imgs = shallowRef(new Map<string, ImageBitmap>())
-  watch(() => s.cuts.value.map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x).join(), async (ids) => {
-    if (!ids || !auth.workspace) return
+  watch(() => [s.episode.value?.id, selectedRefs(s.cuts.value).map(r => `${r.panelId}:${r.id}`).join()] as const, async ([ep, key]) => {
+    if (!ep || !key || !auth.workspace) return
     const m = new Map(imgs.value)
-    await loadImages($storage, auth.workspace.id, ids.split(','), m).catch(() => {})
+    await loadImages($storage, $firestore, auth.workspace.id, ep, selectedRefs(s.cuts.value), m).catch(() => {})
     imgs.value = m
   }, { immediate: true })
   const draw = computed(() => frameRenderer({
@@ -91,7 +92,7 @@ export function useVideo(s: ReturnType<typeof useStudio>, review: ReturnType<typ
     progress.value = 0
     try {
       await loadFonts(review.typeset.value)
-      imgs.value = await loadImages($storage, auth.workspace!.id, s.cuts.value.map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x), new Map(imgs.value))
+      imgs.value = await loadImages($storage, $firestore, auth.workspace!.id, s.episode.value!.id, selectedRefs(s.cuts.value), new Map(imgs.value))
       const m = settings.value
       const music = m.musicPath ? { blob: await getBlob(sref($storage, m.musicPath)), volume: m.musicVolume, fadeOutMs: m.musicFadeOutMs, loop: m.musicLoop } : null
       const out = await encodeMp4({ W: size.value.w, H: size.value.h, totalMs: total.value, draw: draw.value, music, onProgress: r => (progress.value = r), signal: abort.signal })

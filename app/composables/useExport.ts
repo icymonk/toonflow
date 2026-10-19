@@ -1,12 +1,13 @@
 import type { Cut } from '#shared/studio'
 import { zipSync } from 'fflate'
 import { AI_LABEL, exportName, layoutPage, splitBatches } from '#shared/render'
+import { selectedRefs } from '~/lib/candidates'
 import { download, drawPage, loadImages } from '~/lib/export'
 import { ko } from '~/locales/ko'
 
 /** Export: 장별 JPG/PNG, ZIP, 장 하나만, 장수 상한 나누기 (PUB-03~05·13) */
 export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<typeof useReview>, pages: Ref<Cut[][]>) {
-  const { $storage } = useNuxtApp()
+  const { $firestore, $storage } = useNuxtApp()
   const auth = useAuthStore()
   const progress = ref<string | null>(null)
   const fmt = computed(() => (s.episode.value?.settings.format === 'png' ? 'png' : 'jpg'))
@@ -14,7 +15,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
 
   async function render(idx: number[]) {
     const { w, h } = review.size.value
-    const imgs = await loadImages($storage, auth.workspace!.id, idx.flatMap(i => pages.value[i] ?? []).map(c => c.panel.selectedCandidateId).filter((x): x is string => !!x))
+    const imgs = await loadImages($storage, $firestore, auth.workspace!.id, s.episode.value!.id, selectedRefs(idx.flatMap(i => pages.value[i] ?? [])))
     const ep = s.episode.value!
     const out: { name: string, blob: Blob }[] = []
     for (const [k, i] of idx.entries()) {

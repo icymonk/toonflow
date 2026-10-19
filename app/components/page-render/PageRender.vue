@@ -2,13 +2,14 @@
 import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
-import { candidatePath } from '#shared/illustrate'
 import { cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
+import { resolveCandidatePath } from '~/lib/candidates'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
 const props = defineProps<{ cuts: Cut[], aspect?: string, typeset: Typeset, edit?: boolean, selectedPanelId?: string, selectedBubble?: string | null, label?: string | null, watermark?: string | null }>()
 const emit = defineEmits<{ select: [panelId: string, dialogueId: string | null], move: [panelId: string, dialogueId: string, patch: Pick<Bubble, 'x' | 'y' | 'w' | 'h'>] }>()
-const { $storage } = useNuxtApp()
+const { $firestore, $storage } = useNuxtApp()
+const route = useRoute()
 const auth = useAuthStore()
 const cache = useState<Record<string, string>>('storage-urls', () => ({}))
 const size = computed(() => pageSize(props.aspect))
@@ -18,9 +19,9 @@ watchEffect(() => {
   for (const c of props.cuts) {
     const id = c.panel.selectedCandidateId
     if (!id || !auth.workspace || urls[id]) continue
-    const p = candidatePath(auth.workspace.id, id)
-    if (cache.value[p]) urls[id] = cache.value[p]!
-    else getDownloadURL(storageRef($storage, p)).then(u => (urls[id] = cache.value[p] = u)).catch(() => {})
+    resolveCandidatePath($firestore, auth.workspace.id, String(route.query.episode ?? ''), { id, panelId: c.panel.id }).then(async (p) => {
+      urls[id] = cache.value[p] ??= await getDownloadURL(storageRef($storage, p))
+    }).catch(() => {})
   }
 })
 
