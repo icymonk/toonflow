@@ -29,11 +29,14 @@
   },
   "functions": [
     {
-      "source": "functions/lib",
+      "source": "functions",
       "codebase": "default",
       "runtime": "nodejs22",
       "ignore": [
         "node_modules",
+        "src",
+        "build.mjs",
+        "tsconfig.json",
         "*.log"
       ],
       "predeploy": [
