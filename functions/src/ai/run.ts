@@ -6,6 +6,7 @@ import { getStorage } from 'firebase-admin/storage'
 import { logger } from 'firebase-functions'
 import { onTaskDispatched } from 'firebase-functions/v2/tasks'
 import { ACTIVE_STATUSES, JOB_KIND } from '../../../shared/jobs'
+import { imageParams } from '../../../shared/library'
 import { actualKrw } from '../../../shared/pricing'
 import { loadModels } from '../lib/models'
 import { settle } from '../lib/usage'
@@ -23,8 +24,16 @@ interface ProviderOutput { result: string | string[], requestId: string, usage: 
 /** 7. 제공사 호출. 이미지는 Storage에 먼저 저장하고 경로를 결과로 */
 async function callProvider(wsId: string, jobId: string, type: JobType, params: Record<string, unknown>, model: ModelEntry): Promise<ProviderOutput> {
   if (JOB_KIND[type] === 'image') {
-    const out = await imageModel(model).generate({ prompt: String(params.prompt ?? ''), size: PANEL_SIZE, n: Number(params.n ?? 1) })
+    const p = imageParams.safeParse(params)
+    if (!p.success) throw new AiError('internal', 'bad image params')
     const bucket = getStorage().bucket()
+    // 참조 이미지는 이 워크스페이스 안 경로만
+    const refImages = await Promise.all((p.data.refPaths ?? []).filter(path => path.startsWith(`workspaces/${wsId}/`))
+      .map(async path => (await bucket.file(path).download())[0]))
+    const prompts = p.data.prompts ?? [p.data.prompt ?? '']
+    const n = p.data.prompts ? 1 : (p.data.n ?? 1)
+    const outs = await Promise.all(prompts.map(prompt => imageModel(model).generate({ prompt, negative: p.data.negative || undefined, refImages, size: PANEL_SIZE, n })))
+    const out = { images: outs.flatMap(o => o.images), requestId: outs[0]!.requestId, billedImages: outs.reduce((a, o) => a + o.billedImages, 0) }
     const paths = await Promise.all(out.images.map(async (buf, i) => {
       const path = `workspaces/${wsId}/aiJobs/${jobId}/${i}.png`
       await bucket.file(path).save(buf, { contentType: 'image/png', resumable: false })

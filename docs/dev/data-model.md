@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.4 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v0.5 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -30,8 +30,8 @@
 | `series/{id}` | `name`, `intro`, `styleId`, `mainCharacterIds[]`, `tone`, `pageCount`, `aspect`, `coverPath`, `archivedAt` | EPI-01~03 |
 | `submissions/{id}` | `title`, `body`, `source: 'dm'\|'comment'\|'form'\|'self'\|'other'\|'link'`, `sourceNote`, `tags[]`, `starred`, `note`, `status`(glossary 3절), `episodeIds[]`, `createdBy`, `createdAt`, `deletedAt` | INB-01·20~25 |
 | `episodes/{id}` | 아래 표 | EPI, STU |
-| `characters/{id}` | `name`, `appearance`(자유 글 + `{ hair, eyes, build, outfit }`), `personality`, `speech`, `refImages[]`(Storage 경로), `archivedAt`, `deletedAt` | CHR-01~04·07·11 |
-| `styles/{id}` | `name`, `description`, `line`, `coloring`, `palette`, `background`, `negative`, `refImages[]`, `samples[]`, `version`, `archivedAt`, `deletedAt` | STL-01~04·08·09 |
+| `characters/{id}` | `name`, `aliases[]`(역할 이름), `intro`, `appearance: { age, gender, build, hair, eyes, marks, outfit }`, `appearanceText`(그림 생성용, 항목에서 자동 작성 후 수정), `episodeId`(이번 에피소드만이면 id), `refImages[]`(Storage 경로, 최대 5), `coverPath`, `archivedAt`, `deletedAt` | CHR-01~04·07·11 |
+| `styles/{id}` | `name`, `description`, `line: thin\|bold\|none`, `coloring: flat\|watercolor\|cel`, `palette: pastel\|vivid\|mono\|custom`, `paletteColors`, `background: plain\|simple\|detailed`, `negative`, `rightsConfirmed`, `refImages[]`, `samples[]`·`sampleJobId`(서버만), `version`, `archivedAt`, `deletedAt` | STL-01~04·08·09 |
 | `aiJobs/{jobId}` | [ai-jobs.md](./ai-jobs.md) 2절 — 서버만 씀 | AIU |
 | `notifications/{id}` | `uid`, `kind`, `targetPath`, `readAt`, `createdAt` | CMN-10 |
 
@@ -90,3 +90,4 @@
 - v0.2: 영상 설정 문서·음원 경로 추가 (3단계)
 - v0.3: 1-E — 에피소드 `analysis`·`storyVersionCount`·`staleFrom`, 각색안 `logline`·`punchline`·`settings`·`editedAt` (분석은 각색안이 아니라 에피소드에)
 - v0.4: 1-F — 컷 `place`·`mood`·`characterNames`, 대사 `speaker`, 에피소드 `storyboardJobId`. 다시 나누기는 기존 장·컷을 soft delete
+- v0.5: 1-G — 캐릭터 `aliases`·`intro`·외형 항목·`appearanceText`·`episodeId`·`coverPath`, 그림체 항목 값·`rightsConfirmed`·`sampleJobId`. 캐릭터 후보·그림체 미리 보기는 `style.sample` 작업 (`params.prompts[]`·`refPaths[]`)

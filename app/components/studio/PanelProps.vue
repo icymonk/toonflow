@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import type { Character } from '#shared/library'
 import type { Dialogue, DialogueType, Page, PageLayout, Panel } from '#shared/studio'
-import { ArrowDown, ArrowUp, Plus, X } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Plus, X } from '@lucide/vue'
+import { matchCharacters } from '#shared/library'
 import { DIALOGUE_WARN_CHARS, layoutOptions, SHOTS } from '#shared/studio'
 import { ko } from '~/locales/ko'
 
 // SBD-10·11·13·23: 선택한 컷의 항목·대사·메모, 선택한 장의 배치
-const props = defineProps<{ panel: Panel, page: Page, edit: boolean }>()
-const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout] }>()
+const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[] }>()
+const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], create: [name: string, once: boolean] }>()
+// SBD-12·CHR-10: 이름별 연결 상태
+const linked = (name: string) => matchCharacters([name], props.characters ?? []).length > 0
 const t = ko.studio.board
 const TYPES = Object.keys(t.lineTypes) as DialogueType[]
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
@@ -55,6 +59,18 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
         id="p-chars" :model-value="(panel.characterNames ?? []).join(', ')" :disabled="!edit"
         @change="emit('edit', 'characterNames', ($event.target as HTMLInputElement).value.split(',').map(s => s.trim()).filter(Boolean).slice(0, 8))"
       />
+      <div v-if="panel.characterNames?.length" class="flex flex-wrap gap-1">
+        <span v-for="n in panel.characterNames" :key="n" class="flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs">
+          <template v-if="linked(n)"><Check class="size-3 text-emerald-700" :aria-label="ko.library.linked" />{{ n }}</template>
+          <template v-else>
+            {{ n }}
+            <template v-if="edit">
+              <button class="underline" @click="emit('create', n, false)">{{ ko.library.makeCharacter }}</button>
+              <button class="text-muted-foreground underline" @click="emit('create', n, true)">{{ ko.library.makeOnce }}</button>
+            </template>
+          </template>
+        </span>
+      </div>
     </div>
     <div class="flex flex-col gap-1">
       <Label class="text-xs">{{ t.shot }}</Label>
