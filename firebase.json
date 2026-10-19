@@ -8,6 +8,13 @@
     ],
     "rewrites": [
       {
+        "source": "/fn/completeOnboarding",
+        "function": {
+          "functionId": "completeOnboarding",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

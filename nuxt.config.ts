@@ -12,6 +12,9 @@ export default defineNuxtConfig({
     },
   },
   modules: ['shadcn-nuxt'],
+  imports: {
+    dirs: ['stores'],
+  },
   css: ['~/assets/css/tailwind.css'],
   vite: {
     plugins: [
