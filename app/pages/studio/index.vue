@@ -543,7 +543,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
           :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
           @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
-          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
         />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">

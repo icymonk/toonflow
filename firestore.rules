@@ -161,6 +161,10 @@ service cloud.firestore {
             && strLen(request.resource.data.note, 0, 2000);
           match /candidates/{candidateId} {
             allow read: if canView(ws);
+            // ILL-30 내 그림 올리기 (refs/panels 경로만)
+            allow create: if canEdit(ws) && request.resource.data.source == 'upload'
+              && request.resource.data.keys().hasOnly(['imagePath', 'width', 'height', 'source', 'jobId', 'input', 'hidden', 'favorite', 'createdAt'])
+              && request.resource.data.imagePath.matches('workspaces/' + ws + '/refs/panels/.*');
             // ILL-14 즐겨찾기·숨기기만
             allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorite', 'hidden'])
               && request.resource.data.favorite is bool && request.resource.data.hidden is bool;

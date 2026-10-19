@@ -293,6 +293,8 @@ export const ko = {
       },
       candidates: '후보',
       editWith: '고른 그림으로',
+      uploadCandidate: '내 그림 올리기',
+      uploaded: '후보로 올렸어요',
       variant: '변형',
       variantPrompt: '어떻게 바꿀까요? (예: 웃는 표정으로) 비워 두면 표정·세부만 조금 바꿔요',
       inpaint: '부분 수정',

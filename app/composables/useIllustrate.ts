@@ -2,7 +2,7 @@ import type { Candidate, CandidateInput } from '#shared/illustrate'
 import type { JobError, JobStatus } from '#shared/jobs'
 import type { Crop, Cut } from '#shared/studio'
 import type { Library } from '~/composables/useLibrary'
-import { collection, onSnapshot, orderBy, query, where, updateDoc, doc } from 'firebase/firestore'
+import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { panelPrompt, panelRefPaths } from '#shared/illustrate'
 import { callFn } from '~/lib/functions'
 
@@ -92,6 +92,13 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
       idempotencyKey: crypto.randomUUID(),
     })
   }
+  /** ILL-30 내 그림·사진을 후보로. 고른 그림이 없으면 바로 고른다 */
+  async function uploadCandidate(cut: Cut, file: File) {
+    const imagePath = await lib.upload('panels', cut.panel.id, file)
+    const panelPath = ['workspaces', ws(), 'episodes', s.episode.value!.id, 'panels', cut.panel.id] as const
+    const ref = await addDoc(collection($firestore, ...panelPath, 'candidates'), { imagePath, width: 1080, height: 1350, source: 'upload', jobId: '', input: null, hidden: false, favorite: false, createdAt: serverTimestamp() })
+    if (!cut.panel.selectedCandidateId) await updateDoc(doc($firestore, ...panelPath), { selectedCandidateId: ref.id, updatedAt: serverTimestamp() })
+  }
   /** ILL-14 */
   const setFlag = (panelId: string, id: string, patch: { favorite?: boolean, hidden?: boolean }) => {
     const c = candidates.value.find(x => x.id === id)
@@ -103,5 +110,5 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   const choose = (id: string, candidateId: string) => s.updatePanel(id, { selectedCandidateId: candidateId, staleFrom: null, crop: null })
   const setCrop = (id: string, crop: Crop | null) => s.updatePanel(id, { crop })
 
-  return { setFlag, edit, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
+  return { setFlag, edit, uploadCandidate, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
 }
