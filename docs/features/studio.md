@@ -1,6 +1,6 @@
 # Studio · 제작실 공통
 
-> 상태: 초안 · v0.1 · ID 접두어 `STU` — 단계별 기능은 [story.md](./story.md), [storyboard.md](./storyboard.md), [illustrate.md](./illustrate.md), [review.md](./review.md), [publish.md](./publish.md).
+> 상태: 확정 · v1.0 · ID 접두어 `STU` — 단계별 기능은 [story.md](./story.md), [storyboard.md](./storyboard.md), [illustrate.md](./illustrate.md), [review.md](./review.md), [publish.md](./publish.md).
 
 ## 1. 목적
 에피소드 하나를 만드는 모든 단계를 **한 화면 틀** 안에서, 화면 이동을 최소로 하고 기다림 없이 이어서 작업하게 한다. 제작 시간에 가장 큰 영향을 주는 화면이다.
@@ -74,8 +74,8 @@
 1: STU-01~04, 10~12, 20~22, 25~27, 31, 32 / 2: STU-23, 30 / 4: STU-24 / 5: STU-33.
 
 ## 9. 리뷰 질문
-- 다음 단계 조건을 못 채워도 이동을 막지 않는 방식(STU-11)이 괜찮은가?
-- 1단계 화면을 제작실 안 3영역으로 바로 만들지, 단계별 단순 화면으로 먼저 만들지? (추천: 3영역 틀부터)
+- (없음 — v1.0에서 모두 결정. 새 질문은 여기에 추가)
 
 ## 10. 변경 이력
 - v0.1: 초안 작성. 원본 4·6절의 제작실 규칙(컷 선택, 생성 중 편집, 자동 저장, 실행 취소, 단축키)을 기능으로 정리, 영향 받음 표시 추가
+- v1.0: 리뷰 질문 모두 추천안으로 결정, 확정 (2026-10-19)

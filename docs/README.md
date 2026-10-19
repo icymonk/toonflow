@@ -9,7 +9,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 3. **확정** — 리뷰가 끝난 문서는 상태를 `확정`으로 바꾼다. 확정 후 변경은 문서 하단 변경 이력에 남긴다.
 4. **개발 문서 작성** — 기능명세가 확정되면 `dev/` 문서(아키텍처, 데이터 모델, 보안, AI 작업 처리, 단계별 작업 계획)를 작성한다. 원본 기획 7~8절(Firebase 구성, 컬렉션 구조, AI 작업 흐름, 디자인 토큰)과 [open-questions.md](./planning/open-questions.md) 3절의 메모가 출발점이다.
 
-> 현재: 모든 문서 **초안**. open-questions 1차 결정 반영(2026-10-19) — 다음은 각 문서 끝 리뷰 질문.
+> 현재: 기획·디자인·기능명세 **확정** v1.0 (2026-10-19). 다음은 개발 문서 `dev/`.
 
 ## 원본 기획
 - [brief/toonflow-brief.md](./brief/toonflow-brief.md) — 사용자가 준 원본(브랜딩·UI·Firebase MVP 설계). **수정하지 않는다.** 아래 문서들이 원본을 기능 단위로 나누고 보강한 것이며, 원본과 다르게 정한 내용은 open-questions "2. 결정됨"에 기록한다.
@@ -18,27 +18,27 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 
 | 문서 | 내용 | 상태 |
 | --- | --- | --- |
-| [planning/overview.md](./planning/overview.md) | 서비스 정의, 문제, 대상, 목표·비목표, 기능 지도, 핵심 개념, 핵심 흐름 | 초안 |
-| [planning/users-and-roles.md](./planning/users-and-roles.md) | 사용자 유형, 워크스페이스 역할, 권한 표 | 초안 |
-| [planning/glossary.md](./planning/glossary.md) | 메뉴명, 제작 단계명, 상태명 (제품 용어의 원본) | 초안 |
-| [planning/roadmap.md](./planning/roadmap.md) | 출시 단계(첫 수직 기능 우선), 성공 지표 | 초안 |
-| [planning/open-questions.md](./planning/open-questions.md) | 미결 · 결정 · 개발 단계 메모 | 초안 |
-| [design/brand.md](./design/brand.md) | 브랜드 메시지, 로고, 보이스 & 톤 | 초안 |
-| [design/ui-system.md](./design/ui-system.md) | 색상·대비, 토큰, 타이포, 컴포넌트, 레이아웃, 반응형, 접근성 | 초안 |
-| [features/account.md](./features/account.md) | `ACC` 가입·로그인, 워크스페이스, 멤버 | 초안 |
-| [features/inbox.md](./features/inbox.md) | `INB` 제보함 — 웹 제보, 직접 등록, 동의, 선별 | 초안 |
-| [features/episodes.md](./features/episodes.md) | `EPI` Stories — 작품·에피소드 목록, 상태, 만들기 | 초안 |
-| [features/studio.md](./features/studio.md) | `STU` 제작실 공통 — 레이아웃, 단계 이동, 자동 저장, 버전, 단축키 | 초안 |
-| [features/story.md](./features/story.md) | `STO` Story — 썰 분석, AI 각색, 각색안 버전 | 초안 |
-| [features/storyboard.md](./features/storyboard.md) | `SBD` Storyboard — 컷 분할, 장면·연출, 대사 확정 | 초안 |
-| [features/illustrate.md](./features/illustrate.md) | `ILL` Illustrate — 컷 이미지 생성, 후보 비교·선택, 재생성·부분 수정 | 초안 |
-| [features/review.md](./features/review.md) | `REV` Review — 말풍선·글자 배치, 품질·개인정보 검수 | 초안 |
-| [features/publish.md](./features/publish.md) | `PUB` Export / Publish — 게시용 출력, 캡션, 발행 기록 | 초안 |
-| [features/characters.md](./features/characters.md) | `CHR` 캐릭터 프로필, 참조 이미지, 일관성 | 초안 |
-| [features/styles.md](./features/styles.md) | `STL` 그림체 프리셋 | 초안 |
-| [features/assets.md](./features/assets.md) | `AST` 생성 이미지·참고 자료 보관함 | 초안 |
-| [features/ai-usage.md](./features/ai-usage.md) | `AIU` AI 작업 대기열, 사용량·비용 한도, AI 설정 | 초안 |
-| [features/common.md](./features/common.md) | `CMN` Home, 알림, 검색, 휴지통, 랜딩, 운영자 | 초안 |
+| [planning/overview.md](./planning/overview.md) | 서비스 정의, 문제, 대상, 목표·비목표, 기능 지도, 핵심 개념, 핵심 흐름 | 확정 |
+| [planning/users-and-roles.md](./planning/users-and-roles.md) | 사용자 유형, 워크스페이스 역할, 권한 표 | 확정 |
+| [planning/glossary.md](./planning/glossary.md) | 메뉴명, 제작 단계명, 상태명 (제품 용어의 원본) | 확정 |
+| [planning/roadmap.md](./planning/roadmap.md) | 출시 단계(첫 수직 기능 우선), 성공 지표 | 확정 |
+| [planning/open-questions.md](./planning/open-questions.md) | 미결 · 결정 · 개발 단계 메모 | 계속 갱신 |
+| [design/brand.md](./design/brand.md) | 브랜드 메시지, 로고, 보이스 & 톤 | 확정 |
+| [design/ui-system.md](./design/ui-system.md) | 색상·대비, 토큰, 타이포, 컴포넌트, 레이아웃, 반응형, 접근성 | 확정 |
+| [features/account.md](./features/account.md) | `ACC` 가입·로그인, 워크스페이스, 멤버 | 확정 |
+| [features/inbox.md](./features/inbox.md) | `INB` 제보함 — 웹 제보, 직접 등록, 동의, 선별 | 확정 |
+| [features/episodes.md](./features/episodes.md) | `EPI` Stories — 작품·에피소드 목록, 상태, 만들기 | 확정 |
+| [features/studio.md](./features/studio.md) | `STU` 제작실 공통 — 레이아웃, 단계 이동, 자동 저장, 버전, 단축키 | 확정 |
+| [features/story.md](./features/story.md) | `STO` Story — 썰 분석, AI 각색, 각색안 버전 | 확정 |
+| [features/storyboard.md](./features/storyboard.md) | `SBD` Storyboard — 컷 분할, 장면·연출, 대사 확정 | 확정 |
+| [features/illustrate.md](./features/illustrate.md) | `ILL` Illustrate — 컷 이미지 생성, 후보 비교·선택, 재생성·부분 수정 | 확정 |
+| [features/review.md](./features/review.md) | `REV` Review — 말풍선·글자 배치, 품질·개인정보 검수 | 확정 |
+| [features/publish.md](./features/publish.md) | `PUB` Export / Publish — 게시용 출력, 캡션, 발행 기록 | 확정 |
+| [features/characters.md](./features/characters.md) | `CHR` 캐릭터 프로필, 참조 이미지, 일관성 | 확정 |
+| [features/styles.md](./features/styles.md) | `STL` 그림체 프리셋 | 확정 |
+| [features/assets.md](./features/assets.md) | `AST` 생성 이미지·참고 자료 보관함 | 확정 |
+| [features/ai-usage.md](./features/ai-usage.md) | `AIU` AI 작업 대기열, 사용량·비용 한도, AI 설정 | 확정 |
+| [features/common.md](./features/common.md) | `CMN` Home, 알림, 검색, 휴지통, 랜딩, 운영자 | 확정 |
 
 상태: `초안` → `리뷰 중` → `확정`
 
