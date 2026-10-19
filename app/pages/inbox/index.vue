@@ -71,6 +71,7 @@ watch(shown, (items) => {
   checked.value = checked.value.filter(id => items.some(s => s.id === id))
 })
 const isManual = (s: Submission) => (MANUAL_STATUSES as readonly string[]).includes(s.status)
+const acceptedChecked = computed(() => checked.value.filter(id => list.value.some(s => s.id === id && (s.status === 'accepted' || s.status === 'used'))))
 const bulkStatus = ref<SubmissionStatus | ''>('')
 function applyStatus(ids: string[], status: SubmissionStatus) {
   const targets = ids.filter(id => list.value.some(s => s.id === id && isManual(s)))
@@ -215,6 +216,9 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
 
       <div v-if="checked.length && edit" class="bg-muted flex items-center gap-2 rounded-md px-3 py-2 text-sm">
         {{ t.selected(checked.length) }}
+        <Button v-if="acceptedChecked.length" as-child size="sm" variant="outline">
+          <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: acceptedChecked.join(',') } }">{{ t.toEpisode }} ({{ acceptedChecked.length }})</NuxtLink>
+        </Button>
         <select v-model="bulkStatus" :class="selectClass" :aria-label="t.setStatus" @change="bulkStatus && applyStatus(checked, bulkStatus); bulkStatus = ''">
           <option value="">
             {{ t.setStatus }}
@@ -288,7 +292,9 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
               <NuxtLink v-for="id in current.episodeIds" :key="id" :to="`/studio?episode=${id}`" class="text-primary underline">
                 {{ id }}
               </NuxtLink>
-              <span v-if="current.status === 'accepted'" class="text-muted-foreground text-xs">{{ t.toEpisode }}</span>
+              <Button v-if="edit && ['accepted', 'used'].includes(current.status)" as-child size="sm" class="self-start">
+                <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: current.id } }">{{ t.toEpisode }}</NuxtLink>
+              </Button>
             </div>
           </CardContent>
         </Card>

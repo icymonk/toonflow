@@ -43,6 +43,20 @@
         }
       },
       {
+        "source": "/fn/createEpisode",
+        "function": {
+          "functionId": "createEpisode",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/deleteToTrash",
+        "function": {
+          "functionId": "deleteToTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
