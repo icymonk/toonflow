@@ -1,3 +1,4 @@
+import type { CleanupInput, UsageInput } from './assets'
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
 import type { CreateEpisodeInput, TrashInput } from './episodes'
 import type { JobRefInput, StartAiJobInput } from './jobs'
@@ -30,4 +31,6 @@ export interface Callables {
   deleteToTrash: { input: TrashInput, output: { ok: true } }
   restoreFromTrash: { input: TrashItemInput, output: { ok: true } }
   purgeFromTrash: { input: TrashItemInput, output: { ok: true } }
+  cleanupCandidates: { input: CleanupInput, output: { deleted: number } }
+  storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }

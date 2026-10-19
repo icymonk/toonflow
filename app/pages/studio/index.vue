@@ -53,6 +53,12 @@ const left = computed(() => reviewLeft(rows.value))
 const setCheck = (key: string, st: ReviewState) => run(() => s.updateEpisode({ review: { ...(episode.value?.review ?? {}), [key]: st } }))
 const addItem = (label: string) => run(() => s.setSeriesReviewItems([...new Set([...s.seriesReviewItems.value, label])]))
 const removeItem = (label: string) => run(() => s.setSeriesReviewItems(s.seriesReviewItems.value.filter(x => x !== label)))
+// ILL-31: 다른 컷 후보 + 참고 자료
+const assetLib = useAssets()
+const pickList = computed(() => [
+  ...assetLib.generated.value.filter(g => g.panelId !== selected.value?.panel.id).slice(0, 60).map(g => ({ id: g.id, path: g.imagePath })),
+  ...assetLib.assets.value.map(x => ({ id: x.id, path: x.path })),
+])
 // ILL-21·22
 async function illVariant(id: string) {
   const c = ill.candidates.value.find(x => x.id === id)
@@ -543,7 +549,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           v-else-if="step === 'illustrate' && selected" :cut="selected" :candidates="ill.candidates.value" :job="ill.latest.value.get(selected.panel.id)" :edit="edit"
           :style-name="ill.style.value?.name ?? ''" :character-names="selected.panel.characterNames" :prompt-of="o => ill.promptOf(selected!, o)" :estimate="lib.estimate"
           @generate="(n, o) => illGenerate([selected!], n, o)" @cancel="illCancel" @retry="id => run(() => ill.retry(id))"
-          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
+          @choose="id => run(() => ill.choose(selected!.panel.id, id))" @compare="id => (compareId = id)" @crop="c => run(() => ill.setCrop(selected!.panel.id, c))" @flag="(id, p) => run(() => ill.setFlag(selected!.panel.id, id, p))" @variant="illVariant" @inpaint="illInpaint" :library="pickList" @import="p => run(() => ill.importCandidate(selected!, p), t.illustrate.uploaded)" @upload="f => run(() => ill.uploadCandidate(selected!, f), t.illustrate.uploaded)"
         />
         <template v-else-if="selected">
           <div v-if="selected.panel.staleFrom" class="flex items-center justify-between gap-2 rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">

@@ -12,6 +12,7 @@ import { ko } from '~/locales/ko'
 const props = defineProps<{
   cut: Cut
   candidates: Candidate[]
+  library?: { id: string, path: string }[]
   job?: PanelJob
   styleName: string
   characterNames: string[]
@@ -19,7 +20,7 @@ const props = defineProps<{
   estimate: (n: number) => number
   edit: boolean
 }>()
-const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }], variant: [id: string], upload: [file: File], inpaint: [id: string, mask: Blob, change: string] }>()
+const emit = defineEmits<{ generate: [n: number, opts: { extra: string, leaveRoom: boolean }], cancel: [job: PanelJob], retry: [jobId: string], choose: [id: string], compare: [id: string], crop: [crop: Crop | null], flag: [id: string, patch: { favorite?: boolean, hidden?: boolean }], variant: [id: string], upload: [file: File], import: [path: string], inpaint: [id: string, mask: Blob, change: string] }>()
 const t = ko.studio.illustrate
 const n = useLocalStorage('toonflow:studio:candidates', CANDIDATE_DEFAULT)
 const leaveRoom = useLocalStorage('toonflow:studio:leaveRoom', true)
@@ -47,6 +48,7 @@ function resetCrop() {
 const has = computed(() => props.candidates.length > 0)
 // ILL-14: 별표 먼저, 숨긴 후보는 접어 둔다
 const showHidden = ref(false)
+const picking = ref(false)
 const maskId = ref<string | null>(null)
 const maskPath = computed(() => props.candidates.find(c => c.id === maskId.value)?.imagePath)
 function onMask(mask: Blob, change: string) {
@@ -103,6 +105,10 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
       <span class="text-sm font-medium">{{ t.candidates }} <span class="text-muted-foreground text-xs">{{ candidates.length }}</span></span>
       <p v-if="!has" class="text-muted-foreground text-xs">{{ t.noCandidates }}</p>
       <label v-if="edit" class="hover:bg-muted cursor-pointer self-start rounded border px-2 py-0.5 text-xs">{{ t.uploadCandidate }}<input type="file" accept="image/*" class="hidden" @change="e => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) emit('upload', f); (e.target as HTMLInputElement).value = '' }"></label>
+      <button v-if="edit && library?.length" class="hover:bg-muted self-start rounded border px-2 py-0.5 text-xs" @click="picking = !picking">{{ t.importCandidate }}</button>
+      <div v-if="picking" class="grid max-h-60 grid-cols-3 gap-1 overflow-y-auto rounded border p-1">
+        <button v-for="l in library" :key="l.id" @click="emit('import', l.path); picking = false"><AppStorageImg :path="l.path" class="aspect-[4/5] w-full" /></button>
+      </div>
       <button v-if="hiddenCount" class="text-muted-foreground self-start text-xs underline" @click="showHidden = !showHidden">{{ showHidden ? t.hideHidden : t.showHidden(hiddenCount) }}</button>
       <div class="grid grid-cols-2 gap-2">
         <div v-for="c in shown" :key="c.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': c.id === cut.panel.selectedCandidateId }">

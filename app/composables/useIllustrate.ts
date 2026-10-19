@@ -94,9 +94,13 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   }
   /** ILL-30 내 그림·사진을 후보로. 고른 그림이 없으면 바로 고른다 */
   async function uploadCandidate(cut: Cut, file: File) {
-    const imagePath = await lib.upload('panels', cut.panel.id, file)
+    await addCandidate(cut, await lib.upload('panels', cut.panel.id, file), 'upload')
+  }
+  /** ILL-31 다른 에피소드 후보·Assets 이미지를 후보로 */
+  const importCandidate = (cut: Cut, imagePath: string) => addCandidate(cut, imagePath, 'import')
+  async function addCandidate(cut: Cut, imagePath: string, source: 'upload' | 'import') {
     const panelPath = ['workspaces', ws(), 'episodes', s.episode.value!.id, 'panels', cut.panel.id] as const
-    const ref = await addDoc(collection($firestore, ...panelPath, 'candidates'), { imagePath, width: 1080, height: 1350, source: 'upload', jobId: '', input: null, hidden: false, favorite: false, createdAt: serverTimestamp() })
+    const ref = await addDoc(collection($firestore, ...panelPath, 'candidates'), { imagePath, width: 1080, height: 1350, source, jobId: '', input: null, hidden: false, favorite: false, workspaceId: ws(), episodeId: s.episode.value!.id, panelId: cut.panel.id, createdAt: serverTimestamp() })
     if (!cut.panel.selectedCandidateId) await updateDoc(doc($firestore, ...panelPath), { selectedCandidateId: ref.id, updatedAt: serverTimestamp() })
   }
   /** ILL-14 */
@@ -110,5 +114,5 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   const choose = (id: string, candidateId: string) => s.updatePanel(id, { selectedCandidateId: candidateId, staleFrom: null, crop: null })
   const setCrop = (id: string, crop: Crop | null) => s.updatePanel(id, { crop })
 
-  return { setFlag, edit, uploadCandidate, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
+  return { setFlag, edit, uploadCandidate, importCandidate, candidates, latest, style, charsOf, promptOf, generate, cancel, retry, choose, setCrop }
 }

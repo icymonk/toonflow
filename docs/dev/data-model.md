@@ -101,3 +101,4 @@
 - v1.3: 2-D — `panels.refImage`(구도·포즈 참고, Storage `refs/panels/{panelId}/…`, 그림 생성 참조 이미지 맨 앞), `series.coverText`·`outroText`(고정 장 문구). 장면 다듬기는 `story.rewrite`의 `refine` 모드
 - v1.4: 2-E — 후보 `favorite`·`hidden`은 편집자가 바꿀 수 있음(그 두 필드만), `panels.styleId`(이 컷만 다른 그림체)
 - v1.5: 2-E — 변형·부분 수정은 `panel.image` 작업 그대로, 고른 후보 경로를 `refPaths` 맨 앞에(부분 수정은 마스크 PNG `refs/panels/{panelId}/…`를 둘째로) 넘긴다
+- v1.6: 2-F — 후보에 `workspaceId`·`episodeId`·`panelId`(collectionGroup 모아 보기, 색인 2개), 후보 `source`에 `import`, `workspaces/{ws}/assets/{id}`(참고 자료: path·name·size·tags·createdBy·createdAt, Storage `refs/assets/`), callable `cleanupCandidates`·`storageUsage`

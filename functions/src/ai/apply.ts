@@ -32,7 +32,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
       if (!panel.exists) return
       const ids = (result as string[]).map((imagePath, i) => {
         const id = `${jobId}_${i}`
-        tx.set(panelRef.collection('candidates').doc(id), { imagePath, width: 1080, height: 1350, source: 'ai', jobId, input: job.params?.input ?? null, hidden: false, favorite: false, createdAt: now })
+        tx.set(panelRef.collection('candidates').doc(id), { imagePath, width: 1080, height: 1350, source: 'ai', jobId, workspaceId: wsId, episodeId: job.target?.episodeId ?? null, panelId: panelRef.id, input: job.params?.input ?? null, hidden: false, favorite: false, createdAt: now })
         return id
       })
       if (!panel.get('selectedCandidateId') && ids[0]) tx.update(panelRef, { selectedCandidateId: ids[0], updatedAt: now })

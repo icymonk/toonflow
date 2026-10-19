@@ -64,7 +64,7 @@ describe('server-only fields', () => {
     await assertFails(setDoc(doc(e, `${W}/usage/2026-10`), { costKrw: 0 }))
     await assertFails(setDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c2`), { imagePath: 'y' }))
     await assertFails(updateDoc(doc(e, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'z' }))
-    const up = { imagePath: `${W}/refs/panels/p1/a.png`, width: 1080, height: 1350, source: 'upload', jobId: '', input: null, hidden: false, favorite: false, createdAt: new Date() }
+    const up = { imagePath: `${W}/refs/panels/p1/a.png`, width: 1080, height: 1350, source: 'upload', jobId: '', input: null, hidden: false, favorite: false, workspaceId: W.split('/')[1], episodeId: 'e1', panelId: 'p1', createdAt: new Date() }
     await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u1`), up))
     await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u2`), { ...up, source: 'ai' }))
     await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/u3`), { ...up, imagePath: 'workspaces/w2/refs/panels/p1/a.png' }))

@@ -27,6 +27,11 @@ service cloud.firestore {
       return roleIn(ws) in ['owner', 'admin'];
     }
 
+    // AST-01: 워크스페이스 전체 후보 모아 보기 (collectionGroup)
+    match /{path=**}/candidates/{cid} {
+      allow read: if canView(resource.data.workspaceId);
+    }
+
     // ACC-03: 본인은 이름·사진만 바꾼다. 만들기는 서버(completeOnboarding)
     match /users/{uid} {
       allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
@@ -94,6 +99,15 @@ service cloud.firestore {
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
       // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
+      // AST-03 참고 자료
+      match /assets/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['path', 'name', 'size', 'tags', 'createdBy', 'createdAt'])
+          && request.resource.data.path.matches('workspaces/' + ws + '/refs/assets/.*') && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.tags is list && request.resource.data.tags.size() <= 10;
+        allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tags']) && request.resource.data.tags.size() <= 10;
+        allow delete: if canEdit(ws);
+      }
       match /characters/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
@@ -162,9 +176,10 @@ service cloud.firestore {
           match /candidates/{candidateId} {
             allow read: if canView(ws);
             // ILL-30 내 그림 올리기 (refs/panels 경로만)
-            allow create: if canEdit(ws) && request.resource.data.source == 'upload'
-              && request.resource.data.keys().hasOnly(['imagePath', 'width', 'height', 'source', 'jobId', 'input', 'hidden', 'favorite', 'createdAt'])
-              && request.resource.data.imagePath.matches('workspaces/' + ws + '/refs/panels/.*');
+            allow create: if canEdit(ws) && request.resource.data.source in ['upload', 'import']
+              && request.resource.data.keys().hasOnly(['imagePath', 'width', 'height', 'source', 'jobId', 'input', 'hidden', 'favorite', 'createdAt', 'workspaceId', 'episodeId', 'panelId'])
+              && request.resource.data.workspaceId == ws
+              && request.resource.data.imagePath.matches('workspaces/' + ws + '/(refs|aiJobs)/.*');
             // ILL-14 즐겨찾기·숨기기만
             allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['favorite', 'hidden'])
               && request.resource.data.favorite is bool && request.resource.data.hidden is bool;

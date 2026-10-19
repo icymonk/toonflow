@@ -71,6 +71,20 @@
         }
       },
       {
+        "source": "/fn/cleanupCandidates",
+        "function": {
+          "functionId": "cleanupCandidates",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/storageUsage",
+        "function": {
+          "functionId": "storageUsage",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
