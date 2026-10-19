@@ -57,6 +57,20 @@
         }
       },
       {
+        "source": "/fn/restoreFromTrash",
+        "function": {
+          "functionId": "restoreFromTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/purgeFromTrash",
+        "function": {
+          "functionId": "purgeFromTrash",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

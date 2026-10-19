@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Bell, ListTodo, LogOut, PanelLeft, Search } from '@lucide/vue'
+import { ListTodo, LogOut, PanelLeft, Search, Trash2 } from '@lucide/vue'
 import { useLocalStorage } from '@vueuse/core'
 import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
@@ -58,6 +58,10 @@ async function signOut() {
             <div class="h-full rounded-full" :class="level === 'ok' ? 'bg-sidebar-primary' : level === 'warn' ? 'bg-warning' : 'bg-destructive'" :style="{ width: `${Math.min(100, ratio * 100)}%` }" />
           </div>
         </div>
+        <NuxtLink to="/trash" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm" :class="route.path.startsWith('/trash') ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold' : 'hover:bg-sidebar-accent'">
+          <Trash2 class="size-4 shrink-0" aria-hidden="true" />
+          <span v-if="!collapsed">Trash <span class="text-xs opacity-70">휴지통</span></span>
+        </NuxtLink>
         <NuxtLink
           :to="NAV_SETTINGS.to"
           class="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
@@ -84,9 +88,7 @@ async function signOut() {
           <Button variant="ghost" size="icon" :aria-label="ko.nav.queue" disabled>
             <ListTodo class="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" :aria-label="ko.nav.notifications" disabled>
-            <Bell class="size-4" />
-          </Button>
+          <AppNotifications />
         </div>
       </header>
       <main class="min-w-0 flex-1">
