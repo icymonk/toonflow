@@ -137,6 +137,7 @@ function saveWorkspace() {
 
     <SettingsIntakeCard />
     <SettingsMembersCard />
+    <SettingsActivityCard />
     <SettingsDangerCard />
   </div>
 </template>

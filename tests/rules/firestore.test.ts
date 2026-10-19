@@ -250,6 +250,22 @@ describe('4단계 멤버·초대 (ACC-20~22)', () => {
   })
 })
 
+describe('4단계 활동·열람 기록 (CMN-31·54)', () => {
+  it('activity is member-readable, admin views are manager/operator readable, both server-written', async () => {
+    await env.withSecurityRulesDisabled(async (c) => {
+      await setDoc(doc(c.firestore(), `${W}/activity/a1`), { uid: 'owner', action: 'invite.create', at: new Date() })
+      await setDoc(doc(c.firestore(), `${W}/adminViews/v1`), { by: 'ops', reason: 'x', at: new Date() })
+    })
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/activity/a1`)))
+    await assertFails(getDoc(doc(db('other'), `${W}/activity/a1`)))
+    await assertFails(setDoc(doc(db('owner'), `${W}/activity/a2`), { uid: 'owner', action: 'x' }))
+    await assertSucceeds(getDoc(doc(db('admin'), `${W}/adminViews/v1`)))
+    await assertFails(getDoc(doc(db('editor'), `${W}/adminViews/v1`)))
+    await assertSucceeds(getDoc(doc(db('ops', true), `${W}/adminViews/v1`)))
+    await assertFails(setDoc(doc(db('ops', true), `${W}/adminViews/v2`), { by: 'ops', reason: 'y' }))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

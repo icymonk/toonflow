@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { AdminOverview, AdminView } from '#shared/activity'
 import type { Report, ReportAction } from '#shared/reports'
 import type { WaitlistAction, WaitlistEntry } from '#shared/waitlist'
-import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
+import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
+import { failRate } from '#shared/activity'
 import { DEFAULT_LIMITS, DEFAULT_MODELS, limitsConfig, modelsConfig, parseEmails } from '#shared/config'
 import { errorMessage } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
@@ -26,6 +28,7 @@ onMounted(async () => {
   modelsText.value = JSON.stringify({ ...DEFAULT_MODELS, ...models!.data() }, null, 2)
   await loadReports()
   await loadWaitlist()
+  await loadOverview()
 })
 
 async function save(id: string, data: Record<string, unknown>) {
@@ -55,6 +58,27 @@ async function resolve(r: Report, action: ReportAction) {
     toast.error(errorMessage(error) ?? ko.errors.unknown)
   }
 }
+// CMN-51 전체 현황 · CMN-54 열람 기록
+const overview = ref<AdminOverview | null>(null)
+const views = ref<AdminView[]>([])
+const opened = reactive<Record<string, { episodes: number, submissions: number, members: number }>>({})
+async function loadOverview() {
+  overview.value = await callFn($functions, 'adminOverview', {}).catch(() => null)
+  const snap = await getDocs(query(collectionGroup($firestore, 'adminViews'), orderBy('at', 'desc'), limit(50))).catch(() => null)
+  views.value = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() }) as AdminView) : []
+}
+async function openWs(id: string) {
+  const reason = window.prompt(t.viewReason)?.trim()
+  if (!reason) return
+  try {
+    opened[id] = await callFn($functions, 'logAdminView', { workspaceId: id, reason })
+    await loadOverview()
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+}
+
 // CMN-52 대기 명단
 const waitlist = ref<WaitlistEntry[]>([])
 const showDecided = ref(false)
@@ -151,6 +175,32 @@ function saveModels() {
           <Button class="self-start" @click="saveModels">
             {{ t.save }}
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ t.overview }}</CardTitle>
+          <CardDescription v-if="overview">{{ t.overviewLine(overview.month, overview.workspaces, overview.spentKrw, overview.jobs, failRate(overview.jobs, overview.failed)) }}</CardDescription>
+        </CardHeader>
+        <CardContent v-if="overview" class="flex flex-col gap-3 text-xs">
+          <p v-for="(m, id) in overview.byModel" :key="id">{{ id }} · {{ t.modelLine(m.total, failRate(m.total, m.failed)) }}</p>
+          <table class="w-full text-left">
+            <thead class="text-muted-foreground"><tr><th class="py-1 font-normal">{{ t.wsName }}</th><th class="font-normal">{{ t.wsSpent }}</th><th /></tr></thead>
+            <tbody>
+              <tr v-for="r in overview.rows" :key="r.id" class="border-t">
+                <td class="py-1.5">{{ r.name }} <span class="text-muted-foreground">{{ r.id }}</span><span v-if="r.deleteAt" class="text-destructive"> · {{ t.wsDeleting }}</span></td>
+                <td>₩{{ r.spentKrw.toLocaleString() }}</td>
+                <td class="text-right">
+                  <span v-if="opened[r.id]" class="text-muted-foreground mr-2">{{ t.wsCounts(opened[r.id]!.episodes, opened[r.id]!.submissions, opened[r.id]!.members) }}</span>
+                  <Button size="sm" variant="outline" class="h-7" @click="openWs(r.id)">{{ t.view }}</Button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="views.length" class="flex flex-col gap-1 border-t pt-2">
+            <span class="font-medium">{{ t.views }}</span>
+            <p v-for="v in views" :key="v.id">{{ v.at ? new Date(v.at.toMillis()).toLocaleString('ko-KR') : '' }} · {{ v.email ?? v.by }} · {{ v.workspaceId }} · {{ v.reason }}</p>
+          </div>
         </CardContent>
       </Card>
       <Card>

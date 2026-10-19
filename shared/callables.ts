@@ -7,6 +7,7 @@ import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { DecideWaitlistInput, JoinWaitlistInput } from './waitlist'
 import type { CreateWorkspaceInput, DeleteAccountInput, TransferOwnershipInput, WorkspaceRefInput } from './workspaces'
+import type { AdminOverview, AdminOverviewInput, LogAdminViewInput } from './activity'
 import type { CreateInviteInput, InviteInfo, InviteTokenInput, MemberRefInput, RevokeInviteInput, SetMemberLimitInput, SetMemberRoleInput } from './members'
 import type { SetWorkspaceLimitInput } from './usage'
 
@@ -70,5 +71,7 @@ export interface Callables {
   removeMember: { input: MemberRefInput, output: { ok: true } }
   leaveWorkspace: { input: WorkspaceRefInput, output: { ok: true } }
   setMemberLimit: { input: SetMemberLimitInput, output: { ok: true } }
+  adminOverview: { input: AdminOverviewInput, output: AdminOverview }
+  logAdminView: { input: LogAdminViewInput, output: { episodes: number, submissions: number, members: number } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }
