@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v0.2 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v0.3 · 2026-10-19 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -43,7 +43,10 @@
 | `status` | `'active'\|'done'\|'published'` + `archivedAt` (glossary 3절) |
 | `settings` | `{ tone, pageCount, narrator, aspect, styleId, characterIds[], extraRequest }` (STO-02) |
 | `submissionIds[]` | 재료 썰 여러 개 (#21) |
-| `activeStoryVersionId` | 사용 중 각색안 (STO-22) |
+| `activeStoryVersionId` | 사용 중 각색안 (STO-22). 첫 AI 안이 생기면 서버가 채운다 |
+| `analysis` | 서버만: `{ summary[], characters: { name, role }[], points[], sensitive: { text, reason }[], jobId }` (STO-10) |
+| `storyVersionCount` | 서버만: 각색안 번호("N안") 매기기 |
+| `staleFrom` | `'story'`: 콘티가 있는데 사용 중 각색안이 바뀜 (STO-22) |
 | `pageOrder[]` | 장 id 순서 |
 | `staleFrom` | `null` 또는 영향 받은 첫 단계 (STU-12) |
 | `costKrw` | 이 에피소드에 쓴 AI 비용 합계 — 서버만 (EPI-17) |
@@ -52,7 +55,7 @@
 ### 에피소드 하위
 | 경로 | 주요 필드 | 기능 |
 | --- | --- | --- |
-| `storyVersions/{id}` | `label`("2안"), `source: 'ai'\|'manual'`, `analysis: { summary, points[] }`, `titleCandidates[]`, `scenes: { id, heading, beats, dialogues: { speaker, type, text }[] }[]`, `jobId`, `basedOn`, `createdAt` | STO-10~14·20~23 |
+| `storyVersions/{id}` | `label`("2안"), `source: 'ai'\|'manual'`, `logline`, `scenes: { id, heading, beats, dialogues: { speaker, type, text }[] }[]`, `punchline`, `titleCandidates[]`, `settings`(만들 때 톤·장 수·화자·추가 요청), `jobId`, `basedOn`, `editedAt`, `createdAt`. AI 안은 서버가 문서 id = jobId로 만든다. 편집자는 `label·logline·scenes·punchline·editedAt`만 고친다 | STO-11~14·20~23 |
 | `pages/{id}` | `layout: '1'\|'2v'\|'2h'\|'3'\|'4'`, `panelIds[]`(배치 순서), `deletedAt` | SBD-20·23 |
 | `panels/{id}` | `pageId`, `scene`, `characterIds[]`, `shot`, `expression`, `action`, `outfit`, `note`, `dialogues: { id, type, speakerId, text }[]`, `selectedCandidateId`, `crop: { x, y, w, h }`(0~1 비율), `bubbles: { dialogueId, x, y, w, h, shape, tail, fontSize, bold }[]`, `staleFrom`, `deletedAt` | SBD-10~13, ILL-11·23, REV-01~03 |
 | `panels/{id}/candidates/{id}` | `imagePath`, `previewPath`, `width`, `height`, `source: 'ai'\|'upload'`, `jobId`, `input`(생성 입력 스냅숏: 장면·캐릭터·그림체 id와 `version`·모델), `hidden`, `favorite`, `createdAt` — 서버만 만듦 | ILL-01·03·10~14 |
@@ -84,3 +87,4 @@
 ## 변경 이력
 - v0.1: 초안. 원본 7-2절 구조를 워크스페이스 하위로 옮기고 작품·장·후보·사용량 추가
 - v0.2: 영상 설정 문서·음원 경로 추가 (3단계)
+- v0.3: 1-E — 에피소드 `analysis`·`storyVersionCount`·`staleFrom`, 각색안 `logline`·`punchline`·`settings`·`editedAt` (분석은 각색안이 아니라 에피소드에)
