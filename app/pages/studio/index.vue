@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Step } from '#shared/episodes'
-import type { Cut, Panel } from '#shared/studio'
-import { ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Clapperboard, Eye, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
+import type { Cut, Panel, StaleFrom } from '#shared/studio'
+import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
@@ -115,13 +115,49 @@ function flush() {
   queued = null
   run(() => s.updatePanel(id, patch))
 }
-function queueEdit(panel: Panel, field: 'scene' | 'note', value: string) {
+const STALE_BY_FIELD: Partial<Record<keyof Panel, StaleFrom>> = { scene: 'scene', dialogues: 'dialogue' }
+function queueEdit(panel: Panel, field: keyof Panel, value: unknown) {
   if (queued && queued.id !== panel.id) flush()
   const patch: Partial<Panel> = { ...queued?.patch, [field]: value }
-  // STU-12: 이미지를 고른 컷의 장면이 바뀌면 영향 받음
-  if (field === 'scene' && panel.selectedCandidateId) patch.staleFrom = 'scene'
+  // STU-12: 이미지를 고른 컷의 장면·대사가 바뀌면 영향 받음
+  const stale = STALE_BY_FIELD[field]
+  if (stale && panel.selectedCandidateId) patch.staleFrom = stale
   queued = { id: panel.id, patch }
   flushLater()
+}
+/** 대본 보기처럼 칸을 벗어날 때 저장하는 편집은 바로 */
+function saveNow(panel: Panel, field: keyof Panel, value: unknown) {
+  queueEdit(panel, field, value)
+  flush()
+}
+
+// SBD-01·02·03 자동 콘티 · 다시 나누기 · 빈 콘티
+const view = useLocalStorage<'cut' | 'board' | 'script'>('toonflow:studio:view', 'cut')
+async function autoSplit() {
+  const v = story.active.value
+  if (!v) return toast.warning(t.board.needStory)
+  if (cuts.value.length) {
+    const drawn = cuts.value.filter(c => c.panel.selectedCandidateId).length
+    if (!window.confirm(t.board.resplitConfirm(drawn))) return
+  }
+  await run(() => story.split(v), t.story.started)
+}
+
+// SBD-21 끌어서 옮기기
+const dragId = ref<string | null>(null)
+async function dropOn(c: Cut) {
+  const id = dragId.value
+  dragId.value = null
+  if (!id || id === c.panel.id) return
+  await run(async () => {
+    if (!(await s.dropPanel(id, c.page.id, c.indexInPage))) toast.warning(t.board.full)
+  })
+}
+async function duplicate(id: string) {
+  await run(async () => {
+    const copy = await s.duplicatePanel(id)
+    if (copy) select(copy)
+  })
 }
 onBeforeUnmount(flush)
 
@@ -218,6 +254,11 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <Redo2 class="size-4" />
         </Button>
       </template>
+      <div v-if="step !== 'story'" class="flex rounded-md border p-0.5" role="group">
+        <button v-for="v in (['cut', 'board', 'script'] as const)" :key="v" class="rounded px-2 py-1 text-xs" :class="view === v ? 'bg-muted font-semibold' : ''" :aria-pressed="view === v" @click="view = v">
+          {{ t.board.views[v] }}
+        </button>
+      </div>
       <Button size="sm" variant="outline" :disabled="!cuts.length" @click="openPreview">
         <Eye class="size-4" /> {{ t.preview }}
       </Button>
@@ -240,17 +281,31 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <p v-if="!cuts.length" class="text-muted-foreground px-1 text-sm">
             {{ t.noCuts }}
           </p>
+          <div v-if="edit && step === 'storyboard'" class="flex flex-col gap-1.5 px-1 pt-1">
+            <p v-if="running('storyboard.split')" class="text-muted-foreground flex items-center gap-1.5 text-xs">
+              <Loader2 class="size-3.5 animate-spin" /> {{ t.board.splitting }}
+            </p>
+            <Button v-else size="sm" :variant="cuts.length ? 'outline' : 'default'" :disabled="!story.active.value" :title="story.active.value ? '' : t.board.needStory" @click="autoSplit">
+              <Sparkles class="size-4" /> {{ cuts.length ? t.board.resplit : t.board.auto }}
+            </Button>
+            <Button v-if="!cuts.length" size="sm" variant="ghost" @click="addPage">
+              {{ t.board.blank }}
+            </Button>
+          </div>
           <template v-for="c in cuts" :key="c.panel.id">
             <div v-if="c.indexInPage === 0" class="text-muted-foreground mt-2 flex items-center justify-between px-1 text-xs font-medium">
               {{ t.page(c.pageIndex + 1) }}
-              <button v-if="edit && c.page.panelIds.length < 4" :aria-label="t.addPanel" :title="t.addPanel" @click="addPanel(c.page.id)">
-                <Plus class="size-3.5" />
-              </button>
+              <span v-if="edit" class="flex gap-0.5">
+                <button :aria-label="t.board.pageUp" :title="t.board.pageUp" :disabled="c.pageIndex === 0" @click="run(() => s.shiftPage(c.page.id, -1))"><ArrowUp class="size-3.5" /></button>
+                <button :aria-label="t.board.pageDown" :title="t.board.pageDown" :disabled="c.pageIndex === pageCount - 1" @click="run(() => s.shiftPage(c.page.id, 1))"><ArrowDown class="size-3.5" /></button>
+                <button v-if="c.page.panelIds.length < 4" :aria-label="t.addPanel" :title="t.addPanel" @click="addPanel(c.page.id)"><Plus class="size-3.5" /></button>
+              </span>
             </div>
             <div
               class="group flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm" :class="c.panel.id === selectedId ? 'bg-primary/15 ring-primary ring-1' : 'hover:bg-muted'"
-              @click="select(c.panel.id)"
+              :draggable="edit" @click="select(c.panel.id)" @dragstart="dragId = c.panel.id" @dragover.prevent @drop.prevent="dropOn(c)"
             >
+              <GripVertical v-if="edit" class="text-muted-foreground mt-0.5 size-3.5 shrink-0 cursor-grab" />
               <span class="text-muted-foreground w-6 shrink-0 text-xs leading-5">{{ c.number }}</span>
               <span class="line-clamp-2 flex-1" :class="{ 'text-muted-foreground italic': !c.panel.scene }">{{ c.panel.scene || t.noScene }}</span>
               <Loader2 v-if="s.busyPanels.value.has(c.panel.id)" class="size-3.5 animate-spin" :aria-label="t.generating" />
@@ -258,6 +313,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
               <span v-if="edit" class="hidden shrink-0 gap-0.5 group-hover:flex">
                 <button :aria-label="t.moveUp" :disabled="c.number === 1" @click.stop="run(() => s.movePanel(c.panel.id, -1))"><ArrowUp class="size-3.5" /></button>
                 <button :aria-label="t.moveDown" :disabled="c.number === cuts.length" @click.stop="run(() => s.movePanel(c.panel.id, 1))"><ArrowDown class="size-3.5" /></button>
+                <button :aria-label="t.board.duplicate" @click.stop="duplicate(c.panel.id)"><Copy class="size-3.5" /></button>
                 <button :aria-label="t.deletePanel" @click.stop="removePanel(c.panel.id)"><Trash2 class="size-3.5" /></button>
               </span>
             </div>
@@ -282,9 +338,12 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           />
           <p v-else class="text-muted-foreground text-center text-sm">{{ t.story.empty }}</p>
         </div>
+        <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
+        <StudioScriptView v-else-if="view === 'script' && cuts.length" :cuts="cuts" :edit="edit" :selected-id="selectedId" @edit="saveNow" @select="select" />
         <template v-else-if="selected">
           <div v-if="episode.staleFrom === 'story'" class="flex w-full max-w-md items-center gap-2 rounded-md bg-amber-100 px-3 py-2 text-xs text-amber-900">
             <span class="flex-1">{{ t.story.staleStory }}</span>
+            <button v-if="edit" class="underline" @click="autoSplit">{{ t.board.resplit }}</button>
             <button v-if="edit" class="underline" @click="run(story.keepStale)">{{ t.keep }}</button>
           </div>
           <div class="bg-card relative flex max-h-full w-full max-w-md flex-col items-center justify-center gap-2 rounded-lg border p-6 text-center shadow-sm" :style="{ aspectRatio: aspect }">
@@ -327,14 +386,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <div class="flex flex-col gap-1.5">
-            <Label for="p-scene">{{ t.scene }}</Label>
-            <Textarea id="p-scene" :model-value="selected.panel.scene" :disabled="!edit" rows="5" maxlength="2000" @update:model-value="queueEdit(selected!.panel, 'scene', String($event))" />
-          </div>
-          <div class="flex flex-col gap-1.5">
-            <Label for="p-note">{{ t.note }}</Label>
-            <Textarea id="p-note" :model-value="selected.panel.note" :disabled="!edit" rows="3" maxlength="2000" @update:model-value="queueEdit(selected!.panel, 'note', String($event))" />
-          </div>
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" @edit="(f, v) => queueEdit(selected!.panel, f, v)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>

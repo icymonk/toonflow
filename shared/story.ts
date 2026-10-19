@@ -35,6 +35,24 @@ export type Draft = z.infer<typeof draftSchema>
 // STO-14 제목 후보
 export const titlesSchema = z.object({ titles: z.array(z.string()).min(1).max(5) })
 
+// SBD-01 자동 콘티
+export const splitSchema = z.object({
+  pages: z.array(z.object({
+    panels: z.array(z.object({
+      scene: z.string(),
+      place: z.string().catch(''),
+      characters: z.array(z.string()).max(8).catch([]),
+      shot: z.enum(['closeup', 'bust', 'full', 'wide', 'pov']).or(z.literal('')).catch(''),
+      expression: z.string().catch(''),
+      action: z.string().catch(''),
+      outfit: z.string().catch(''),
+      mood: z.string().catch(''),
+      dialogues: z.array(line).max(8).catch([]),
+    })).min(1).max(4),
+  })).min(1).max(20),
+})
+export type Split = z.infer<typeof splitSchema>
+
 /** story.* 작업의 params. 앱이 재료·설정을 담아 보낸다 (예상 비용도 이 길이로 계산) */
 export const storyParams = z.object({
   material: z.string().trim().min(1).max(20000),

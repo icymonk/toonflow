@@ -1,6 +1,6 @@
 import type { Page, Panel } from './studio'
 import { describe, expect, it } from 'vitest'
-import { createHistory, emptyPanel, firstUnmetBefore, movedPanelIds, orderCuts, remaining } from './studio'
+import { createHistory, emptyPanel, firstUnmetBefore, layoutOptions, movedPanelIds, movePage, movePanelTo, orderCuts, remaining } from './studio'
 
 const page = (id: string, panelIds: string[], deleted = false): Page => ({ id, layout: '1', panelIds, deletedAt: deleted ? { toMillis: () => 1 } : null })
 const panel = (id: string, pageId: string, scene = ''): Panel => ({ id, ...emptyPanel(pageId), scene })
@@ -49,5 +49,21 @@ describe('createHistory', () => {
     expect(log).toEqual(['u2', 'u1', 'r1'])
     h.push({ label: '3', undo: () => {}, redo: () => {} })
     expect(h.canRedo).toBe(false)
+  })
+})
+
+describe('movePanelTo / movePage / layoutOptions', () => {
+  const pg = (id: string, panelIds: string[]) => ({ id, layout: '1' as const, panelIds })
+  it('moves within and across pages, refusing full pages', () => {
+    const pages = [pg('a', ['1', '2', '3']), pg('b', ['4']), pg('c', ['5', '6', '7', '8'])]
+    expect(movePanelTo(pages, '1', 'a', 2)).toEqual({ a: ['2', '3', '1'] })
+    expect(movePanelTo(pages, '2', 'b', 0)).toEqual({ a: ['1', '3'], b: ['2', '4'] })
+    expect(movePanelTo(pages, '1', 'c', 0)).toBeNull()
+  })
+  it('swaps page order and gives layout choices', () => {
+    expect(movePage(['a', 'b', 'c'], 'b', -1)).toEqual(['b', 'a', 'c'])
+    expect(movePage(['a', 'b'], 'b', 1)).toBeNull()
+    expect(layoutOptions(2)).toEqual(['2v', '2h'])
+    expect(layoutOptions(3)).toEqual(['3'])
   })
 })

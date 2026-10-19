@@ -3,11 +3,9 @@ import type { JobStatus, JobType, StartAiJobInput } from '#shared/jobs'
 import type { Page, PageLayout, Panel } from '#shared/studio'
 import { collection, doc, getDoc, onSnapshot, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { ACTIVE_STATUSES } from '#shared/jobs'
-import { createHistory, emptyPanel, movedPanelIds, orderCuts } from '#shared/studio'
+import { createHistory, emptyPanel, LAYOUT_BY_COUNT, movedPanelIds, movePage, movePanelTo, orderCuts } from '#shared/studio'
 
 interface ActiveJob { id: string, type: JobType, status: JobStatus, target: StartAiJobInput['target'] }
-
-const LAYOUT_BY_COUNT: Record<number, PageLayout> = { 0: '1', 1: '1', 2: '2v', 3: '3', 4: '4' }
 
 /** 제작실 (STU-01~04·20~22·25): 에피소드·장·컷 실시간 구독, 자동 저장 상태, 실행 취소 */
 export function useStudio(episodeId: Ref<string>) {
@@ -178,8 +176,51 @@ export function useStudio(episodeId: Ref<string>) {
     record('movePanel', () => apply(prev), () => apply(next))
   }
 
+  /** SBD-21: 끌어서 놓은 자리로 */
+  async function dropPanel(panelId: string, toPageId: string, toIndex: number) {
+    const live = pages.value.filter(p => !p.deletedAt)
+    const next = movePanelTo(live, panelId, toPageId, toIndex)
+    if (!next) return false
+    const prev = Object.fromEntries(Object.keys(next).map(id => [id, [...live.find(p => p.id === id)!.panelIds]]))
+    const order = [...(episode.value?.pageOrder ?? [])]
+    const emptied = Object.keys(next).filter(id => next[id]!.length === 0)
+    const apply = (map: Record<string, string[]>, removeEmpty: boolean) => {
+      const b = writeBatch($firestore)
+      for (const [pageId, ids] of Object.entries(map)) {
+        b.update(doc(sub('pages'), pageId), { panelIds: ids, layout: LAYOUT_BY_COUNT[ids.length], deletedAt: removeEmpty && ids.length === 0 ? serverTimestamp() : null, ...touch() })
+      }
+      if (emptied.length) b.update(epRef(), { pageOrder: removeEmpty ? order.filter(id => !emptied.includes(id)) : order, ...touch() })
+      b.update(doc(sub('panels'), panelId), { pageId: Object.keys(map).find(id => map[id]!.includes(panelId)), ...touch() })
+      return b.commit()
+    }
+    await track(() => apply(next, true))
+    record('dropPanel', () => apply(prev, false), () => apply(next, true))
+    return true
+  }
+
+  async function shiftPage(pageId: string, dir: -1 | 1) {
+    const before = [...(episode.value?.pageOrder ?? [])]
+    const after = movePage(before, pageId, dir)
+    if (!after) return
+    await updateEpisode({ pageOrder: after })
+    record('movePage', () => updateEpisode({ pageOrder: before }), () => updateEpisode({ pageOrder: after }))
+  }
+
+  /** SBD-20: 컷 복제 (같은 장, 바로 뒤). 장이 가득이면 새 장으로 */
+  async function duplicatePanel(panelId: string) {
+    const cut = cuts.value.find(c => c.panel.id === panelId)
+    if (!cut) return null
+    const { id: _id, pageId: _page, ...data } = cut.panel
+    const id = cut.page.panelIds.length < 4 ? await addPanel(cut.page.id) : await addPage(cut.page.id)
+    if (id) await updatePanel(id, { ...data, selectedCandidateId: null, staleFrom: null })
+    return id
+  }
+
+  /** SBD-23 장 배치 */
+  const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
+
   return {
-    episode, missing, seriesName, cuts, busyPanels, jobs,
+    episode, missing, seriesName, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, addPage, addPanel, deletePanel, movePanel,
   }
