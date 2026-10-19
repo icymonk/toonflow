@@ -5,6 +5,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { logger } from 'firebase-functions'
 import { onTaskDispatched } from 'firebase-functions/v2/tasks'
+import { aiCheckParams } from '../../../shared/aicheck'
 import { ACTIVE_STATUSES, JOB_KIND } from '../../../shared/jobs'
 import { imageParams } from '../../../shared/library'
 import { actualKrw } from '../../../shared/pricing'
@@ -12,6 +13,7 @@ import { loadModels } from '../lib/models'
 import { settle } from '../lib/usage'
 import { applyResult } from './apply'
 import { AiError, classify, isLastAttempt } from './errors'
+import { checkPrompt } from './prompts/check'
 import { textPrompt } from './prompts/story'
 import { imageModel, textModel } from './providers'
 import { GEMINI_API_KEY } from './providers/gemini'
@@ -21,8 +23,21 @@ const PANEL_SIZE = { w: 1080, h: 1350 }
 
 interface ProviderOutput { result: string | string[], requestId: string, usage: JobUsage }
 
+/** ILL-43·REV-13: 컷마다 고른 그림. 후보 문서의 imagePath (이 워크스페이스 안만) */
+async function checkImages(wsId: string, episodeId: string, panelIds: string[]): Promise<Buffer[]> {
+  const db = getFirestore()
+  const bucket = getStorage().bucket()
+  const col = `workspaces/${wsId}/episodes/${episodeId}/panels`
+  return Promise.all(panelIds.map(async (id) => {
+    const cid = (await db.doc(`${col}/${id}`).get()).get('selectedCandidateId')
+    const path = cid ? (await db.doc(`${col}/${id}/candidates/${cid}`).get()).get('imagePath') : null
+    if (typeof path !== 'string' || !path.startsWith(`workspaces/${wsId}/`)) throw new AiError('internal', `no image for panel ${id}`)
+    return (await bucket.file(path).download())[0]
+  }))
+}
+
 /** 7. 제공사 호출. 이미지는 Storage에 먼저 저장하고 경로를 결과로 */
-async function callProvider(wsId: string, jobId: string, type: JobType, params: Record<string, unknown>, model: ModelEntry): Promise<ProviderOutput> {
+async function callProvider(wsId: string, jobId: string, type: JobType, params: Record<string, unknown>, model: ModelEntry, episodeId?: string): Promise<ProviderOutput> {
   if (JOB_KIND[type] === 'image') {
     const p = imageParams.safeParse(params)
     if (!p.success) throw new AiError('internal', 'bad image params')
@@ -40,6 +55,13 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
       return path
     }))
     return { result: paths, requestId: out.requestId, usage: { images: out.billedImages } }
+  }
+  if (type === 'panel.check') {
+    const p = aiCheckParams.safeParse(params)
+    if (!p.success || !episodeId) throw new AiError('internal', 'bad check params')
+    const images = await checkImages(wsId, episodeId, p.data.panelIds)
+    const out = await textModel(model).generate({ ...checkPrompt(p.data), images })
+    return { result: out.text, requestId: out.requestId, usage: out.usage }
   }
   const out = await textModel(model).generate(textPrompt(type, params))
   return { result: out.text, requestId: out.requestId, usage: out.usage }
@@ -80,7 +102,7 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
     if (result === undefined) {
       const model = models.models.find(m => m.id === job.get('model') && m.enabled)
       if (!model) throw new AiError('internal', `model unavailable: ${job.get('model')}`)
-      const out = await callProvider(workspaceId, jobId, job.get('type'), job.get('params') ?? {}, model)
+      const out = await callProvider(workspaceId, jobId, job.get('type'), job.get('params') ?? {}, model, job.get('target')?.episodeId)
       usage = out.usage
       result = out.result
       await ref.update({ providerResult: out.result, providerRequestId: out.requestId, usage })

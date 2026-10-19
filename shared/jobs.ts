@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /** AI 작업 종류 (docs/dev/ai-jobs.md 2절). 2단계 종류는 그때 추가 */
-export const JOB_TYPES = ['story.analyze', 'story.draft', 'story.titles', 'storyboard.split', 'panel.image', 'style.sample', 'publish.caption', 'story.rewrite', 'submission.summary'] as const
+export const JOB_TYPES = ['story.analyze', 'story.draft', 'story.titles', 'storyboard.split', 'panel.image', 'style.sample', 'publish.caption', 'story.rewrite', 'submission.summary', 'panel.check'] as const
 export type JobType = (typeof JOB_TYPES)[number]
 export const JOB_KIND: Record<JobType, 'text' | 'image'> = {
   'story.analyze': 'text',
@@ -13,6 +13,7 @@ export const JOB_KIND: Record<JobType, 'text' | 'image'> = {
   'publish.caption': 'text',
   'story.rewrite': 'text',
   'submission.summary': 'text',
+  'panel.check': 'text',
 }
 
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'

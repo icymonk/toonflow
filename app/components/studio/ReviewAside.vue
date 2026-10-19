@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import type { Bubble, CheckIssue, Typeset } from '#shared/render'
+import type { AiCheck, AiCheckMode } from '#shared/aicheck'
+import type { Bubble, BubbleStyle, BubbleTemplate, CheckIssue, Typeset } from '#shared/render'
 import type { ChecklistRow, ReviewState } from '#shared/review'
 import type { Cut, DialogueType } from '#shared/studio'
 import { useDebounceFn } from '@vueuse/core'
-import { BUBBLE_TAILS, FONTS } from '#shared/render'
+import { AI_CHECK_MODES } from '#shared/aicheck'
+import { BUBBLE_TAILS, bubbleStyle, FONTS } from '#shared/render'
 import { REVIEW_STATES } from '#shared/review'
 import { ko } from '~/locales/ko'
 
 // REV-02·03·04·11
-const props = defineProps<{ cut: Cut, bubbles: Bubble[], selected: string | null, typeset: Typeset, issues: CheckIssue[], edit: boolean, checklist: ChecklistRow[], left: number }>()
-const emit = defineEmits<{ text: [dialogueId: string, text: string], bubble: [dialogueId: string, patch: Partial<Bubble>], typeset: [patch: Partial<Typeset>], replace: [], pick: [issue: CheckIssue], check: [key: string, state: ReviewState], addItem: [label: string], removeItem: [label: string] }>()
+const props = defineProps<{ cut: Cut, bubbles: Bubble[], selected: string | null, typeset: Typeset, issues: CheckIssue[], edit: boolean, checklist: ChecklistRow[], left: number, aiCheck: AiCheck | null, aiItems: { panelId: string, issue: string, number: number }[], checkInfo: Record<AiCheckMode, { n: number, cost: number }>, checking: boolean, templates: BubbleTemplate[] }>()
+const emit = defineEmits<{ text: [dialogueId: string, text: string], bubble: [dialogueId: string, patch: Partial<Bubble>], typeset: [patch: Partial<Typeset>], replace: [], pick: [issue: CheckIssue], check: [key: string, state: ReviewState], addItem: [label: string], removeItem: [label: string], aiCheck: [mode: AiCheckMode], pickPanel: [panelId: string], saveTemplate: [name: string, style: BubbleStyle] }>()
 const t = ko.studio.review
 const SHAPES = Object.keys(t.shapes) as DialogueType[]
 const bubble = computed(() => props.bubbles.find(b => b.dialogueId === props.selected) ?? null)
@@ -18,6 +20,17 @@ const draft = ref('')
 watch(() => [props.selected, dialogue.value?.text] as const, () => (draft.value = dialogue.value?.text ?? ''), { immediate: true })
 const saveText = useDebounceFn(() => dialogue.value && draft.value !== dialogue.value.text && emit('text', dialogue.value.id, draft.value), 500)
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
+// REV-07
+function saveTpl() {
+  const n = window.prompt(t.tpl.namePrompt)?.trim()
+  if (n && bubble.value) emit('saveTemplate', n, bubbleStyle(bubble.value))
+}
+function applyTpl(e: Event) {
+  const el = e.target as HTMLSelectElement
+  const tp = props.templates.find(x => x.id === el.value)
+  if (tp && bubble.value) emit('bubble', bubble.value.dialogueId, bubbleStyle(tp))
+  el.value = ''
+}
 const newItem = ref('')
 function addItem() {
   const v = newItem.value.trim().slice(0, 40)
@@ -55,6 +68,13 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
           >
             {{ t.tails[tl] }}
           </button>
+        </div>
+        <div v-if="edit" class="flex items-center gap-1 text-xs">
+          <select :class="[sel, 'min-w-0 flex-1']" :aria-label="t.tpl.apply" @change="applyTpl">
+            <option value="">{{ templates.length ? t.tpl.apply : t.tpl.none }}</option>
+            <option v-for="tp in templates" :key="tp.id" :value="tp.id">{{ tp.name }} · {{ t.shapes[tp.shape] }}</option>
+          </select>
+          <Button size="sm" variant="ghost" @click="saveTpl">{{ t.tpl.save }}</Button>
         </div>
       </template>
       <Button v-if="edit && cut.panel.dialogues.length" size="sm" variant="outline" @click="emit('replace')">{{ t.replacePanel }}</Button>
@@ -96,6 +116,22 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
       <button v-for="(is, i) in issues" :key="i" class="text-left text-xs text-amber-800 hover:underline" @click="emit('pick', is)">
         {{ t.issues[is.kind](is.number) }}
       </button>
+    </section>
+
+    <section class="flex flex-col gap-1.5 border-t pt-3">
+      <span class="font-medium">{{ t.ai.title }}</span>
+      <p class="text-muted-foreground text-xs">{{ t.ai.hint }}</p>
+      <Button v-for="m in AI_CHECK_MODES" :key="m" size="sm" variant="outline" :disabled="!edit || checking || !checkInfo[m].n" @click="emit('aiCheck', m)">
+        {{ t.ai.run(t.ai.modes[m], checkInfo[m].n, checkInfo[m].cost) }}
+      </Button>
+      <p v-if="checking" class="text-muted-foreground text-xs">{{ t.ai.running }}</p>
+      <template v-else-if="aiCheck">
+        <p class="text-muted-foreground text-xs">{{ t.ai.result(t.ai.modes[aiCheck.mode], aiCheck.count) }}</p>
+        <p v-if="!aiItems.length" class="text-xs text-emerald-700">{{ t.noIssues }}</p>
+        <button v-for="(it, i) in aiItems" :key="i" class="text-left text-xs text-amber-800 hover:underline" @click="emit('pickPanel', it.panelId)">
+          {{ t.ai.item(it.number, it.issue) }}
+        </button>
+      </template>
     </section>
   </div>
 </template>

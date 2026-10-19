@@ -1,11 +1,13 @@
+import type { AiCheckParams } from '#shared/aicheck'
 import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore'
+import { callFn } from '~/lib/functions'
 import { autoPlace, bubbleSize, cutRects, DEFAULT_TYPESET, pageSize, syncBubbles } from '#shared/render'
 
 /** Review: 식자 스타일(REV-04)과 말풍선 배치·편집(REV-01~03) */
 export function useReview(s: ReturnType<typeof useStudio>, aspect: Ref<string | undefined>) {
-  const { $firestore } = useNuxtApp()
+  const { $firestore, $functions } = useNuxtApp()
   const auth = useAuthStore()
   const typeset = ref<Typeset>({ ...DEFAULT_TYPESET })
   const tsRef = () => doc($firestore, 'workspaces', auth.workspace!.id, 'episodes', s.episode.value!.id, 'meta', 'typeset')
@@ -49,5 +51,7 @@ export function useReview(s: ReturnType<typeof useStudio>, aspect: Ref<string | 
     })
     await s.updatePanel(panelId, { dialogues, bubbles })
   }
-  return { typeset, setTypeset, size, rectOf, bubblesOf, place, setBubble, setText }
+  /** ILL-43·REV-13: AI 점검 (선택, 비용) */
+  const aiCheck = (params: AiCheckParams) => callFn($functions, 'startAiJob', { workspaceId: auth.workspace!.id, type: 'panel.check', target: { episodeId: s.episode.value!.id }, params, idempotencyKey: crypto.randomUUID() })
+  return { typeset, setTypeset, size, rectOf, bubblesOf, place, setBubble, setText, aiCheck }
 }

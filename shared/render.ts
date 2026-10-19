@@ -29,6 +29,10 @@ export function cutRects(layout: PageLayout, count: number, W: number, H: number
 
 export type BubbleTail = 'none' | 'bl' | 'b' | 'br' | 'tl' | 'tr'
 export const BUBBLE_TAILS: BubbleTail[] = ['none', 'bl', 'b', 'br', 'tl', 'tr']
+/** REV-07 말풍선 템플릿: 자주 쓰는 모양·크기·글자 (효과음 포함) */
+export interface BubbleStyle { shape: DialogueType, tail: BubbleTail, fontSize: number, bold: boolean, w: number, h: number }
+export interface BubbleTemplate extends BubbleStyle { id: string, name: string }
+export const bubbleStyle = (b: BubbleStyle): BubbleStyle => ({ shape: b.shape, tail: b.tail, fontSize: b.fontSize, bold: b.bold, w: b.w, h: b.h })
 export interface Bubble { dialogueId: string, x: number, y: number, w: number, h: number, shape: DialogueType, tail: BubbleTail, fontSize: number, bold: boolean }
 
 // REV-04 상업 이용 가능한 무료 글꼴 (SIL OFL 1.1)

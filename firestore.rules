@@ -147,6 +147,14 @@ service cloud.firestore {
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'archivedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
+      // REV-07 말풍선 템플릿. 고치지 않고 지우고 새로 만든다
+      match /bubbleTemplates/{id} {
+        allow read: if canView(ws);
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['name', 'shape', 'tail', 'fontSize', 'bold', 'w', 'h', 'createdBy', 'createdAt'])
+          && strLen(request.resource.data.name, 1, 20) && request.resource.data.createdBy == request.auth.uid
+          && request.resource.data.fontSize is number && request.resource.data.w is number && request.resource.data.h is number;
+        allow delete: if canEdit(ws);
+      }
       // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
       // AST-03 참고 자료
       match /assets/{id} {

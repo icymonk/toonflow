@@ -199,6 +199,19 @@ describe('3단계 신고 (CMN-40·53)', () => {
   })
 })
 
+describe('3단계 AI 점검·말풍선 템플릿 (ILL-43·REV-07·13)', () => {
+  it('aiCheck is server-only; templates are editor create/delete with fixed fields', async () => {
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { aiCheck: { mode: 'quality', items: [], count: 1, jobId: 'j' } }))
+    const tp = { name: '외침 크게', shape: 'shout', tail: 'b', fontSize: 40, bold: true, w: 300, h: 200, createdBy: 'editor', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/bubbleTemplates/t1`), tp))
+    await assertFails(setDoc(doc(db('editor'), `${W}/bubbleTemplates/t2`), { ...tp, color: 'red' }))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/bubbleTemplates/t3`), { ...tp, createdBy: 'viewer' }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/bubbleTemplates/t1`)))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/bubbleTemplates/t1`), { name: 'x' }))
+    await assertSucceeds(deleteDoc(doc(db('editor'), `${W}/bubbleTemplates/t1`)))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

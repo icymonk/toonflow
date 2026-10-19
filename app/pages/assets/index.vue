@@ -7,6 +7,7 @@ import { ko } from '~/locales/ko'
 // AST-01~08
 const t = ko.assetsPage
 const a = useAssets()
+const tpl = useBubbleTemplates()
 const { episodes } = useStories()
 const tab = ref<'generated' | 'refs'>('generated')
 const ep = ref('')
@@ -84,6 +85,15 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         <button class="border-b-2 px-1 pb-2 text-sm" :class="tabClass(tab === 'refs')" @click="tab = 'refs'">{{ t.refs }} {{ a.assets.value.length }}</button>
         <span v-if="usage" class="text-muted-foreground ml-auto pb-2 text-xs">{{ t.usage }} {{ formatBytes(usage.total) }} · {{ t.usageLine(formatBytes(usage.ai), formatBytes(usage.refs)) }}</span>
       </div>
+      <details v-if="tpl.templates.value.length" class="text-sm">
+        <summary class="text-muted-foreground cursor-pointer">{{ t.templates(tpl.templates.value.length) }}</summary>
+        <ul class="mt-2 flex flex-wrap gap-2">
+          <li v-for="tp in tpl.templates.value" :key="tp.id" class="flex items-center gap-2 rounded-md border px-2 py-1 text-xs">
+            {{ tp.name }} · {{ ko.studio.review.shapes[tp.shape] }} · {{ tp.fontSize }}
+            <button class="text-muted-foreground hover:text-destructive" :aria-label="t.remove" @click="tpl.remove(tp.id)">×</button>
+          </li>
+        </ul>
+      </details>
       <div class="flex flex-wrap items-center gap-2">
         <select v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
           <option value="">{{ t.allEpisodes }}</option>

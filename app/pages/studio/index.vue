@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { AiCheckMode } from '#shared/aicheck'
+import { AI_CHECK_MAX, AI_CHECK_MODES, IMAGE_CHARS } from '#shared/aicheck'
 import { serverTimestamp } from 'firebase/firestore'
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
@@ -124,6 +126,21 @@ const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
 const issues = computed(() => autoCheck(s.cuts.value))
+const tpl = useBubbleTemplates()
+// ILL-43·REV-13: 그림 있는 컷(일관성은 캐릭터가 있는 컷)을 앞에서부터 AI_CHECK_MAX개
+const checkCuts = (mode: AiCheckMode) => s.cuts.value.filter(c => c.panel.selectedCandidateId && (mode === 'quality' || c.panel.characterIds?.length)).slice(0, AI_CHECK_MAX)
+const checkInfo = computed(() => Object.fromEntries(AI_CHECK_MODES.map((m) => {
+  const n = checkCuts(m).length
+  return [m, { n, cost: lib.estimateText('panel.check', n * IMAGE_CHARS + 300) }]
+})) as Record<AiCheckMode, { n: number, cost: number }>)
+function runCheck(mode: AiCheckMode) {
+  const cuts = checkCuts(mode)
+  if (!cuts.length) return toast.warning(t.review.ai.none)
+  const ids = new Set(cuts.flatMap(c => c.panel.characterIds ?? []))
+  const characters = lib.characters.value.filter(c => ids.has(c.id)).map(c => `${c.name}: ${c.appearanceText || '-'}`).join('\n').slice(0, 4000)
+  return run(() => review.aiCheck({ mode, panelIds: cuts.map(c => c.panel.id), ...(mode === 'consistency' ? { characters } : {}) }), t.review.ai.started)
+}
+const aiItems = computed(() => (s.episode.value?.aiCheck?.items ?? []).map(i => ({ ...i, number: s.cuts.value.find(c => c.panel.id === i.panelId)?.number ?? 0 })).filter(i => i.number))
 function onBubble(panelId: string, dialogueId: string | null) {
   if (panelId !== selectedPanelId.value) select(panelId)
   bubbleSel.value = dialogueId ? { panelId, dialogueId } : null
@@ -610,6 +627,8 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         </template>
         <StudioReviewAside
           v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit" :checklist="rows" :left="left"
+          :ai-check="s.episode.value?.aiCheck ?? null" :ai-items="aiItems" :check-info="checkInfo" :checking="running('panel.check') > 0" :templates="tpl.templates.value"
+          @ai-check="runCheck" @pick-panel="id => onBubble(id, null)" @save-template="(n, b) => run(() => tpl.save(n, b), t.review.tpl.saved)"
           @check="setCheck" @add-item="addItem" @remove-item="removeItem"
           @text="(did, text) => run(() => review.setText(selected!.panel.id, did, text))" @bubble="(did, patch) => run(() => review.setBubble(selected!.panel.id, did, patch))"
           @typeset="patch => run(() => review.setTypeset(patch))" @replace="run(() => review.place([selected!], true), t.review.placed)"

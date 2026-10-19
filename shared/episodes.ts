@@ -83,6 +83,7 @@ export interface Episode {
   pageOrder?: string[]
   review?: Record<string, import('./review').ReviewState>
   caption?: { text: string, hashtags: string[] } | null
+  aiCheck?: import('./aicheck').AiCheck | null
   published?: { at?: Ts, url: string } | null
   costKrw: number
   updatedAt?: Ts
