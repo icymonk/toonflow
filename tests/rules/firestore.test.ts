@@ -43,6 +43,11 @@ describe('roles × paths', () => {
     await assertFails(updateDoc(doc(db('viewer'), `${W}/submissions/s1`), { starred: true }))
     await assertFails(updateDoc(doc(db('other'), `${W}/episodes/e1`), { title: 'x' }))
   })
+  it('editors save masking and review states (2-A)', async () => {
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/submissions/s1`), { maskedBody: 'A씨가 ...' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
+    await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
+  })
   it('only owner/admin manage workspace settings', async () => {
     await assertSucceeds(updateDoc(doc(db('owner'), W), { name: 'new' }))
     await assertSucceeds(updateDoc(doc(db('admin'), W), { name: 'new2' }))

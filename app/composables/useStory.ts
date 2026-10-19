@@ -10,7 +10,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>) {
   const { $firestore, $functions } = useNuxtApp()
   const auth = useAuthStore()
   const versions = ref<StoryVersion[]>([])
-  const sources = ref<{ id: string, title: string, body: string }[]>([])
+  const sources = ref<{ id: string, title: string, body: string, maskedBody?: string | null }[]>([])
   const ws = () => auth.workspace!.id
   const epRef = () => doc($firestore, 'workspaces', ws(), 'episodes', episode.value!.id)
 
@@ -27,9 +27,9 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>) {
   watch(() => episode.value?.submissionIds.join(','), async () => {
     const ids = episode.value?.submissionIds ?? []
     const snaps = await Promise.all(ids.map(id => getDoc(doc($firestore, 'workspaces', ws(), 'submissions', id))))
-    sources.value = snaps.filter(s => s.exists()).map(s => ({ id: s.id, title: s.get('title') as string, body: s.get('body') as string }))
+    sources.value = snaps.filter(s => s.exists()).map(s => ({ id: s.id, title: s.get('title') as string, body: s.get('body') as string, maskedBody: s.get('maskedBody') as string | null | undefined }))
   }, { immediate: true })
-  const material = computed(() => sources.value.map(s => s.body).join('\n\n---\n\n'))
+  const material = computed(() => sources.value.map(s => s.maskedBody || s.body).join('\n\n---\n\n'))
   const active = computed(() => versions.value.find(v => v.id === episode.value?.activeStoryVersionId) ?? null)
 
   function start(type: JobType, extra: Partial<StoryParams> = {}) {

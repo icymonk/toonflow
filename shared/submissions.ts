@@ -29,6 +29,7 @@ export interface Submission extends Omit<SubmissionInput, 'source'> {
   starred: boolean
   note: string
   episodeIds: string[]
+  maskedBody?: string | null
   createdBy: string
   createdAt?: { toMillis: () => number }
   deletedAt?: unknown

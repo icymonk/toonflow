@@ -80,6 +80,7 @@ export interface StudioState {
   activeStoryVersionId: string | null
   status: 'active' | 'done' | 'published'
   cuts: Cut[]
+  reviewLeft?: number
 }
 
 /** overview 7절: 다음 단계로 넘어가는 조건. 남은 개수가 0이면 그 단계는 완료(✓) */
@@ -88,7 +89,7 @@ export function remaining(step: Step, s: StudioState): number {
     case 'story': return s.activeStoryVersionId ? 0 : 1
     case 'storyboard': return s.cuts.length === 0 ? 1 : s.cuts.filter(c => !c.panel.scene.trim()).length
     case 'illustrate': return s.cuts.length === 0 ? 1 : s.cuts.filter(c => !c.panel.selectedCandidateId).length
-    case 'review': return s.status === 'active' ? 1 : 0
+    case 'review': return s.reviewLeft ?? (s.status === 'active' ? 1 : 0)
     case 'export': return s.status === 'published' ? 0 : 1
   }
 }

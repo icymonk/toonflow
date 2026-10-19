@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { applyMask, findPii } from '#shared/privacy'
 import type { Submission, SubmissionFilter, SubmissionStatus } from '#shared/submissions'
 import { Inbox, Plus, Star } from '@lucide/vue'
 import { toast } from 'vue-sonner'
@@ -112,6 +113,10 @@ function saveDetail() {
   if (!s) return
   return run(() => update(s.id, { note: detail.note.slice(0, 2000), tags: parseTags(detail.tags) }), t.saved)
 }
+// INB-13·14 개인정보 점검·가림
+const pii = computed(() => (current.value ? findPii(current.value.body) : []))
+const applyPii = () => current.value && run(() => update(current.value!.id, { maskedBody: applyMask(current.value!.body, pii.value) }), t.pii.applied)
+const clearPii = () => current.value && run(() => update(current.value!.id, { maskedBody: null }))
 const toggleStar = (s: Submission) => edit.value && run(() => update(s.id, { starred: !s.starred }))
 const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).toLocaleDateString('ko-KR') : '')
 </script>
@@ -267,6 +272,23 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
               {{ current.body }}
             </p>
+            <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
+              <span class="font-medium">{{ t.pii.title }}</span>
+              <p v-if="!pii.length" class="text-muted-foreground text-xs">{{ t.pii.none }}</p>
+              <ul v-else class="flex flex-col gap-0.5 text-xs">
+                <li v-for="(h, i) in pii" :key="i">
+                  <span class="text-muted-foreground">{{ t.pii.kinds[h.kind] }}</span> {{ h.text }} → <b>{{ h.suggestion }}</b>
+                </li>
+              </ul>
+              <template v-if="current.maskedBody">
+                <span class="text-xs font-medium">{{ t.pii.masked }}</span>
+                <p class="bg-muted whitespace-pre-wrap rounded p-2 text-xs">{{ current.maskedBody }}</p>
+              </template>
+              <div v-if="edit" class="flex gap-2">
+                <Button v-if="pii.length" size="sm" variant="outline" @click="applyPii">{{ t.pii.apply }}</Button>
+                <Button v-if="current.maskedBody" size="sm" variant="ghost" @click="clearPii">{{ t.pii.clear }}</Button>
+              </div>
+            </section>
             <div class="flex items-center gap-2">
               <select
                 :value="current.status" :class="selectClass" :aria-label="t.setStatus" :disabled="!edit || !isManual(current)"

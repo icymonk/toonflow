@@ -1,13 +1,15 @@
 <script setup lang="ts">
 import type { Bubble, CheckIssue, Typeset } from '#shared/render'
+import type { ChecklistRow, ReviewState } from '#shared/review'
 import type { Cut, DialogueType } from '#shared/studio'
 import { useDebounceFn } from '@vueuse/core'
 import { BUBBLE_TAILS, FONTS } from '#shared/render'
+import { REVIEW_STATES } from '#shared/review'
 import { ko } from '~/locales/ko'
 
 // REV-02·03·04·11
-const props = defineProps<{ cut: Cut, bubbles: Bubble[], selected: string | null, typeset: Typeset, issues: CheckIssue[], edit: boolean }>()
-const emit = defineEmits<{ text: [dialogueId: string, text: string], bubble: [dialogueId: string, patch: Partial<Bubble>], typeset: [patch: Partial<Typeset>], replace: [], pick: [issue: CheckIssue] }>()
+const props = defineProps<{ cut: Cut, bubbles: Bubble[], selected: string | null, typeset: Typeset, issues: CheckIssue[], edit: boolean, checklist: ChecklistRow[], left: number }>()
+const emit = defineEmits<{ text: [dialogueId: string, text: string], bubble: [dialogueId: string, patch: Partial<Bubble>], typeset: [patch: Partial<Typeset>], replace: [], pick: [issue: CheckIssue], check: [key: string, state: ReviewState], addItem: [label: string], removeItem: [label: string] }>()
 const t = ko.studio.review
 const SHAPES = Object.keys(t.shapes) as DialogueType[]
 const bubble = computed(() => props.bubbles.find(b => b.dialogueId === props.selected) ?? null)
@@ -16,6 +18,13 @@ const draft = ref('')
 watch(() => [props.selected, dialogue.value?.text] as const, () => (draft.value = dialogue.value?.text ?? ''), { immediate: true })
 const saveText = useDebounceFn(() => dialogue.value && draft.value !== dialogue.value.text && emit('text', dialogue.value.id, draft.value), 500)
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
+const newItem = ref('')
+function addItem() {
+  const v = newItem.value.trim().slice(0, 40)
+  if (v) emit('addItem', v)
+  newItem.value = ''
+}
+const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === 'needs' ? 'text-amber-800' : '')
 </script>
 
 <template>
@@ -64,6 +73,21 @@ const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
       <label class="flex items-center gap-2 text-xs">{{ t.stroke }}
         <input :value="typeset.strokeWidth" type="number" min="0" max="10" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('typeset', { strokeWidth: Number(($event.target as HTMLInputElement).value) })">
       </label>
+    </section>
+
+    <section class="flex flex-col gap-1.5 border-t pt-3">
+      <span class="font-medium">{{ t.list }} <span class="text-muted-foreground text-xs font-normal">· {{ t.left(left) }}</span></span>
+      <div v-for="r in checklist" :key="r.key" class="flex items-center gap-2 text-xs">
+        <span class="flex-1" :class="tone(r.state)">{{ r.custom ?? t.items[r.key] }}<span v-if="r.auto" class="text-muted-foreground"> · {{ t.auto }}</span></span>
+        <select :value="r.state" :class="[sel, 'h-7 text-xs']" :aria-label="r.custom ?? t.items[r.key]" :disabled="!edit || (r.auto && r.state === 'pass' && r.key !== 'privacy')" @change="emit('check', r.key, ($event.target as HTMLSelectElement).value as ReviewState)">
+          <option v-for="st in REVIEW_STATES" :key="st" :value="st">{{ t.states[st] }}</option>
+        </select>
+        <button v-if="r.custom && edit" class="text-muted-foreground hover:text-destructive" :aria-label="t.removeItem" @click="emit('removeItem', r.custom)">×</button>
+      </div>
+      <form v-if="edit" class="flex gap-1" @submit.prevent="addItem">
+        <Input v-model="newItem" class="h-8 text-xs" :placeholder="t.addItemPh" />
+        <Button size="sm" variant="outline" type="submit">{{ t.addItem }}</Button>
+      </form>
     </section>
 
     <section class="flex flex-col gap-1.5 border-t pt-3">

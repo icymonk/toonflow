@@ -10,6 +10,8 @@ import { bulkTargets } from '#shared/illustrate'
 import { autoCheck } from '#shared/render'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
+import type { ReviewState } from '#shared/review'
+import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
@@ -37,6 +39,16 @@ const exportPages = computed(() => {
   return [...m.values()]
 })
 const exp = useExport(s, review, exportPages)
+// REV-10·14·15
+const rows = computed(() => checklist(issues.value, episode.value?.settings.aiLabel !== false, episode.value?.review ?? {}, s.seriesReviewItems.value))
+const left = computed(() => reviewLeft(rows.value))
+const setCheck = (key: string, st: ReviewState) => run(() => s.updateEpisode({ review: { ...(episode.value?.review ?? {}), [key]: st } }))
+const addItem = (label: string) => run(() => s.setSeriesReviewItems([...new Set([...s.seriesReviewItems.value, label])]))
+const removeItem = (label: string) => run(() => s.setSeriesReviewItems(s.seriesReviewItems.value.filter(x => x !== label)))
+function guardExport(fn: () => unknown) {
+  if (left.value && !window.confirm(t.review.notPassed(left.value))) return
+  return fn()
+}
 const expPage = ref(0)
 watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIndex, i => (expPage.value = i ?? 0), { immediate: true })
 const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.publish.failed))
@@ -94,7 +106,7 @@ async function run(fn: () => Promise<unknown>, ok?: string) {
 }
 
 // STU-10·11 단계 탭
-const state = computed(() => ({ activeStoryVersionId: episode.value?.activeStoryVersionId ?? null, status: episode.value?.status ?? 'active' as const, cuts: cuts.value }))
+const state = computed(() => ({ activeStoryVersionId: episode.value?.activeStoryVersionId ?? null, status: episode.value?.status ?? 'active' as const, cuts: cuts.value, reviewLeft: left.value }))
 const step = computed<Step>(() => (STEPS as readonly string[]).includes(String(route.query.step)) ? route.query.step as Step : episode.value?.step ?? 'story')
 function needText(st: Step) {
   const n = remaining(st, state.value)
@@ -471,10 +483,11 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <StudioExportAside
           v-else-if="step === 'export'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
           :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-          @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="runExport(exp.all)" @one="runExport(() => exp.one(expPage))"
+          @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
         />
         <StudioReviewAside
-          v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit"
+          v-else-if="step === 'review' && selected" :cut="selected" :bubbles="review.bubblesOf(selected)" :selected="selBubble" :typeset="review.typeset.value" :issues="issues" :edit="edit" :checklist="rows" :left="left"
+          @check="setCheck" @add-item="addItem" @remove-item="removeItem"
           @text="(did, text) => run(() => review.setText(selected!.panel.id, did, text))" @bubble="(did, patch) => run(() => review.setBubble(selected!.panel.id, did, patch))"
           @typeset="patch => run(() => review.setTypeset(patch))" @replace="run(() => review.place([selected!], true), t.review.placed)"
           @pick="is => onBubble(is.panelId, is.dialogueId ?? null)"
