@@ -35,7 +35,17 @@ const titles = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles }
+const split = (p: StoryParams): TextPrompt => ({
+  format: 'split',
+  system: `너는 인스타툰 콘티 작가야. 각색안을 ${p.pageCount}장짜리 인스타툰 콘티로 나눠. pages는 정확히 ${p.pageCount}개, 장마다 panels 1~4개(기본 1컷, 대사가 많거나 빠른 전개면 2컷). 마지막 장은 펀치라인 1컷. `
+    + 'scene은 그림 AI가 그릴 장면 설명(누가, 어디서, 무엇을. 글자·말풍선은 넣지 않는다), place는 장소·시간, characters는 등장인물 이름, '
+    + 'shot은 closeup|bust|full|wide|pov 중 하나, expression·action·outfit은 주인공의 표정·동작·의상, mood는 분위기·효과(집중선, 땀방울 등). '
+    + `dialogues는 그 컷의 대사(한 개에 40자 이내). ${LINE_TYPES} `
+    + '반드시 JSON만: {"pages": [{"panels": [{"scene": str, "place": str, "characters": [str], "shot": str, "expression": str, "action": str, "outfit": str, "mood": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}]}]}',
+  prompt: p.draft || p.material,
+})
+
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split }
 
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {

@@ -51,6 +51,8 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>) {
       ...(request ? { extraRequest: [episode.value!.settings.extraRequest, request].filter(Boolean).join('\n') } : {}),
       ...(basedOn ? { basedOn: basedOn.id } : {}),
     })))
+  /** SBD-01·02 자동 콘티 / 다시 나누기 */
+  const split = (v: StoryVersion, pageCount?: number) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(pageCount ? { pageCount } : {}) })
   const titles = (v: StoryVersion) => start('story.titles', { versionId: v.id, draft: versionToText(v) })
 
   const updateVersion = (id: string, patch: Partial<Pick<StoryVersion, 'logline' | 'scenes' | 'punchline'>>) =>
@@ -64,5 +66,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>) {
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, draft, titles, updateVersion, setActive, keepStale, updateSettings }
+  return { versions, sources, material, active, analyze, draft, split, titles, updateVersion, setActive, keepStale, updateSettings }
 }

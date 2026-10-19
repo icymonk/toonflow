@@ -14,7 +14,18 @@ export interface Page {
 }
 
 export type DialogueType = 'speech' | 'thought' | 'whisper' | 'shout' | 'narration' | 'sfx'
-export interface Dialogue { id: string, type: DialogueType, speakerId: string | null, text: string }
+/** speaker: 말한 사람 이름. 캐릭터가 등록되면 speakerId로 연결 (SBD-12, 1-G) */
+export interface Dialogue { id: string, type: DialogueType, speaker: string, speakerId: string | null, text: string }
+
+/** SBD-11: 이보다 길면 말풍선이 그림을 가린다고 경고 */
+export const DIALOGUE_WARN_CHARS = 40
+
+/** SBD-10 구도 */
+export const SHOTS = ['closeup', 'bust', 'full', 'wide', 'pov'] as const
+
+export const LAYOUT_BY_COUNT: Record<number, PageLayout> = { 0: '1', 1: '1', 2: '2v', 3: '3', 4: '4' }
+/** SBD-23: 컷 수에 맞는 배치. 2컷만 세로/가로를 고른다 */
+export const layoutOptions = (count: number): PageLayout[] => (count === 2 ? ['2v', '2h'] : [LAYOUT_BY_COUNT[count] ?? '1'])
 
 /** STU-12: 앞 단계가 바뀌어 다시 볼 필요가 있는 결과 */
 export type StaleFrom = 'scene' | 'dialogue' | null
@@ -23,6 +34,9 @@ export interface Panel {
   id: string
   pageId: string
   scene: string
+  place: string
+  mood: string
+  characterNames: string[]
   characterIds: string[]
   shot: string
   expression: string
@@ -36,7 +50,7 @@ export interface Panel {
 }
 
 export const emptyPanel = (pageId: string): Omit<Panel, 'id'> => ({
-  pageId, scene: '', characterIds: [], shot: '', expression: '', action: '', outfit: '', note: '',
+  pageId, scene: '', place: '', mood: '', characterNames: [], characterIds: [], shot: '', expression: '', action: '', outfit: '', note: '',
   dialogues: [], selectedCandidateId: null, staleFrom: null, deletedAt: null,
 })
 
@@ -97,6 +111,32 @@ export function movedPanelIds(cuts: Cut[], panelId: string, dir: -1 | 1): Record
   if (dir === 1) to.unshift(panelId)
   else to.push(panelId)
   return { [cur.page.id]: from, [neighbor.page.id]: to }
+}
+
+/** SBD-21: 컷을 다른 위치(장 + 순번)로. 대상 장이 4컷이면 null */
+export function movePanelTo(pages: Page[], panelId: string, toPageId: string, toIndex: number): Record<string, string[]> | null {
+  const from = pages.find(p => p.panelIds.includes(panelId))
+  const to = pages.find(p => p.id === toPageId)
+  if (!from || !to) return null
+  if (from.id === to.id) {
+    const ids = from.panelIds.filter(id => id !== panelId)
+    ids.splice(Math.min(toIndex, ids.length), 0, panelId)
+    return { [from.id]: ids }
+  }
+  if (to.panelIds.length >= 4) return null
+  const ids = [...to.panelIds]
+  ids.splice(Math.min(toIndex, ids.length), 0, panelId)
+  return { [from.id]: from.panelIds.filter(id => id !== panelId), [to.id]: ids }
+}
+
+/** SBD-21: 장 순서 바꾸기 */
+export function movePage(order: string[], pageId: string, dir: -1 | 1): string[] | null {
+  const i = order.indexOf(pageId)
+  const j = i + dir
+  if (i < 0 || j < 0 || j >= order.length) return null
+  const next = [...order]
+  ;[next[i], next[j]] = [next[j]!, next[i]!]
+  return next
 }
 
 /** STU-21: 실행 취소·다시 실행 스택 */
