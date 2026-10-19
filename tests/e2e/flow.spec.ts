@@ -152,6 +152,14 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(guest.getByText('작가가 읽어 보고 있어요.')).toBeVisible()
   await guest.getByRole('button', { name: '동의 철회' }).click()
   await expect(guest.getByText('동의를 철회했어요. 보낸 내용은 지웠어요.')).toBeVisible()
+
+  // CMN-40: 공개 제보 페이지 신고
+  await guest.goto(link!)
+  await guest.getByText('이 페이지 신고').click()
+  await guest.getByLabel('신고 이유').selectOption('spam')
+  await guest.getByLabel('자세한 내용 (선택)').fill('광고 글이 올라와요')
+  await guest.getByRole('button', { name: '신고하기' }).click()
+  await expect(guest.getByText('신고했어요. 운영자가 확인해요.')).toBeVisible()
   await page.reload()
   await page.locator('li', { hasText: '제보 링크 ·' }).first().click()
   await expect(page.getByText(/제보자가 동의를 철회했어요/)).toBeVisible()

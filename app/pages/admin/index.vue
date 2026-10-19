@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import type { Report, ReportAction } from '#shared/reports'
+import { collection, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { DEFAULT_LIMITS, DEFAULT_MODELS, limitsConfig, modelsConfig, parseEmails } from '#shared/config'
 import { errorMessage } from '~/lib/errors'
+import { callFn } from '~/lib/functions'
 import { ko } from '~/locales/ko'
 
 // CMN-50: 운영자 설정. 규칙이 admin 클레임으로 다시 막는다
-const { $auth, $firestore } = useNuxtApp()
+const { $auth, $firestore, $functions } = useNuxtApp()
 const t = ko.admin
 const isAdmin = ref<boolean | null>(null)
 const emails = ref('')
@@ -21,6 +23,7 @@ onMounted(async () => {
   emails.value = ((access!.get('allowedEmails') as string[] | undefined) ?? []).join('\n')
   Object.assign(limits, { ...DEFAULT_LIMITS, ...lim!.data() })
   modelsText.value = JSON.stringify({ ...DEFAULT_MODELS, ...models!.data() }, null, 2)
+  await loadReports()
 })
 
 async function save(id: string, data: Record<string, unknown>) {
@@ -32,6 +35,25 @@ async function save(id: string, data: Record<string, unknown>) {
     toast.error(errorMessage(error) ?? ko.errors.unknown)
   }
 }
+
+// CMN-40·53 신고 처리
+const reports = ref<Report[]>([])
+const notes = reactive<Record<string, string>>({})
+async function loadReports() {
+  const snap = await getDocs(query(collection($firestore, 'reports'), orderBy('createdAt', 'desc'), limit(50)))
+  reports.value = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Report)
+}
+async function resolve(r: Report, action: ReportAction) {
+  try {
+    await callFn($functions, 'resolveReport', { reportId: r.id, action, note: notes[r.id] ?? '' })
+    toast.success(t.saved)
+    await loadReports()
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+}
+const when = (ts?: { toMillis: () => number }) => (ts ? new Date(ts.toMillis()).toLocaleString('ko-KR') : '')
 
 const saveAccess = () => save('access', { allowedEmails: parseEmails(emails.value) })
 
@@ -108,6 +130,43 @@ function saveModels() {
           <Button class="self-start" @click="saveModels">
             {{ t.save }}
           </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ t.reports }}</CardTitle>
+          <CardDescription>{{ t.reportsHint }}</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-3">
+          <p v-if="!reports.length" class="text-muted-foreground text-sm">
+            {{ t.noReports }}
+          </p>
+          <div v-for="r in reports" :key="r.id" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="rounded px-1.5 py-0.5 text-xs" :class="r.status === 'open' ? 'bg-red-100 text-red-900' : 'bg-muted'">{{ t.reportStatus[r.status] }}</span>
+              <span class="font-medium">{{ t.reportKind[r.kind] }} · {{ ko.report.reasons[r.reason] }}</span>
+              <a v-if="r.slug" :href="`/s/${r.slug}`" target="_blank" rel="noopener" class="text-primary text-xs underline">/s/{{ r.slug }}</a>
+              <span class="text-muted-foreground text-xs">{{ r.workspaceId }}<template v-if="r.submissionId"> / {{ r.submissionId }}</template> · {{ when(r.createdAt) }}</span>
+            </div>
+            <p v-if="r.detail" class="whitespace-pre-wrap">
+              {{ r.detail }}
+            </p>
+            <p v-for="(l, i) in r.log ?? []" :key="i" class="text-muted-foreground text-xs">
+              {{ new Date(l.at).toLocaleString('ko-KR') }} · {{ t.reportAction[l.action] }}<template v-if="l.note"> · {{ l.note }}</template>
+            </p>
+            <div class="flex flex-wrap items-center gap-2">
+              <Input v-model="notes[r.id]" class="h-8 max-w-xs text-xs" :placeholder="t.reportNote" :aria-label="t.reportNote" />
+              <Button v-if="r.slug" size="sm" variant="destructive" @click="resolve(r, 'block')">
+                {{ t.reportAction.block }}
+              </Button>
+              <Button v-if="r.slug" size="sm" variant="outline" @click="resolve(r, 'unblock')">
+                {{ t.reportAction.unblock }}
+              </Button>
+              <Button size="sm" variant="ghost" @click="resolve(r, 'dismiss')">
+                {{ t.reportAction.dismiss }}
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </template>

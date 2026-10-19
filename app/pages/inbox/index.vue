@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { applyMask, findPii } from '#shared/privacy'
 import type { Submission, SubmissionFilter, SubmissionStatus } from '#shared/submissions'
+import type { ReportReason } from '#shared/reports'
 import { Inbox, Link, Plus, Star } from '@lucide/vue'
 import { doc, getDoc } from 'firebase/firestore'
 import { getDownloadURL, ref as sref } from 'firebase/storage'
 import { toast } from 'vue-sonner'
 import { canEdit, canManage } from '#shared/roles'
 import { filterSubmissions, MANUAL_SOURCES, MANUAL_STATUSES, parseTags, splitBulk, STATUS_KEYS, SUBMISSION_SOURCES, SUBMISSION_STATUSES, submissionInput, titleFrom } from '#shared/submissions'
+import { REPORT_REASONS } from '#shared/reports'
+import { similarGroups } from '#shared/similar'
 import { errorMessage } from '~/lib/errors'
+import { callFn } from '~/lib/functions'
 import { ko } from '~/locales/ko'
 
 const t = ko.inbox
@@ -80,7 +84,15 @@ watch(() => route.query.id, id => id && (currentId.value = String(id)))
 const current = computed(() => list.value.find(s => s.id === currentId.value))
 
 // INB-02·06·15: 제보 링크 복사, 첨부 이미지, 연락처(소유자·관리자)
-const { $firestore, $storage } = useNuxtApp()
+const { $firestore, $storage, $functions } = useNuxtApp()
+
+// INB-26 비슷한 제보, CMN-40 신고
+const similar = computed(() => similarGroups(list.value.filter(s => s.status !== 'withdrawn').map(s => ({ id: s.id, body: s.maskedBody || s.body }))))
+const report = reactive({ reason: 'abuse' as ReportReason, detail: '' })
+const sendReport = () => current.value && run(async () => {
+  await callFn($functions, 'reportSubmission', { workspaceId: auth.workspace!.id, submissionId: current.value!.id, reason: report.reason, detail: report.detail })
+  report.detail = ''
+}, ko.intake.report.sent)
 const intakeSlug = ref('')
 onMounted(async () => {
   const cfg = await getDoc(doc($firestore, 'workspaces', auth.workspace!.id, 'config', 'intake')).catch(() => null)
@@ -277,7 +289,7 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
       </div>
 
       <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-        <ul class="flex flex-col gap-1 overflow-y-auto">
+        <ul class="flex flex-col gap-1 overflow-y-auto" :class="{ 'hidden lg:flex': current }">
           <li v-if="shown.length === 0" class="text-muted-foreground py-12 text-center text-sm">
             {{ t.noMatch }}
           </li>
@@ -290,6 +302,7 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="rounded px-1.5 py-0.5 text-xs" :class="STATUS_CLASS[s.status]">{{ t.status[s.status] }}</span>
+                <span v-if="similar.get(s.id)" class="shrink-0 rounded bg-sky-100 px-1.5 py-0.5 text-xs text-sky-900">{{ t.similar(similar.get(s.id)!.length) }}</span>
                 <span class="truncate font-medium" :class="{ 'opacity-60': s.status === 'rejected' }">{{ s.status === 'withdrawn' ? '—' : s.title }}</span>
               </div>
               <p class="text-muted-foreground mt-1 line-clamp-2 text-sm">
@@ -307,13 +320,38 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
 
         <Card v-if="current" class="overflow-y-auto">
           <CardHeader>
+            <Button variant="ghost" size="sm" class="self-start lg:hidden" @click="currentId = undefined">
+              {{ t.backToList }}
+            </Button>
             <CardTitle>{{ current.status === 'withdrawn' ? t.status.withdrawn : current.title }}</CardTitle>
             <CardDescription>{{ t.source[current.source] }}<template v-if="current.sourceNote"> · {{ current.sourceNote }}</template> · {{ date(current) }}</CardDescription>
+            <details v-if="edit && current.status !== 'withdrawn'" class="text-muted-foreground text-xs">
+              <summary class="cursor-pointer">
+                {{ t.report }}
+              </summary>
+              <form class="mt-2 flex flex-col gap-2" @submit.prevent="sendReport">
+                <select v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="ko.intake.report.reason">
+                  <option v-for="r in REPORT_REASONS" :key="r" :value="r">
+                    {{ ko.report.reasons[r] }}
+                  </option>
+                </select>
+                <Textarea v-model="report.detail" rows="2" maxlength="500" :aria-label="ko.intake.report.detail" :placeholder="ko.intake.report.detail" />
+                <Button size="sm" variant="outline" type="submit" class="self-start">
+                  {{ ko.intake.report.send }}
+                </Button>
+              </form>
+            </details>
           </CardHeader>
           <CardContent class="flex flex-col gap-4">
             <p v-if="current.withdrawn" class="rounded-md bg-red-100 px-3 py-2 text-xs text-red-900" role="alert">
               {{ current.withdrawn.published ? t.withdrawnAfter : t.withdrawnBefore }}<template v-if="current.withdrawn.at"> · {{ new Date(current.withdrawn.at.toMillis()).toLocaleString('ko-KR') }}</template>
             </p>
+            <div v-if="similar.get(current.id)" class="flex flex-col gap-1 rounded-md bg-sky-50 px-3 py-2 text-xs">
+              <span class="font-medium">{{ t.similarTitle }}</span>
+              <button v-for="id in similar.get(current.id)" :key="id" class="text-primary truncate text-left underline" @click="currentId = id">
+                {{ list.find(x => x.id === id)?.title }}
+              </button>
+            </div>
             <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
               {{ current.body }}
             </p>

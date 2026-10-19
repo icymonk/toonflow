@@ -2,6 +2,7 @@ import type { CleanupInput, UsageInput } from './assets'
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
 import type { CreateEpisodeInput, DuplicateEpisodeInput, TrashInput } from './episodes'
 import type { IntakeStatus, IntakeSubmitInput, IntakeTokenInput } from './intake'
+import type { ReportPageInput, ReportSubmissionInput, ResolveReportInput } from './reports'
 import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { TrashItemInput } from './trash'
 import type { SetWorkspaceLimitInput } from './usage'
@@ -42,5 +43,8 @@ export interface Callables {
   submitIntake: { input: IntakeSubmitInput, output: { ok: true, token: string } }
   intakeStatus: { input: IntakeTokenInput, output: IntakeStatus }
   withdrawIntake: { input: IntakeTokenInput, output: { ok: true } }
+  reportPage: { input: ReportPageInput, output: { ok: true } }
+  reportSubmission: { input: ReportSubmissionInput, output: { ok: true } }
+  resolveReport: { input: ResolveReportInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }

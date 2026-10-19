@@ -9,5 +9,6 @@ export { createEpisode, deleteToTrash, duplicateEpisode } from './callable/episo
 export { purgeFromTrash, restoreFromTrash } from './callable/trash'
 export { cleanupCandidates, storageUsage } from './callable/assets'
 export { intakeStatus, submitIntake, withdrawIntake } from './callable/intake'
+export { reportPage, reportSubmission, resolveReport } from './callable/reports'
 export { runAiJob } from './ai/run'
 export { purgeExpiredTrash } from './scheduled/trash'

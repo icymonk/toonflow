@@ -19,6 +19,7 @@ export const submitIntake = publicCallable(intakeSubmitInput, async ({ data, ip 
   const db = getFirestore()
   const page = await db.doc(`intake/${data.slug}`).get()
   if (!page.exists || page.get('enabled') !== true) throw new HttpsError('failed-precondition', ERROR_KEYS.intakeClosed)
+  if ((await db.doc(`intakeBlocks/${data.slug}`).get()).exists) throw new HttpsError('failed-precondition', ERROR_KEYS.intakeClosed)
   if (data.body.length < INTAKE_LIMITS.minBody) throw new HttpsError('invalid-argument', ERROR_KEYS.tooShort)
 
   const ws = page.get('workspaceId') as string

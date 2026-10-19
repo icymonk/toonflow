@@ -113,6 +113,27 @@
         }
       },
       {
+        "source": "/fn/reportPage",
+        "function": {
+          "functionId": "reportPage",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/reportSubmission",
+        "function": {
+          "functionId": "reportSubmission",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/resolveReport",
+        "function": {
+          "functionId": "resolveReport",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
