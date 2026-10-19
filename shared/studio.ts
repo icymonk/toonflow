@@ -28,6 +28,9 @@ export const LAYOUT_BY_COUNT: Record<number, PageLayout> = { 0: '1', 1: '1', 2: 
 export const layoutOptions = (count: number): PageLayout[] => (count === 2 ? ['2v', '2h'] : [LAYOUT_BY_COUNT[count] ?? '1'])
 
 /** STU-12: 앞 단계가 바뀌어 다시 볼 필요가 있는 결과 */
+/** ILL-23 컷 틀 안에서 보일 영역 (0~1 비율) */
+export interface Crop { x: number, y: number, w: number, h: number }
+
 export type StaleFrom = 'scene' | 'dialogue' | null
 
 export interface Panel {
@@ -45,6 +48,7 @@ export interface Panel {
   note: string
   dialogues: Dialogue[]
   selectedCandidateId: string | null
+  crop?: Crop | null
   staleFrom: StaleFrom
   deletedAt?: Ts | null
 }
