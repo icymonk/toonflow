@@ -1,6 +1,6 @@
 # toonflow
 
-AI 인스타툰 제작 SaaS **TOONFLOW**. 현재 **기획 단계** (코드 없음).
+AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (2026-10-19). 다음은 개발 문서 `docs/dev/` (코드 없음).
 
 ## Docs
 - 기획 문서는 `docs/` (목차·문서 상태: `docs/README.md`). 기본 기획 `docs/planning/`, 기능명세 `docs/features/`, 브랜드·UI 디자인 `docs/design/`.
