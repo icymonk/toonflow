@@ -21,6 +21,7 @@
     "clsx": "^2.1.1",
     "firebase": "^12.19.0",
     "nuxt": "npm:nuxt-nightly@5x",
+    "pinia": "^4.1.0",
     "reka-ui": "^2.11.0",
     "shadcn-vue": "^2.8.2",
     "tailwind-merge": "^3.7.0",

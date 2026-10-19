@@ -3,8 +3,51 @@ rules_version = '2';
 // 경로별 규칙은 docs/dev/security.md 2절. 기능을 만들 때 그 경로를 연다. 정의하지 않은 경로는 모두 막는다.
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if false;
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return signedIn() && request.auth.token.admin == true;
+    }
+    function roleIn(ws) {
+      let m = /databases/$(database)/documents/workspaces/$(ws)/members/$(request.auth.uid);
+      return signedIn() && exists(m) ? get(m).data.role : null;
+    }
+    // 운영자는 모든 워크스페이스를 읽는다 (#18)
+    function canView(ws) {
+      return isAdmin() || roleIn(ws) in ['owner', 'admin', 'editor', 'viewer'];
+    }
+    function canManage(ws) {
+      return roleIn(ws) in ['owner', 'admin'];
+    }
+
+    // ACC-03: 본인은 이름·사진만 바꾼다. 만들기는 서버(completeOnboarding)
+    match /users/{uid} {
+      allow read: if (signedIn() && request.auth.uid == uid) || isAdmin();
+      allow update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 1 && request.resource.data.displayName.size() <= 30;
+    }
+
+    // CMN-50, AIU: 모델·한도 설정은 로그인한 사람이 읽는다. 가입 허용 목록은 운영자만
+    match /config/{id} {
+      allow read: if (signedIn() && id in ['models', 'limits']) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // ACC-11: 소유자·관리자는 이름·기본값만 바꾼다
+    match /workspaces/{ws} {
+      allow read: if canView(ws);
+      allow update: if canManage(ws)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'defaults'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 40
+        && request.resource.data.defaults is map;
+
+      match /members/{uid} {
+        allow read: if canView(ws);
+      }
     }
   }
 }
