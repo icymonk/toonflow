@@ -1,3 +1,4 @@
+import type { Bubble } from './render'
 import type { Step } from './episodes'
 import { STEPS } from './episodes'
 
@@ -49,6 +50,8 @@ export interface Panel {
   dialogues: Dialogue[]
   selectedCandidateId: string | null
   crop?: Crop | null
+  /** REV-01~03 */
+  bubbles?: Bubble[] | null
   staleFrom: StaleFrom
   deletedAt?: Ts | null
 }

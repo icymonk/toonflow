@@ -136,6 +136,14 @@ service cloud.firestore {
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['label', 'logline', 'scenes', 'punchline', 'editedAt'])
             && request.resource.data.scenes is list && request.resource.data.scenes.size() <= 20;
         }
+        // REV-04 식자 스타일
+        match /meta/{docId} {
+          allow read: if canView(ws);
+          allow write: if canEdit(ws) && docId == 'typeset'
+            && request.resource.data.keys().hasOnly(['font', 'fontSize', 'lineHeight', 'strokeWidth', 'strokeColor', 'updatedAt'])
+            && request.resource.data.font in ['pretendard', 'gowun-dodum', 'jua']
+            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 12 && request.resource.data.fontSize <= 96;
+        }
         // STU·SBD: 장·컷은 편집자가 직접 쓴다. 지우기는 deletedAt(실행 취소용). 이미지 후보는 서버만
         match /pages/{pageId} {
           allow read: if canView(ws);

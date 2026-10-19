@@ -43,6 +43,7 @@
   - 결정: Google AI Studio(Gemini) 하나로 시작(2026-10-19). 키는 GitHub 시크릿 `GEMINI_API_KEY`에 넣고, `main` 배포 때 CI(`deploy.yml`)가 값이 바뀌었을 때만 Functions 시크릿으로 옮긴다. 배포용 서비스 계정에 "Secret Manager 관리자" 역할이 필요하다. 수동으로는 `pnpm exec firebase functions:secrets:set GEMINI_API_KEY --project toonflow-351ed`. Functions 시크릿이 없으면 functions 배포가 실패한다. 선불 방식이라 잔액이 0이면 모든 호출이 402로 실패한다
 - GitHub에 `FIREBASE_SERVICE_ACCOUNT`, `NUXT_PUBLIC_FIREBASE_*` 등록 (0-2)
 - 말풍선 글꼴 후보 확인 (1-I 전에, 라이선스 표로 드림)
+  - 결정(추천안 적용, 2026-10-19): Pretendard · 고운돋움 · 주아. 모두 SIL OFL 1.1이라 상업 이용·출력물 포함 가능. 손글씨 글꼴은 나중(직접 올리기)
 
 ## 검증 결과
 
