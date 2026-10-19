@@ -3,12 +3,12 @@ import { getFunctions } from 'firebase-admin/functions'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
 import { DEFAULT_MODELS } from '../../../shared/config'
-import { JOB_KIND, startAiJobInput } from '../../../shared/jobs'
+import { JOB_KIND, jobRefInput, startAiJobInput } from '../../../shared/jobs'
 import { estimateKrw } from '../../../shared/pricing'
 import { monthKey } from '../../../shared/usage'
 import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
-import { reserve } from '../lib/usage'
+import { reserve, settle } from '../lib/usage'
 
 /** AIU-01·10~12: 권한·한도 확인 → 비용 예약 → 작업 문서 → 대기열 (docs/dev/ai-jobs.md 1절) */
 export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) => {
@@ -47,4 +47,19 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
     if (e.code !== 'functions/task-already-exists') throw e
   })
   return { jobId }
+})
+
+/** AIU-03: 대기 중인 작업 취소. 실행 중이면 결과는 받되 다음 단계로 넘기지 않는다 (예약은 run이 정산) */
+export const cancelAiJob = authedCallable(jobRefInput, async ({ uid, data }) => {
+  await requireMember(data.workspaceId, uid, 'editor')
+  const db = getFirestore()
+  const ref = db.doc(`workspaces/${data.workspaceId}/aiJobs/${data.jobId}`)
+  await db.runTransaction(async (tx) => {
+    const job = await tx.get(ref)
+    if (!job.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+    if (job.get('status') !== 'queued') return
+    settle(tx, data.workspaceId, job.get('month'), job.get('estimateKrw') ?? 0, 0)
+    tx.update(ref, { status: 'canceled', finishedAt: FieldValue.serverTimestamp() })
+  })
+  return { ok: true as const }
 })

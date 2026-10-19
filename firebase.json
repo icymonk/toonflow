@@ -22,6 +22,20 @@
         }
       },
       {
+        "source": "/fn/startAiJob",
+        "function": {
+          "functionId": "startAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/cancelAiJob",
+        "function": {
+          "functionId": "cancelAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
