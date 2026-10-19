@@ -1,4 +1,5 @@
 import type { Submission, SubmissionInput, SubmissionStatus } from '#shared/submissions'
+import { callFn } from '~/lib/functions'
 import { collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore'
 
 /** 제보함 (INB-01·20~22): 워크스페이스 제보 실시간 목록과 쓰기 */
@@ -38,5 +39,8 @@ export function useSubmissions() {
     await batch.commit()
   }
 
-  return { list, loading, add, update, setStatus }
+  // INB-23
+  const { $functions } = useNuxtApp()
+  const summarize = (s: Submission) => callFn($functions, 'startAiJob', { workspaceId: auth.workspace!.id, type: 'submission.summary', target: { submissionId: s.id }, params: { material: s.maskedBody || s.body }, idempotencyKey: crypto.randomUUID() })
+  return { list, loading, add, update, setStatus, summarize }
 }

@@ -34,6 +34,15 @@ export type Draft = z.infer<typeof draftSchema>
 
 // STO-14 제목 후보
 export const titlesSchema = z.object({ titles: z.array(z.string()).min(1).max(5) })
+// INB-23 제보 AI 요약: 세 줄 요약·장르 추천·웹툰 거리 점수(0~100)
+export const summarySchema = z.object({
+  summary: z.array(z.string()).min(1).max(3),
+  genre: z.enum(TONES).catch('empathy'),
+  score: z.number().int().min(0).max(100).catch(50),
+  reason: z.string().max(300).catch(''),
+})
+export type SubmissionSummary = z.infer<typeof summarySchema>
+
 export const captionSchema = z.object({ caption: z.string().min(1).max(2000), hashtags: z.array(z.string()).max(30).catch([]) })
 
 // SBD-01 자동 콘티

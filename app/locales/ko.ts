@@ -54,6 +54,7 @@ export const ko = {
     star: '별표',
     linked: '연결된 에피소드',
     toEpisode: '에피소드 만들기',
+    summary: { title: 'AI 요약', run: 'AI 요약', again: '다시 요약', cost: (n: number) => `약 ₩${n.toLocaleString('ko-KR')}`, started: '요약을 만들고 있어요', genre: '추천 톤', score: '웹툰 거리 점수', hint: '긴 제보를 세 줄로 줄이고, 어울리는 톤과 웹툰 거리 점수를 매겨요. 개인정보를 가렸으면 가린 글로 요약해요' },
     pii: {
       title: '개인정보 점검',
       none: '개인정보로 보이는 부분이 없어요',
@@ -139,6 +140,7 @@ export const ko = {
   },
   studio: {
     open: '제작실 열기',
+    keys: { title: '단축키', list: { '1~5': '단계 이동', 'J / →': '다음 컷', 'K / ←': '이전 컷', 'G': '그림 단계에서 선택 컷 생성', 'Ctrl+Z': '실행 취소 (Shift: 다시 실행)', 'Ctrl+K': '검색·명령 팔레트', '?': '단축키 목록' } as Record<string, string> },
     snap: {
       button: '스냅숏',
       title: '스냅숏',
@@ -522,6 +524,15 @@ export const ko = {
     month: { title: '이번 달 현황', created: '만든 에피소드', published: '발행', avgCost: '발행 1편 평균 비용', avgHours: '발행까지 평균', hours: (h: number) => `${h}시간`, spent: 'AI 사용' },
     guide: { title: '처음 사용 안내', hide: '숨기기', style: '그림체 만들기', character: '캐릭터 만들기', episode: '첫 에피소드 만들기' },
   },
+  palette: {
+    title: '검색·명령',
+    placeholder: '에피소드·제보·캐릭터·그림체 검색, 메뉴 이동',
+    shortcut: '검색 (Ctrl+K)',
+    empty: '찾는 게 없어요',
+    footer: '↑↓ 고르기 · Enter 열기 · Esc 닫기',
+    groups: { actions: '동작', go: '이동', episodes: '에피소드', submissions: '제보', characters: '캐릭터', styles: '그림체' },
+    actions: { newEpisode: '새 에피소드 만들기', addStory: '썰 등록' },
+  },
   notifications: {
     empty: '아직 알림이 없어요',
     done: '완료',
@@ -529,7 +540,7 @@ export const ko = {
     usageWarn: '이번 달 AI 사용량이 한도의 80%를 넘었어요',
     usageOver: '이번 달 AI 사용 한도에 도달했어요. 새 AI 작업이 막혀요',
     prefs: { title: '알림 설정', done: 'AI 생성 완료', failed: 'AI 생성 실패', usage: '사용량 경고(80%·100%)' },
-    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보' } as Record<string, string>,
+    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약' } as Record<string, string>,
   },
   publishList: {
     allSeries: '모든 작품',

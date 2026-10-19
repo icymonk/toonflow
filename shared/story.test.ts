@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dialoguesToText, draftSchema, parseJson, textToDialogues } from './story'
+import { dialoguesToText, draftSchema, parseJson, summarySchema, textToDialogues } from './story'
 
 describe('parseJson', () => {
   it('accepts fenced JSON and fills defaults', () => {
@@ -26,5 +26,11 @@ describe('dialogue text', () => {
       { type: 'speech', speaker: '부장님', text: '이거 뭐야' },
       { type: 'narration', speaker: '', text: '그냥 문장' },
     ])
+  })
+})
+
+describe('summarySchema', () => {
+  it('falls back for unknown genre and out-of-range score', () => {
+    expect(parseJson(summarySchema, '{"summary":["a","b","c"],"genre":"romance","score":150,"reason":"r"}')).toEqual({ summary: ['a', 'b', 'c'], genre: 'empathy', score: 50, reason: 'r' })
   })
 })

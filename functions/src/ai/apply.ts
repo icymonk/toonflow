@@ -1,13 +1,13 @@
 import type { JobType } from '../../../shared/jobs'
 import type { z } from 'zod'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { analysisSchema, captionSchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
+import { analysisSchema, captionSchema, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
 import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
 import { AiError } from './errors'
 
-interface JobDoc { type: JobType, target?: { episodeId?: string, panelId?: string, styleId?: string }, params?: Record<string, unknown> }
+interface JobDoc { type: JobType, target?: { episodeId?: string, panelId?: string, styleId?: string, submissionId?: string }, params?: Record<string, unknown> }
 
 function parse<T>(schema: z.ZodType<T>, result: unknown): T {
   const out = typeof result === 'string' ? parseJson(schema, result) : null
@@ -37,6 +37,12 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
       })
       if (!panel.get('selectedCandidateId') && ids[0]) tx.update(panelRef, { selectedCandidateId: ids[0], updatedAt: now })
     })
+    return
+  }
+  // INB-23: 제보 문서에. 앱은 aiSummary를 쓸 수 없다 (rules)
+  if (job.type === 'submission.summary' && job.target?.submissionId) {
+    const s = parse(summarySchema, result)
+    await db.doc(`workspaces/${wsId}/submissions/${job.target.submissionId}`).update({ aiSummary: { ...s, jobId } })
     return
   }
   const episodeId = job.target?.episodeId

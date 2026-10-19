@@ -30,6 +30,7 @@ export interface Submission extends Omit<SubmissionInput, 'source'> {
   note: string
   episodeIds: string[]
   maskedBody?: string | null
+  aiSummary?: import('./story').SubmissionSummary & { jobId: string }
   createdBy: string
   createdAt?: { toMillis: () => number }
   deletedAt?: unknown

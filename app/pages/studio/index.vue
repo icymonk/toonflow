@@ -318,6 +318,20 @@ onKeyStroke(['ArrowLeft', 'ArrowRight', 'Escape'], (e) => {
   }
 })
 
+// STU-30 단축키: 1~5 단계, J/K 이전·다음 컷, G 선택 컷 그림 생성, ? 단축키 목록
+const keysOpen = ref(false)
+onKeyStroke(['1', '2', '3', '4', '5', 'j', 'J', 'k', 'K', 'g', 'G', '?'], (e) => {
+  if (typing() || e.metaKey || e.ctrlKey || e.altKey || previewOpen.value || snapOpen.value) return
+  const k = e.key.toLowerCase()
+  if (k === '?') keysOpen.value = !keysOpen.value
+  else if (k === 'j' || k === 'k') step1(k === 'j' ? 1 : -1)
+  else if (k === 'g') {
+    if (step.value === 'illustrate' && edit.value && selected.value && !s.busyPanels.value.has(selected.value.panel.id)) illGenerate([selected.value], illN.value, {})
+  }
+  else goStep(STEPS[Number(k) - 1]!)
+})
+onKeyStroke('Escape', () => (keysOpen.value = false))
+
 const aspect = computed(() => (episode.value?.settings.aspect ?? '4:5').replace(':', ' / '))
 const krw = (n: number) => `₩${(n ?? 0).toLocaleString('ko-KR')}`
 const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', '2h': 'grid-cols-2', '3': 'grid-rows-3', '4': 'grid-cols-2 grid-rows-2' }
@@ -588,6 +602,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <span class="text-sm text-white">{{ previewPage + 1 }} / {{ pageCount }}</span>
       </div>
       <button class="text-white disabled:opacity-30" :disabled="previewPage >= pageCount - 1" :aria-label="t.next" @click="previewPage++"><ChevronRight class="size-8" /></button>
+    </div>
+    <div v-if="keysOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/30" @click.self="keysOpen = false">
+      <div class="bg-popover w-80 rounded-lg border p-4 text-sm shadow-lg" role="dialog" :aria-label="t.keys.title">
+        <h2 class="mb-2 font-semibold">{{ t.keys.title }}</h2>
+        <dl class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+          <template v-for="(d, k) in t.keys.list" :key="k"><dt><kbd class="bg-muted rounded px-1.5 text-xs">{{ k }}</kbd></dt><dd>{{ d }}</dd></template>
+        </dl>
+      </div>
     </div>
   </div>
 </template>

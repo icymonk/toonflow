@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ListTodo, LogOut, PanelLeft, Search, Trash2 } from '@lucide/vue'
-import { useLocalStorage } from '@vueuse/core'
+import { onKeyStroke, useLocalStorage } from '@vueuse/core'
 import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
 
@@ -10,6 +10,12 @@ const { ratio, level } = useUsage()
 const route = useRoute()
 const collapsed = useLocalStorage('toonflow:sidebarCollapsed', false)
 
+const paletteOpen = ref(false)
+onKeyStroke(['k', 'K'], (e) => {
+  if (!(e.metaKey || e.ctrlKey)) return
+  e.preventDefault()
+  paletteOpen.value = !paletteOpen.value
+})
 const current = computed(() => [...NAV_MAIN, NAV_SETTINGS].find(i => isActive(i, route.path)))
 
 async function signOut() {
@@ -82,7 +88,7 @@ async function signOut() {
           {{ current?.label }} <span class="text-muted-foreground">· {{ current?.ko }}</span>
         </p>
         <div class="ml-auto flex items-center gap-1">
-          <Button variant="ghost" size="icon" :aria-label="ko.nav.search" disabled>
+          <Button variant="ghost" size="icon" :aria-label="ko.nav.search" :title="ko.palette.shortcut" @click="paletteOpen = true">
             <Search class="size-4" />
           </Button>
           <Button variant="ghost" size="icon" :aria-label="ko.nav.queue" disabled>
@@ -94,6 +100,7 @@ async function signOut() {
       <main class="min-w-0 flex-1">
         <slot />
       </main>
+      <AppCommandPalette v-if="paletteOpen" @close="paletteOpen = false" />
     </div>
   </div>
 </template>
