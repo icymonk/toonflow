@@ -25,6 +25,9 @@
 | `…/notifications/*` | `uid == 나` | 본인: `readAt`만 |
 | `…/submissions/{id}/private/*` (3단계) | `canManage` | 서버만 |
 | `intake/*` (3단계) | 누구나 (`enabled`, 안내 문구) | `canManage` (해당 워크스페이스) |
+| `workspaces/{ws}/config/intake` | `canView` | `canManage` (`slug`·`bannedWords`만) |
+| `workspaces/{ws}/submissions/{id}/private/*` | `canManage` | 서버만 (`submitIntake`) |
+| Storage `workspaces/{ws}/intake/**` | `canView` | 서버만 |
 
 ## 3. Storage
 | 경로 | 읽기 | 쓰기 |
