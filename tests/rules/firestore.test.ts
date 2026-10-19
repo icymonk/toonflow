@@ -23,6 +23,9 @@ beforeAll(async () => {
     await setDoc(doc(f, `${W}/episodes/e1`), { title: '1화', number: 1, step: 'story', status: 'active', settings: {}, deletedAt: null })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1`), { scene: 's', dialogues: [] })
     await setDoc(doc(f, `${W}/episodes/e1/panels/p1/candidates/c1`), { imagePath: 'x' })
+    await setDoc(doc(f, `${W}/series/sr1`), { name: '작품', intro: '', episodeCount: 1, deletedAt: null })
+    await setDoc(doc(f, `${W}/characters/ch1`), { name: '나', refImages: [], deletedAt: null })
+    await setDoc(doc(f, `${W}/assets/a1`), { path: `${W}/refs/assets/a.png`, name: 'a.png', size: 1, tags: [], createdBy: 'editor' })
     await setDoc(doc(f, `users/editor`), { displayName: 'e', email: 'e@x' })
   })
 })
@@ -83,6 +86,45 @@ describe('server-only fields', () => {
     await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/meta/typeset`), ts))
     await assertFails(setDoc(doc(db('editor'), `${W}/episodes/e1/meta/typeset`), { ...ts, font: 'comic' }))
     await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/meta/typeset`), ts))
+  })
+})
+
+describe('2단계 경로', () => {
+  it('series: editors archive and set notes; server-only counters are blocked', async () => {
+    const ref = (u: string) => doc(db(u), `${W}/series/sr1`)
+    await assertSucceeds(updateDoc(ref('editor'), { archivedAt: new Date(), memo: '세계관', reviewItems: ['로고'], hashtags: ['#툰'], greeting: '안녕', watermark: '@me' }))
+    await assertFails(updateDoc(ref('viewer'), { archivedAt: null }))
+    await assertFails(updateDoc(ref('editor'), { episodeCount: 9 }))
+    await assertFails(updateDoc(ref('editor'), { deletedAt: new Date() }))
+  })
+  it('characters: variants up to 12, persona fields', async () => {
+    const v = (n: number) => Array.from({ length: n }, (_, i) => ({ kind: 'expression', label: `${i}`, path: `${W}/refs/characters/ch1/${i}.png` }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/characters/ch1`), { variants: v(12), personality: ['소심'], speech: ['어...'] }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/characters/ch1`), { variants: v(13) }))
+    await assertFails(updateDoc(doc(db('viewer'), `${W}/characters/ch1`), { personality: [] }))
+  })
+  it('assets: own uploads under refs/assets only; tags only on update', async () => {
+    const a = { path: `${W}/refs/assets/b.png`, name: 'b.png', size: 2, tags: ['배경'], createdBy: 'editor', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/assets/a2`), a))
+    await assertFails(setDoc(doc(db('editor'), `${W}/assets/a3`), { ...a, path: 'workspaces/w2/refs/assets/b.png' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/assets/a4`), { ...a, createdBy: 'owner' }))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/assets/a5`), { ...a, createdBy: 'viewer' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { tags: ['x'] }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/assets/a1`), { path: `${W}/refs/assets/c.png` }))
+  })
+  it('candidates: editors import from aiJobs path and flag favorite/hidden only', async () => {
+    const imp = { imagePath: `${W}/aiJobs/j1/0.png`, width: 1080, height: 1350, source: 'import', jobId: '', input: null, hidden: false, favorite: false, workspaceId: 'w1', episodeId: 'e1', panelId: 'p1', createdAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), imp))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i2`), imp))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: true, hidden: false }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: 'yes' }))
+    await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i1`), { favorite: false }))
+    await assertSucceeds(getDoc(doc(db('viewer'), `${W}/episodes/e1/panels/p1/candidates/i1`)))
+    await assertFails(getDoc(doc(db('other'), `${W}/episodes/e1/panels/p1/candidates/i1`)))
+  })
+  it('submissions: AI summary and links are server-only', async () => {
+    await assertFails(updateDoc(doc(db('owner'), `${W}/submissions/s1`), { aiSummary: { summary: ['x'], genre: 'comedy', score: 100, reason: '', jobId: 'j' } }))
+    await assertFails(updateDoc(doc(db('owner'), `${W}/episodes/e1`), { duplicatedFrom: { id: 'e0' } }))
   })
 })
 
