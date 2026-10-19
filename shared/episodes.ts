@@ -59,7 +59,7 @@ export interface Episode {
   number: number
   step: Step
   status: EpisodeStatus
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[] }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean }
   submissionIds: string[]
   activeStoryVersionId?: string | null
   storyVersionCount?: number

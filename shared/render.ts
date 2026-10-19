@@ -146,3 +146,32 @@ export function spikyPath(b: { x: number, y: number, w: number, h: number }, spi
   }
   return `M${pts.join('L')}Z`
 }
+
+export interface LaidBubble { b: Bubble, px: Rect, lines: string[], lh: number, tail: string | null }
+export interface LaidCut { cut: Cut, r: Rect, img: Rect, bubbles: LaidBubble[] }
+/** 화면(SVG)·출력(Canvas) 공용 배치 계산 */
+export function layoutPage(cuts: Cut[], W: number, H: number, ts: Typeset, override?: (panelId: string, b: Bubble) => Bubble): LaidCut[] {
+  const rects = cutRects(cuts[0]?.page.layout ?? '1', cuts.length, W, H)
+  return cuts.map((cut, i) => {
+    const r = rects[i]!
+    const crop = cut.panel.crop
+    const img = crop ? { x: r.x - (crop.x / crop.w) * r.w, y: r.y - (crop.y / crop.h) * r.h, w: r.w / crop.w, h: r.h / crop.h } : r
+    const bubbles = syncBubbles(cut.panel, r, ts.fontSize).map(b0 => override?.(cut.panel.id, b0) ?? b0).map((b) => {
+      const px = { x: r.x + b.x * r.w, y: r.y + b.y * r.h, w: b.w * r.w, h: b.h * r.h }
+      const text = cut.panel.dialogues.find(d => d.id === b.dialogueId)?.text ?? ''
+      const lines = wrapText(text, Math.max(1, Math.floor((px.w - b.fontSize * (b.shape === 'narration' ? 1 : 2)) / b.fontSize)))
+      return { b, px, lines, lh: b.fontSize * ts.lineHeight, tail: tailPoints(px, b.tail) }
+    })
+    return { cut, r, img, bubbles }
+  })
+}
+
+// PUB-03·05·13
+/** 인스타그램 한 게시물 최대 장수 (현재 20). 바뀌면 여기만 */
+export const POST_LIMIT = 20
+export const AI_LABEL = 'AI 생성 이미지 포함'
+export const AI_CAPTION = '이 게시물에는 AI로 생성한 이미지가 포함되어 있어요. #AI생성'
+const safe = (s: string) => s.replace(/[\\/:*?"<>|\s]+/g, '_').replace(/^_+|_+$/g, '') || 'toonflow'
+export const exportName = (series: string, episode: number, page: number, ext: string) => `${safe(series)}_${episode}화_${String(page).padStart(2, '0')}.${ext}`
+export const splitBatches = <T>(items: T[], limit = POST_LIMIT): T[][] =>
+  items.length <= limit ? [items] : Array.from({ length: Math.ceil(items.length / limit) }, (_, i) => items.slice(i * limit, (i + 1) * limit))

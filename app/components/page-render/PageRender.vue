@@ -3,10 +3,10 @@ import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
 import { candidatePath } from '#shared/illustrate'
-import { cutRects, fontCss, pageSize, spikyPath, syncBubbles, tailPoints, wrapText } from '#shared/render'
+import { cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
-const props = defineProps<{ cuts: Cut[], aspect?: string, typeset: Typeset, edit?: boolean, selectedPanelId?: string, selectedBubble?: string | null }>()
+const props = defineProps<{ cuts: Cut[], aspect?: string, typeset: Typeset, edit?: boolean, selectedPanelId?: string, selectedBubble?: string | null, label?: string | null }>()
 const emit = defineEmits<{ select: [panelId: string, dialogueId: string | null], move: [panelId: string, dialogueId: string, patch: Pick<Bubble, 'x' | 'y' | 'w' | 'h'>] }>()
 const { $storage } = useNuxtApp()
 const auth = useAuthStore()
@@ -30,25 +30,8 @@ const toSvg = (e: PointerEvent) => {
   const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.value!.getScreenCTM()!.inverse())
   return { x: pt.x, y: pt.y }
 }
-const items = computed(() => props.cuts.map((c, i) => {
-  const r = rects.value[i]!
-  const bubbles = syncBubbles(c.panel, r, props.typeset.fontSize).map(b => (drag.value?.panelId === c.panel.id && drag.value.dialogueId === b.dialogueId ? drag.value.live : b))
-  const crop = c.panel.crop
-  const img = crop ? { x: r.x - (crop.x / crop.w) * r.w, y: r.y - (crop.y / crop.h) * r.h, w: r.w / crop.w, h: r.h / crop.h } : r
-  return {
-    cut: c,
-    r,
-    img,
-    url: c.panel.selectedCandidateId ? urls[c.panel.selectedCandidateId] : undefined,
-    bubbles: bubbles.map((b) => {
-      const px = { x: r.x + b.x * r.w, y: r.y + b.y * r.h, w: b.w * r.w, h: b.h * r.h }
-      const text = c.panel.dialogues.find(d => d.id === b.dialogueId)?.text ?? ''
-      const lh = b.fontSize * props.typeset.lineHeight
-      const lines = wrapText(text, Math.max(1, Math.floor((px.w - b.fontSize * (b.shape === 'narration' ? 1 : 2)) / b.fontSize)))
-      return { b, px, lines, lh, tail: tailPoints(px, b.tail) }
-    }),
-  }
-}))
+const items = computed(() => layoutPage(props.cuts, size.value.w, size.value.h, props.typeset, (pid, b) => (drag.value?.panelId === pid && drag.value.dialogueId === b.dialogueId ? drag.value.live : b))
+  .map(it => ({ ...it, url: it.cut.panel.selectedCandidateId ? urls[it.cut.panel.selectedCandidateId] : undefined })))
 
 function down(e: PointerEvent, panelId: string, b: Bubble, mode: 'move' | 'resize') {
   emit('select', panelId, b.dialogueId)
@@ -125,5 +108,6 @@ defineExpose({ svg })
       </g>
       <rect :x="it.r.x" :y="it.r.y" :width="it.r.w" :height="it.r.h" fill="none" :stroke="it.cut.panel.id === selectedPanelId && edit ? '#FF735C' : '#1F2A44'" stroke-width="4" pointer-events="none" />
     </g>
+    <text v-if="label" :x="size.w - 24" :y="size.h - 4" text-anchor="end" font-size="18" fill="#71717A" font-family="Pretendard Variable, sans-serif">{{ label }}</text>
   </svg>
 </template>

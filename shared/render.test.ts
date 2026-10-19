@@ -36,3 +36,12 @@ describe('render', () => {
     expect(issues).toEqual(['noImage', 'outside', 'noBubble'])
   })
 })
+
+describe('export helpers', () => {
+  it('names files and splits batches', async () => {
+    const { exportName, splitBatches } = await import('./render')
+    expect(exportName('회사 썰/1', 3, 1, 'jpg')).toBe('회사_썰_1_3화_01.jpg')
+    expect(splitBatches([1, 2, 3], 20)).toEqual([[1, 2, 3]])
+    expect(splitBatches(Array.from({ length: 25 }, (_, i) => i), 20).map(b => b.length)).toEqual([20, 5])
+  })
+})
