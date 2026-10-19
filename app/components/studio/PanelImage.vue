@@ -1,11 +1,20 @@
 <script setup lang="ts">
 import type { Crop } from '#shared/studio'
-import { candidatePath, cropStyle } from '#shared/illustrate'
+import { cropStyle } from '#shared/illustrate'
+import { resolveCandidatePath } from '~/lib/candidates'
 
 // 컷 그림 (ILL-11·23). 위치는 부모가 정한다 (absolute/relative)
-const props = defineProps<{ candidateId: string, crop?: Crop | null }>()
+const props = defineProps<{ candidateId: string, panelId: string, crop?: Crop | null }>()
 const auth = useAuthStore()
-const path = computed(() => (auth.workspace ? candidatePath(auth.workspace.id, props.candidateId) : null))
+const route = useRoute()
+const { $firestore } = useNuxtApp()
+const path = ref<string | null>(null)
+watch(() => [auth.workspace?.id, props.candidateId, props.panelId] as const, async ([ws, id, panelId]) => {
+  path.value = null
+  if (!ws) return
+  const p = await resolveCandidatePath($firestore, ws, String(route.query.episode ?? ''), { id, panelId }).catch(() => null)
+  if (id === props.candidateId) path.value = p
+}, { immediate: true })
 </script>
 
 <template>

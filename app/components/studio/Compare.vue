@@ -10,6 +10,7 @@ const emit = defineEmits<{ close: [], choose: [id: string] }>()
 const t = ko.studio.illustrate
 const idx = ref(Math.max(0, props.candidates.findIndex(c => c.id === props.startId)))
 const shown = computed(() => props.candidates[idx.value])
+const currentPath = computed(() => props.candidates.find(c => c.id === props.currentId)?.imagePath)
 const move = (d: number) => (idx.value = (idx.value + d + props.candidates.length) % props.candidates.length)
 onKeyStroke(['ArrowLeft', 'ArrowRight', 'Escape'], (e) => {
   e.preventDefault()
@@ -24,7 +25,7 @@ onKeyStroke(['ArrowLeft', 'ArrowRight', 'Escape'], (e) => {
     <div class="flex h-[75dvh] items-center gap-6">
       <figure class="flex h-full flex-col items-center gap-2">
         <div class="relative h-full bg-neutral-200" :style="{ aspectRatio: aspect }">
-          <StudioPanelImage v-if="currentId" :candidate-id="currentId" class="absolute inset-0" />
+          <AppStorageImg v-if="currentPath" :path="currentPath" class="absolute inset-0 size-full" />
           <p v-else class="flex h-full items-center justify-center p-4 text-sm text-neutral-600">{{ t.noCurrent }}</p>
         </div>
         <figcaption class="text-sm text-white">{{ t.current }}</figcaption>

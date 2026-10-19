@@ -22,7 +22,7 @@ const grid: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', 
           v-for="c in cs" :key="c.panel.id" class="overflow-hidden bg-neutral-100 text-left text-[10px] leading-tight text-neutral-700"
           :class="{ 'ring-primary ring-2': c.panel.id === selectedId }" @click="emit('select', c.panel.id)"
         >
-          <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :crop="c.panel.crop" class="relative size-full" />
+          <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" class="relative size-full" />
           <span v-else class="line-clamp-6 p-1.5">{{ c.panel.scene || ko.studio.noScene }}</span>
         </button>
       </div>

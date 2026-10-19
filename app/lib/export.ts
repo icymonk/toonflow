@@ -1,8 +1,10 @@
 import type { LaidCut, Typeset } from '#shared/render'
+import type { Firestore } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
+import type { CandidateRef } from './candidates'
 import { getBlob, ref as storageRef } from 'firebase/storage'
-import { candidatePath } from '#shared/illustrate'
 import { fontCss, spikyPath } from '#shared/render'
+import { resolveCandidatePath } from './candidates'
 
 const INK = '#1F2A44'
 
@@ -123,7 +125,8 @@ export function download(blob: Blob, name: string) {
 }
 
 /** 컷에 고른 그림(후보 ID)들을 불러온다 */
-export async function loadImages(storage: FirebaseStorage, ws: string, ids: string[], into = new Map<string, ImageBitmap>()) {
-  await Promise.all([...new Set(ids)].filter(id => !into.has(id)).map(async id => into.set(id, await createImageBitmap(await getBlob(storageRef(storage, candidatePath(ws, id)))))))
+export async function loadImages(storage: FirebaseStorage, db: Firestore, ws: string, episodeId: string, refs: CandidateRef[], into = new Map<string, ImageBitmap>()) {
+  const todo = [...new Map(refs.map(r => [r.id, r])).values()].filter(r => !into.has(r.id))
+  await Promise.all(todo.map(async r => into.set(r.id, await createImageBitmap(await getBlob(storageRef(storage, await resolveCandidatePath(db, ws, episodeId, r)))))))
   return into
 }
