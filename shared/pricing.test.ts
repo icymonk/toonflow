@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { estimateKrw } from './pricing'
+import { actualKrw, estimateKrw } from './pricing'
 
 const models = {
   models: [
@@ -24,5 +24,26 @@ describe('estimateKrw', () => {
   it('is 0 for unknown or disabled models', () => {
     expect(estimateKrw(models, 'off', 'panel.image')).toBe(0)
     expect(estimateKrw(models, undefined, 'panel.image')).toBe(0)
+  })
+})
+
+describe('actualKrw', () => {
+  const cfg = {
+    usdToKrw: 1400,
+    defaults: {},
+    models: [
+      { id: 't', kind: 'text' as const, provider: 'fake', label: 't', enabled: true, priceKrw: { perKTokensIn: 2, perKTokensOut: 10 } },
+      { id: 'i', kind: 'image' as const, provider: 'fake', label: 'i', enabled: false, priceKrw: { perImage: 50 } },
+    ],
+  }
+  it('charges reported tokens, rounded up', () => {
+    expect(actualKrw(cfg, 't', { inTokens: 1000, outTokens: 1050 })).toBe(13)
+  })
+  it('charges billed images even if the model was disabled since', () => {
+    expect(actualKrw(cfg, 'i', { images: 2 })).toBe(100)
+  })
+  it('is 0 for unknown model or no usage', () => {
+    expect(actualKrw(cfg, 'x', { images: 2 })).toBe(0)
+    expect(actualKrw(cfg, 't', {})).toBe(0)
   })
 })

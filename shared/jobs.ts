@@ -15,15 +15,20 @@ export const JOB_KIND: Record<JobType, 'text' | 'image'> = {
 export type JobStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'canceled'
 export const ACTIVE_STATUSES: readonly JobStatus[] = ['queued', 'running']
 
-/** AIU-05 실패 분류 */
+/** AIU-05 실패 분류 (docs/dev/ai-jobs.md 3절) */
 export type JobErrorCode = 'policy_rejected' | 'rate_limited' | 'provider_error' | 'invalid_output' | 'internal'
-export const RETRYABLE: Record<JobErrorCode, boolean> = {
-  policy_rejected: false,
-  rate_limited: true,
-  provider_error: true,
-  invalid_output: true,
-  internal: false,
+/** 오류 종류별 최대 실행 횟수. 1이면 재시도하지 않는다 */
+export const MAX_ATTEMPTS: Record<JobErrorCode, number> = {
+  policy_rejected: 1,
+  rate_limited: 3,
+  provider_error: 3,
+  invalid_output: 2,
+  internal: 1,
 }
+export interface JobError { code: JobErrorCode, message: string, retryable: boolean }
+
+/** 제공사가 돌려준 사용량. 실제 비용 정산에 쓴다 */
+export interface JobUsage { inTokens?: number, outTokens?: number, images?: number }
 
 export const startAiJobInput = z.object({
   workspaceId: z.string().min(1),

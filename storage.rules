@@ -3,6 +3,16 @@ rules_version = '2';
 // 경로별 규칙은 docs/dev/security.md 3절. 기능을 만들 때 그 경로를 연다. 정의하지 않은 경로는 모두 막는다.
 service firebase.storage {
   match /b/{bucket}/o {
+    function canView(ws) {
+      return request.auth != null && (request.auth.token.admin == true
+        || firestore.exists(/databases/(default)/documents/workspaces/$(ws)/members/$(request.auth.uid)));
+    }
+
+    // AI 작업 결과 이미지: 서버만 쓴다
+    match /workspaces/{ws}/aiJobs/{jobId}/{file} {
+      allow read: if canView(ws);
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

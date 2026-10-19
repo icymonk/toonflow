@@ -36,6 +36,13 @@
         }
       },
       {
+        "source": "/fn/retryAiJob",
+        "function": {
+          "functionId": "retryAiJob",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

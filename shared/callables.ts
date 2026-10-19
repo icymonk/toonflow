@@ -11,6 +11,7 @@ export const ERROR_KEYS = {
   notMember: 'error.notMember',
   forbidden: 'error.forbidden',
   limitExceeded: 'error.limitExceeded',
+  modelUnavailable: 'error.modelUnavailable',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -21,4 +22,5 @@ export interface Callables {
   setWorkspaceLimit: { input: SetWorkspaceLimitInput, output: { ok: true } }
   startAiJob: { input: StartAiJobInput, output: { jobId: string } }
   cancelAiJob: { input: JobRefInput, output: { ok: true } }
+  retryAiJob: { input: JobRefInput, output: { ok: true } }
 }

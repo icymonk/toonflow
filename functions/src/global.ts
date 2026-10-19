@@ -8,5 +8,6 @@ if (emulator) {
   // 작업 대기열을 Cloud Tasks 에뮬레이터(firebase.json 9499)로. 서비스 계정을 주지 않으면 메타데이터 서버를 기다리다 멈춘다
   process.env.CLOUD_TASKS_EMULATOR_HOST ??= '127.0.0.1:9499'
 }
-initializeApp(emulator ? { serviceAccountId: 'emulated-service-acct@email.com' } : undefined)
+// 에뮬레이터는 FIREBASE_CONFIG에 버킷이 없어서 기본 버킷 이름을 직접 준다
+initializeApp(emulator ? { serviceAccountId: 'emulated-service-acct@email.com', storageBucket: `${process.env.GCLOUD_PROJECT}.appspot.com` } : undefined)
 setGlobalOptions({ region: REGION, maxInstances: 10 })

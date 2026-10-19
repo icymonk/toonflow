@@ -23,6 +23,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.notMember': 'notMember',
   'error.forbidden': 'forbidden',
   'error.limitExceeded': 'limitExceeded',
+  'error.modelUnavailable': 'modelUnavailable',
 }
 
 /** Firebase·서버 오류를 화면 문구로. 사용자가 닫은 팝업 등은 null */

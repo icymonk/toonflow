@@ -2,21 +2,32 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getFunctions } from 'firebase-admin/functions'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
-import { REGION } from '../../../shared/region'
-import { DEFAULT_MODELS } from '../../../shared/config'
 import { JOB_KIND, jobRefInput, startAiJobInput } from '../../../shared/jobs'
 import { estimateKrw } from '../../../shared/pricing'
+import { REGION } from '../../../shared/region'
 import { monthKey } from '../../../shared/usage'
 import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
+import { loadModels } from '../lib/models'
 import { reserve, settle } from '../lib/usage'
+
+const jobRef = (wsId: string, jobId: string) => getFirestore().doc(`workspaces/${wsId}/aiJobs/${jobId}`)
+
+/** 작업 대기열에 넣는다. taskId가 같으면 이미 들어가 있는 것 */
+async function enqueue(workspaceId: string, jobId: string, taskId: string) {
+  await getFunctions().taskQueue(`locations/${REGION}/functions/runAiJob`).enqueue({ workspaceId, jobId }, { id: taskId }).catch((e: { code?: string }) => {
+    if (e.code !== 'functions/task-already-exists') throw e
+  })
+}
 
 /** AIU-01·10~12: 권한·한도 확인 → 비용 예약 → 작업 문서 → 대기열 (docs/dev/ai-jobs.md 1절) */
 export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
   const db = getFirestore()
-  const models = { ...DEFAULT_MODELS, ...(await db.doc('config/models').get()).data() }
-  const model = data.model ?? models.defaults[JOB_KIND[data.type]]
+  const models = await loadModels()
+  const kind = JOB_KIND[data.type]
+  const model = data.model ?? models.defaults[kind]
+  if (!models.models.some(m => m.id === model && m.enabled && m.kind === kind)) throw new HttpsError('failed-precondition', ERROR_KEYS.modelUnavailable)
   const inputChars = JSON.stringify(data.params).length
   const estimate = estimateKrw(models, model, data.type, { inputChars, images: Number(data.params.n ?? 1), drafts: Number(data.params.n ?? 1) })
   const jobs = db.collection(`workspaces/${data.workspaceId}/aiJobs`)
@@ -30,12 +41,13 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
       type: data.type,
       target: data.target,
       params: data.params,
-      model: model ?? null,
+      model,
       status: 'queued',
       estimateKrw: estimate,
       costKrw: 0,
       month: monthKey(),
       attempts: 0,
+      retries: 0,
       idempotencyKey: data.idempotencyKey,
       requestedBy: uid,
       createdAt: FieldValue.serverTimestamp(),
@@ -43,18 +55,15 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
     return ref.id
   })
 
-  await getFunctions().taskQueue(`locations/${REGION}/functions/runAiJob`).enqueue({ workspaceId: data.workspaceId, jobId }, { id: jobId }).catch((e: { code?: string }) => {
-    // 같은 jobId 재요청이면 이미 대기열에 있다
-    if (e.code !== 'functions/task-already-exists') throw e
-  })
+  await enqueue(data.workspaceId, jobId, jobId)
   return { jobId }
 })
 
-/** AIU-03: 대기 중인 작업 취소. 실행 중이면 결과는 받되 다음 단계로 넘기지 않는다 (예약은 run이 정산) */
+/** AIU-03: 대기 중인 작업만 취소하고 예약을 푼다. 실행 중·끝난 작업은 그대로 둔다 */
 export const cancelAiJob = authedCallable(jobRefInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
   const db = getFirestore()
-  const ref = db.doc(`workspaces/${data.workspaceId}/aiJobs/${data.jobId}`)
+  const ref = jobRef(data.workspaceId, data.jobId)
   await db.runTransaction(async (tx) => {
     const job = await tx.get(ref)
     if (!job.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
@@ -62,5 +71,24 @@ export const cancelAiJob = authedCallable(jobRefInput, async ({ uid, data }) => 
     settle(tx, data.workspaceId, job.get('month'), job.get('estimateKrw') ?? 0, 0)
     tx.update(ref, { status: 'canceled', finishedAt: FieldValue.serverTimestamp() })
   })
+  return { ok: true as const }
+})
+
+/** AIU-05: 실패한 작업을 같은 조건으로 다시 대기열에. 받아 둔 결과가 있으면 제공사를 다시 부르지 않는다 */
+export const retryAiJob = authedCallable(jobRefInput, async ({ uid, data }) => {
+  await requireMember(data.workspaceId, uid, 'editor')
+  const db = getFirestore()
+  const ref = jobRef(data.workspaceId, data.jobId)
+  const retry = await db.runTransaction(async (tx) => {
+    const job = await tx.get(ref)
+    if (!job.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+    if (job.get('status') !== 'failed') return null
+    const estimate = (job.get('estimateKrw') as number | undefined) ?? 0
+    if (!(await reserve(tx, data.workspaceId, estimate))) throw new HttpsError('resource-exhausted', ERROR_KEYS.limitExceeded)
+    const n = ((job.get('retries') as number | undefined) ?? 0) + 1
+    tx.update(ref, { status: 'queued', attempts: 0, retries: n, month: monthKey(), error: FieldValue.delete(), finishedAt: FieldValue.delete() })
+    return n
+  })
+  if (retry !== null) await enqueue(data.workspaceId, data.jobId, `${data.jobId}-r${retry}`)
   return { ok: true as const }
 })
