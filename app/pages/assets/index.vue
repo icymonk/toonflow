@@ -18,6 +18,7 @@ const days = ref(30)
 const usage = ref<{ ai: number, refs: number, total: number } | null>(null)
 const splitTags = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean).slice(0, 10)
 const sceneOf = (g: { input?: unknown }) => (g.input as { scene?: string } | null)?.scene ?? ''
+const styleVer = (g: { input?: unknown }) => (g.input as { styleVersion?: number | null } | null)?.styleVersion ?? null
 const epTitle = (id: string | null) => episodes.value.find(e => e.id === id)?.title ?? ''
 const gen = computed(() => a.generated.value.filter(g => (!ep.value || g.episodeId === ep.value) && (!q.value.trim() || sceneOf(g).includes(q.value.trim()))))
 const refs = computed(() => a.assets.value.filter(x => !q.value.trim() || x.name.includes(q.value.trim()) || x.tags.some(tg => tg.includes(q.value.trim()))))
@@ -117,7 +118,8 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
       <template v-if="fGen">
         <p><span class="text-muted-foreground text-xs">{{ t.source }}</span><br>{{ t.sources[fGen.source as keyof typeof t.sources] ?? fGen.source }}</p>
         <p v-if="fGen.episodeId"><span class="text-muted-foreground text-xs">{{ t.episode }}</span><br>
-          <NuxtLink class="underline" :to="`/studio?episode=${fGen.episodeId}&step=illustrate`">{{ epTitle(fGen.episodeId) || fGen.episodeId }}</NuxtLink></p>
+          <NuxtLink class="underline" :to="`/studio?episode=${fGen.episodeId}&step=illustrate&panel=${fGen.panelId}`">{{ epTitle(fGen.episodeId) || fGen.episodeId }}</NuxtLink></p>
+        <p v-if="styleVer(fGen)" class="text-muted-foreground text-xs">{{ t.styleVersion(styleVer(fGen)!) }}</p>
         <p v-if="sceneOf(fGen)"><span class="text-muted-foreground text-xs">{{ t.scene }}</span><br>{{ sceneOf(fGen) }}</p>
       </template>
       <template v-else-if="fRef">

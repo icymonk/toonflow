@@ -72,7 +72,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
         workspaceId: ws(),
         type: 'panel.image',
         target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-        params: { prompt: promptOf(cut, opts), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st)].slice(0, 5), input },
+        params: { prompt: promptOf(cut, opts), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), input },
         idempotencyKey: crypto.randomUUID(),
       })
     }))
@@ -88,7 +88,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
       workspaceId: ws(),
       type: 'panel.image',
       target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-      params: { prompt: `${hint}\n\n${promptOf(cut, {})}`.slice(0, 4000), n: 1, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [base.imagePath, ...(opts.maskPath ? [opts.maskPath] : []), ...panelRefPaths(charsOf(cut), st)].slice(0, 5), input },
+      params: { prompt: `${hint}\n\n${promptOf(cut, {})}`.slice(0, 4000), n: 1, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [base.imagePath, ...(opts.maskPath ? [opts.maskPath] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), input },
       idempotencyKey: crypto.randomUUID(),
     })
   }

@@ -1,6 +1,6 @@
 import type { Character, Style } from './library'
 import type { Crop, Cut, Panel } from './studio'
-import { describeAppearance, NO_TEXT, stylePrompt } from './library'
+import { describeAppearance, NO_TEXT, stylePrompt, variantFor } from './library'
 
 // Illustrate (ILL-01~06·10~12·20·23·40·41)
 export const CANDIDATE_DEFAULT = 2
@@ -44,8 +44,8 @@ export function panelPrompt(panel: Panel, chars: Character[], style: Style | nul
 }
 
 /** 캐릭터 대표 이미지 → 그림체 참조 순, 최대 5장 */
-export const panelRefPaths = (chars: Character[], style: Style | null) =>
-  [...chars.map(c => c.coverPath).filter((p): p is string => !!p), ...(style?.refImages ?? [])].slice(0, 5)
+export const panelRefPaths = (chars: Character[], style: Style | null, panel?: { expression?: string, outfit?: string }) =>
+  [...chars.map(c => variantFor(c, panel)).filter((p): p is string => !!p), ...(style?.refImages ?? [])].slice(0, 5)
 
 /** 후보 id는 `${jobId}_${i}` (apply.ts), 그림은 작업 결과 경로 */
 export const candidatePath = (wsId: string, candidateId: string) => {

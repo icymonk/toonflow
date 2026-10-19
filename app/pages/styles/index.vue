@@ -15,6 +15,9 @@ const route = useRoute()
 const router = useRouter()
 const archived = ref(false)
 const list = computed(() => lib.styles.value.filter(s => !!s.archivedAt === archived.value))
+// STL-05 비교
+const compareId = ref('')
+const compareWith = computed(() => lib.styles.value.find(s => s.id === compareId.value && s.id !== current.value?.id) ?? null)
 const usedBy = (id: string) => lib.series.value.filter(s => s.styleId === id).length
 const current = computed(() => lib.styles.value.find(s => s.id === route.query.id) ?? null)
 const select = (id?: string) => router.replace({ query: id ? { id } : {} })
@@ -50,6 +53,22 @@ async function create() {
           <span class="truncate px-2 pt-1.5 text-sm font-medium">{{ s.name }}</span>
           <span class="text-muted-foreground px-2 pb-2 text-xs">{{ t.seriesCount(usedBy(s.id)) }}</span>
         </button>
+      </div>
+      <div v-if="current && lib.styles.value.length > 1" class="flex flex-col gap-2 border-t pt-3">
+        <label class="flex items-center gap-2 text-sm">{{ t.compareWith }}
+          <select v-model="compareId" class="border-input bg-card h-8 rounded-md border px-2 text-sm">
+            <option value="">-</option>
+            <option v-for="s in lib.styles.value.filter(x => x.id !== current!.id)" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+        </label>
+        <div v-if="compareWith" class="grid grid-cols-2 gap-3">
+          <div v-for="s in [current, compareWith]" :key="s.id" class="flex flex-col gap-1">
+            <span class="text-sm font-medium">{{ s.name }} · v{{ s.version ?? 1 }}</span>
+            <div class="grid grid-cols-3 gap-1">
+              <AppStorageImg v-for="p in (s.samples?.length ? s.samples : s.refImages)" :key="p" :path="p" class="aspect-[4/5] w-full rounded" />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
     <aside v-if="current" class="w-[380px] shrink-0 overflow-y-auto border-l pl-6">

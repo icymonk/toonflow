@@ -102,3 +102,4 @@
 - v1.4: 2-E — 후보 `favorite`·`hidden`은 편집자가 바꿀 수 있음(그 두 필드만), `panels.styleId`(이 컷만 다른 그림체)
 - v1.5: 2-E — 변형·부분 수정은 `panel.image` 작업 그대로, 고른 후보 경로를 `refPaths` 맨 앞에(부분 수정은 마스크 PNG `refs/panels/{panelId}/…`를 둘째로) 넘긴다
 - v1.6: 2-F — 후보에 `workspaceId`·`episodeId`·`panelId`(collectionGroup 모아 보기, 색인 2개), 후보 `source`에 `import`, `workspaces/{ws}/assets/{id}`(참고 자료: path·name·size·tags·createdBy·createdAt, Storage `refs/assets/`), callable `cleanupCandidates`·`storageUsage`
+- v1.7: 2-G — 캐릭터 `variants: { kind: 'expression'|'outfit', label, path }[]`(최대 12, 컷 `expression`·`outfit` 글에 `label`이 들어 있으면 대표 이미지 대신 참조), 이미지 작업 `prompts` 최대 6개(캐릭터 시트)

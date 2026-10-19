@@ -111,12 +111,13 @@ service cloud.firestore {
       match /characters/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
           && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
+          && (!('variants' in request.resource.data) || request.resource.data.variants.size() <= 12)
           && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
       }
       // STL-01~09: samples·sampleJobId는 서버(style.sample)만

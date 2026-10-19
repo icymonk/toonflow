@@ -1,6 +1,6 @@
 import type { Character } from './library'
 import { describe, expect, it } from 'vitest'
-import { characterPrompt, describeAppearance, emptyAppearance, imageCount, imageParams, matchCharacters, stylePrompt, stylePrompts } from './library'
+import { characterPrompt, describeAppearance, emptyAppearance, imageCount, imageParams, matchCharacters, stylePrompt, stylePrompts, variantFor } from './library'
 
 const ch = (id: string, name: string, aliases: string[] = [], deleted = false): Character => ({
   id, name, aliases, intro: '', appearance: emptyAppearance(), appearanceText: '', episodeId: null, refImages: [], coverPath: null, deletedAt: deleted ? { toMillis: () => 1 } : null,
@@ -25,5 +25,15 @@ describe('library', () => {
 describe('imageParams', () => {
   it('accepts null negative/refPaths (callable encodes undefined as null)', () => {
     expect(imageParams.safeParse({ prompt: 'p', n: 2, negative: null, refPaths: null }).success).toBe(true)
+  })
+})
+
+describe('variantFor', () => {
+  const c = { coverPath: 'cover', variants: [{ kind: 'expression', label: '기쁨', path: 'happy' }, { kind: 'outfit', label: '잠옷', path: 'pj' }] } as unknown as Character
+  it('matches expression, then outfit, else cover', () => {
+    expect(variantFor(c, { expression: '기쁨에 찬 얼굴', outfit: '잠옷' })).toBe('happy')
+    expect(variantFor(c, { expression: '무표정', outfit: '줄무늬 잠옷' })).toBe('pj')
+    expect(variantFor(c, { expression: '', outfit: '' })).toBe('cover')
+    expect(variantFor(c)).toBe('cover')
   })
 })

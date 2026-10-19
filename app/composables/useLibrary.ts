@@ -3,7 +3,7 @@ import type { ModelsConfig } from '#shared/config'
 import type { Series } from '#shared/episodes'
 import type { JobStatus } from '#shared/jobs'
 import type { Character, CharacterInput, Style } from '#shared/library'
-import { addDoc, arrayRemove, arrayUnion, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { addDoc, arrayRemove, arrayUnion, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
 import { deleteObject, ref as storageRef, uploadBytes } from 'firebase/storage'
 import { defaultStyle, emptyAppearance } from '#shared/library'
 import { estimateKrw } from '#shared/pricing'
@@ -65,6 +65,16 @@ export function useLibrary() {
   const estimate = (images: number) => (models.value ? estimateKrw(models.value, models.value.defaults.image, 'style.sample', { images }) : 0)
   const estimateText = (type: JobType, inputChars: number) => (models.value ? estimateKrw(models.value, models.value.defaults.text, type, { inputChars }) : 0)
 
+  /** CHR-08 등장 기록 */
+  async function appearances(characterId: string) {
+    const eps = await getDocs(collection($firestore, 'workspaces', ws(), 'episodes'))
+    const out = await Promise.all(eps.docs.filter(e => !e.get('deletedAt')).map(async (e) => {
+      const ps = await getDocs(query(collection($firestore, 'workspaces', ws(), 'episodes', e.id, 'panels'), where('characterIds', 'array-contains', characterId)))
+      return { episodeId: e.id, title: String(e.get('title') ?? ''), panels: ps.size }
+    }))
+    return out.filter(x => x.panels > 0)
+  }
+
   function watchJob(id: Ref<string | null>) {
     const job = ref<LibraryJob | null>(null)
     let stop: (() => void) | null = null
@@ -77,6 +87,6 @@ export function useLibrary() {
     return job
   }
 
-  return { characters, styles, series, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, estimateText, watchJob }
+  return { characters, styles, series, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, estimateText, watchJob, appearances }
 }
 export type Library = ReturnType<typeof useLibrary>

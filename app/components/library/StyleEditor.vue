@@ -64,7 +64,7 @@ const enums = [
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-1.5">
-      <Label for="s-name">{{ t.name }}</Label>
+      <Label for="s-name">{{ t.name }} <span class="text-muted-foreground text-xs font-normal">v{{ style.version ?? 1 }}</span></Label>
       <Input id="s-name" v-model="form.name" :disabled="!edit" maxlength="30" />
     </div>
     <div class="flex flex-col gap-1.5">
