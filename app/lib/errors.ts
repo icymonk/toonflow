@@ -32,6 +32,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.ownsWorkspace': 'ownsWorkspace',
   'error.tooManyWorkspaces': 'tooManyWorkspaces',
   'error.notAdminTarget': 'notAdminTarget',
+  'error.ownerCannotLeave': 'ownerCannotLeave',
   'error.tooMany': 'tooMany',
   'error.tokenNotFound': 'tokenNotFound',
 }

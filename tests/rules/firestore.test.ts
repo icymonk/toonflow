@@ -1,7 +1,7 @@
 import type { RulesTestEnvironment } from '@firebase/rules-unit-testing'
 import { readFileSync } from 'node:fs'
 import { assertFails, assertSucceeds, initializeTestEnvironment } from '@firebase/rules-unit-testing'
-import { addDoc, collection, deleteDoc, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore'
 import { afterAll, beforeAll, describe, it } from 'vitest'
 
 const ROLES = ['owner', 'admin', 'editor', 'viewer'] as const
@@ -234,6 +234,19 @@ describe('4단계 대기 명단 (CMN-41·52)', () => {
     await assertFails(setDoc(doc(db(null), 'waitlist/w2'), { email: 'b@x', name: 'b', status: 'pending' }))
     await assertFails(updateDoc(doc(db('ops', true), 'waitlist/w1'), { status: 'approved' }))
     await assertFails(getDoc(doc(db(null), 'waitlistRate/r_x')))
+  })
+})
+
+describe('4단계 멤버·초대 (ACC-20~22)', () => {
+  it('members update only their own lastActiveAt; invites are visible to managers only', async () => {
+    await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), 'invites/i1'), { workspaceId: 'w1', role: 'editor', expiresAt: new Date(), usedCount: 0 }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/members/editor`), { lastActiveAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/members/editor`), { role: 'owner' }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/members/viewer`), { lastActiveAt: serverTimestamp() }))
+    await assertSucceeds(getDoc(doc(db('admin'), 'invites/i1')))
+    await assertFails(getDoc(doc(db('editor'), 'invites/i1')))
+    await assertFails(getDoc(doc(db('other'), 'invites/i1')))
+    await assertFails(setDoc(doc(db('owner'), 'invites/i2'), { workspaceId: 'w1', role: 'admin' }))
   })
 })
 

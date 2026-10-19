@@ -16,6 +16,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
   }
 
   await auth.loadAccount()
-  if (auth.blocked && to.path !== '/waiting') return navigateTo('/waiting')
+  // ACC-20: 초대 링크는 허용 목록에 없어도 연다
+  if (auth.blocked && to.path !== '/waiting' && !to.path.startsWith('/join/')) return navigateTo('/waiting')
   if (!auth.blocked && to.path === '/waiting') return navigateTo('/')
 })

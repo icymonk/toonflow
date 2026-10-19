@@ -190,6 +190,62 @@
         }
       },
       {
+        "source": "/fn/createInvite",
+        "function": {
+          "functionId": "createInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/revokeInvite",
+        "function": {
+          "functionId": "revokeInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/inviteInfo",
+        "function": {
+          "functionId": "inviteInfo",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/acceptInvite",
+        "function": {
+          "functionId": "acceptInvite",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/setMemberRole",
+        "function": {
+          "functionId": "setMemberRole",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/removeMember",
+        "function": {
+          "functionId": "removeMember",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/leaveWorkspace",
+        "function": {
+          "functionId": "leaveWorkspace",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/setMemberLimit",
+        "function": {
+          "functionId": "setMemberLimit",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
