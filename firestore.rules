@@ -97,10 +97,30 @@ service cloud.firestore {
       match /episodes/{id} {
         allow read: if canView(ws);
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'updatedAt'])
           && strLen(request.resource.data.title, 1, 80)
           && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
           && request.resource.data.status in ['active', 'done', 'published'];
+
+        // STU·SBD: 장·컷은 편집자가 직접 쓴다. 지우기는 deletedAt(실행 취소용). 이미지 후보는 서버만
+        match /pages/{pageId} {
+          allow read: if canView(ws);
+          allow create, update: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['layout', 'panelIds', 'deletedAt', 'updatedAt'])
+            && request.resource.data.layout in ['1', '2v', '2h', '3', '4']
+            && request.resource.data.panelIds is list && request.resource.data.panelIds.size() <= 4;
+        }
+        match /panels/{panelId} {
+          allow read: if canView(ws);
+          allow create, update: if canEdit(ws)
+            && request.resource.data.keys().hasOnly(['pageId', 'scene', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'bubbles', 'staleFrom', 'deletedAt', 'updatedAt'])
+            && request.resource.data.pageId is string
+            && strLen(request.resource.data.scene, 0, 2000)
+            && strLen(request.resource.data.note, 0, 2000);
+          match /candidates/{candidateId} {
+            allow read: if canView(ws);
+          }
+        }
       }
     }
   }

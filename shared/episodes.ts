@@ -59,6 +59,8 @@ export interface Episode {
   status: EpisodeStatus
   settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string }
   submissionIds: string[]
+  activeStoryVersionId?: string | null
+  pageOrder?: string[]
   costKrw: number
   updatedAt?: Ts
   deletedAt?: Ts | null
