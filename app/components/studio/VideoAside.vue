@@ -40,6 +40,11 @@ const t = ko.studio.video
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
 const val = (e: Event) => (e.target as HTMLSelectElement | HTMLInputElement).value
 const set = (patch: Partial<ClipSettings>) => props.clip && emit('clip', props.clip.id, patch)
+// 다른 설정이 저장돼 다시 그려져도 입력 중인 시간이 원래 값으로 돌아가지 않게, 컷이나 저장된 값이 바뀔 때만 맞춘다
+const dur = ref(0)
+watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
+  if (ms != null) dur.value = ms / 1000
+}, { immediate: true })
 </script>
 
 <template>
@@ -62,8 +67,8 @@ const set = (patch: Partial<ClipSettings>) => props.clip && emit('clip', props.c
       <span class="font-medium">{{ isCover ? t.coverClip : t.clip(index + 1) }}</span>
       <label class="flex items-center gap-2 text-xs">{{ t.duration }}
         <input
-          type="number" :aria-label="t.duration" :value="clip.durationMs / 1000" :min="MIN_CLIP_MS / 1000" :max="MAX_CLIP_MS / 1000" step="0.1" :class="[sel, 'w-20']" :disabled="!edit"
-          @change="set({ durationMs: Number(val($event)) * 1000 })"
+          type="number" :aria-label="t.duration" v-model.number="dur" :min="MIN_CLIP_MS / 1000" :max="MAX_CLIP_MS / 1000" step="0.1" :class="[sel, 'w-20']" :disabled="!edit"
+          @change="set({ durationMs: dur * 1000 })"
         >
       </label>
       <div v-if="!isCover" class="flex gap-1.5">
