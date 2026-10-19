@@ -103,8 +103,8 @@ export const imageParams = z.object({
   prompt: z.string().max(4000).optional(),
   prompts: z.array(z.string().max(4000)).min(1).max(4).optional(),
   n: z.number().int().min(1).max(4).optional(),
-  negative: z.string().max(300).optional(),
-  refPaths: z.array(z.string()).max(5).optional(),
+  negative: z.string().max(300).nullish(),
+  refPaths: z.array(z.string()).max(5).nullish(),
 })
 export const imageCount = (p: Record<string, unknown>) => {
   const q = imageParams.safeParse(p)

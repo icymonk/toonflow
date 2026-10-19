@@ -7,5 +7,5 @@ import 'vue-sonner/style.css'
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
-  <Sonner rich-colors position="top-center" />
+  <Toaster rich-colors position="top-center" />
 </template>
