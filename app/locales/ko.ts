@@ -93,6 +93,7 @@ export const ko = {
     notMember: '이 워크스페이스의 멤버가 아니에요.',
     forbidden: '이 작업을 할 권한이 없어요.',
     limitExceeded: '이번 달 AI 사용 한도에 닿았어요. 한도를 늘리거나 다음 달에 다시 시도해 주세요.',
+    modelUnavailable: '쓸 수 있는 AI 모델이 없어요. 운영자 설정에서 모델을 켜 주세요.',
     popupBlocked: '팝업이 막혔어요. 브라우저에서 팝업을 허용해 주세요.',
     invalidEmail: '이메일 주소를 다시 확인해 주세요.',
     linkExpired: '로그인 링크가 만료됐어요. 새 링크를 받아 주세요.',

@@ -22,6 +22,7 @@ export const modelEntry = z.object({
   }),
   enabled: z.boolean(),
 })
+export type ModelEntry = z.infer<typeof modelEntry>
 export const modelsConfig = z.object({
   models: z.array(modelEntry),
   defaults: z.object({ text: z.string().optional(), image: z.string().optional() }),

@@ -52,6 +52,10 @@ service cloud.firestore {
       match /usage/{month} {
         allow read: if canView(ws);
       }
+      // AIU-02: 작업 상태는 서버만 쓴다
+      match /aiJobs/{jobId} {
+        allow read: if canView(ws);
+      }
     }
   }
 }

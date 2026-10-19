@@ -4,3 +4,5 @@ import './global'
 
 export { completeOnboarding } from './callable/account'
 export { setWorkspaceLimit } from './callable/usage'
+export { cancelAiJob, retryAiJob, startAiJob } from './callable/jobs'
+export { runAiJob } from './ai/run'

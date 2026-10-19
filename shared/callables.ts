@@ -1,4 +1,5 @@
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
+import type { JobRefInput, StartAiJobInput } from './jobs'
 import type { SetWorkspaceLimitInput } from './usage'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
@@ -10,6 +11,7 @@ export const ERROR_KEYS = {
   notMember: 'error.notMember',
   forbidden: 'error.forbidden',
   limitExceeded: 'error.limitExceeded',
+  modelUnavailable: 'error.modelUnavailable',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -18,4 +20,7 @@ export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
 export interface Callables {
   completeOnboarding: { input: CompleteOnboardingInput, output: CompleteOnboardingOutput }
   setWorkspaceLimit: { input: SetWorkspaceLimitInput, output: { ok: true } }
+  startAiJob: { input: StartAiJobInput, output: { jobId: string } }
+  cancelAiJob: { input: JobRefInput, output: { ok: true } }
+  retryAiJob: { input: JobRefInput, output: { ok: true } }
 }
