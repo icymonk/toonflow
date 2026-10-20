@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Episode } from '#shared/episodes'
+import type { Character, Style } from '#shared/library'
 import type { StoryVersion } from '#shared/story'
 import { AlertTriangle, Loader2 } from '@lucide/vue'
 import { useDebounceFn } from '@vueuse/core'
@@ -7,8 +8,8 @@ import { TONES } from '#shared/episodes'
 import { ko } from '~/locales/ko'
 
 // STO-02 설정 · STO-10 분석 · STO-14 제목 후보 · STO-24 원문
-const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string, coverText: string, outroText: string }>()
-const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string], seriesFixed: [patch: { coverText?: string, outroText?: string }] }>()
+const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string, coverText: string, outroText: string, styles: Style[], characters: Character[], seriesStyleId: string | null, seriesMainIds: string[] }>()
+const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string], seriesFixed: [patch: { coverText?: string, outroText?: string }], seriesStyle: [id: string | null], seriesMain: [id: string, on: boolean] }>()
 const t = ko.studio.story
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
 const extra = ref(props.episode.settings.extraRequest ?? '')
@@ -18,6 +19,15 @@ const a = computed(() => props.episode.analysis)
 const memo = ref(props.seriesMemo)
 watch(() => props.seriesMemo, v => (memo.value = v))
 const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000)), 800)
+// 그림체: 컷 > 이번 화 > 작품. 등장 캐릭터: 작품 주요 + 이번 화
+const lk = ko.studio.look
+const checked = (e: Event) => (e.target as HTMLInputElement).checked
+function toggleEpisodeChar(id: string, on: boolean) {
+  const ids = new Set(props.episode.settings.characterIds ?? [])
+  if (on) ids.add(id)
+  else ids.delete(id)
+  emit('settings', { characterIds: [...ids] })
+}
 </script>
 
 <template>
@@ -83,6 +93,44 @@ const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000
     >
       {{ title }}
     </button>
+  </section>
+
+  <section class="flex flex-col gap-2 border-t pt-3">
+    <h3 class="text-sm font-semibold">
+      {{ lk.title }}
+    </h3>
+    <label class="flex flex-col gap-1 text-xs">{{ lk.seriesStyle }}
+      <select :value="seriesStyleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('seriesStyle', ($event.target as HTMLSelectElement).value || null)">
+        <option value="">{{ lk.none }}</option>
+        <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
+      </select>
+    </label>
+    <label class="flex flex-col gap-1 text-xs">{{ lk.episodeStyle }}
+      <select :value="episode.settings.styleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('settings', { styleId: ($event.target as HTMLSelectElement).value || null })">
+        <option value="">{{ lk.followSeries }}</option>
+        <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
+      </select>
+    </label>
+    <p v-if="!styles.length" class="text-muted-foreground text-xs">
+      {{ lk.noStyles }} <NuxtLink to="/styles" class="underline">{{ lk.goStyles }}</NuxtLink>
+    </p>
+    <div class="flex items-center justify-between text-xs">
+      <span>{{ lk.characters }}</span>
+      <span class="text-muted-foreground flex gap-3"><span>{{ lk.main }}</span><span>{{ lk.thisEpisode }}</span></span>
+    </div>
+    <p v-if="!characters.length" class="text-muted-foreground text-xs">
+      {{ lk.noCharacters }} <NuxtLink to="/characters" class="underline">{{ lk.goCharacters }}</NuxtLink>
+    </p>
+    <div v-for="c in characters" :key="c.id" class="flex items-center justify-between gap-2 text-xs">
+      <span class="truncate">{{ c.name }}</span>
+      <span class="flex shrink-0 gap-6 pr-3">
+        <input type="checkbox" :checked="seriesMainIds.includes(c.id)" :disabled="!edit" :aria-label="lk.mainOf(c.name)" @change="emit('seriesMain', c.id, checked($event))">
+        <input type="checkbox" :checked="episode.settings.characterIds?.includes(c.id) ?? false" :disabled="!edit" :aria-label="lk.episodeOf(c.name)" @change="toggleEpisodeChar(c.id, checked($event))">
+      </span>
+    </div>
+    <p class="text-muted-foreground text-xs">
+      {{ lk.hint }}
+    </p>
   </section>
 
   <section class="flex flex-col gap-2 border-t pt-3">

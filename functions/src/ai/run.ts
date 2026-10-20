@@ -47,7 +47,7 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
       .map(async path => (await bucket.file(path).download())[0]))
     const prompts = p.data.prompts ?? [p.data.prompt ?? '']
     const n = p.data.prompts ? 1 : (p.data.n ?? 1)
-    const outs = await Promise.all(prompts.map(prompt => imageModel(model).generate({ prompt, negative: p.data.negative || undefined, refImages, size: PANEL_SIZE, n })))
+    const outs = await Promise.all(prompts.map(prompt => imageModel(model).generate({ prompt, negative: p.data.negative || undefined, refImages, size: p.data.size ?? PANEL_SIZE, n })))
     const out = { images: outs.flatMap(o => o.images), requestId: outs[0]!.requestId, billedImages: outs.reduce((a, o) => a + o.billedImages, 0) }
     const paths = await Promise.all(out.images.map(async (buf, i) => {
       const path = `workspaces/${wsId}/aiJobs/${jobId}/${i}.png`

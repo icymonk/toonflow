@@ -616,7 +616,8 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         <StudioStoryAside
           v-if="step === 'story'" :episode="episode" :version="storyVersion" :sources="story.sources.value" :edit="edit"
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
-          :series-memo="s.series.value?.memo ?? ''" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
+          :series-memo="s.series.value?.memo ?? ''" :styles="lib.styles.value" :characters="lib.characters.value" :series-style-id="s.series.value?.styleId ?? null" :series-main-ids="s.series.value?.mainCharacterIds ?? []"
+          @series-style="id => run(() => lib.setSeriesStyle(episode!.seriesId, id))" @series-main="(id, on) => run(() => lib.setMain(episode!.seriesId, id, on))" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
           :cover-text="s.series.value?.coverText ?? ''" :outro-text="s.series.value?.outroText ?? ''" @series-fixed="p => run(() => s.updateSeries(p))"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
@@ -681,7 +682,8 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <button class="absolute top-4 right-4 text-white" :aria-label="t.close" @click="previewOpen = false"><X class="size-6" /></button>
       <button class="text-white disabled:opacity-30" :disabled="previewPage === 0" :aria-label="t.prev" @click="previewPage--"><ChevronLeft class="size-8" /></button>
       <div class="flex h-[85dvh] flex-col items-center gap-2">
-        <div class="grid h-full gap-1 bg-white p-1" :class="gridClass[previewCuts[0]?.page.layout ?? '1']" :style="{ aspectRatio: aspect }">
+        <PageRender v-if="(step === 'review' || step === 'export') && episode" class="h-full w-auto bg-white" :style="{ aspectRatio: aspect }" :cuts="previewCuts" :aspect="episode.settings.aspect" :typeset="review.typeset.value" />
+        <div v-else class="grid h-full gap-1 bg-white p-1" :class="gridClass[previewCuts[0]?.page.layout ?? '1']" :style="{ aspectRatio: aspect }">
           <div v-for="c in previewCuts" :key="c.panel.id" class="relative flex items-center justify-center overflow-hidden bg-neutral-100 p-3 text-center text-xs text-neutral-600">
             <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" :adjust="c.panel.adjust" class="absolute inset-0" />
             <template v-else>{{ c.panel.scene || t.noScene }}</template>
