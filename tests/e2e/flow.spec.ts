@@ -24,6 +24,14 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.goto(`/login/finish?mode=signIn&oobCode=${code}&apiKey=fake-api-key&lang=ko`)
   await expect(page.getByText('처음 사용 안내')).toBeVisible()
 
+  // 캐릭터: 만들면 바로 편집 화면이 열리고, 고친 이름이 목록에 반영된다
+  await page.goto('/characters')
+  await page.getByRole('button', { name: '새 캐릭터' }).click()
+  await expect(page.getByLabel('이름', { exact: true })).toHaveValue('새 캐릭터')
+  await page.getByLabel('이름', { exact: true }).fill('E2E 주인공')
+  await page.getByLabel('한 줄 소개').fill('엘리베이터의 신입')
+  await expect(page.getByRole('button', { name: /E2E 주인공/ })).toBeVisible({ timeout: 10_000 })
+
   // 썰 등록
   await page.goto('/inbox')
   await page.getByRole('button', { name: '제보 등록' }).click()
