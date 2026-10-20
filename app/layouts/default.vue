@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ListTodo, LogOut, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
-import { onKeyStroke, useLocalStorage } from '@vueuse/core'
+import { ListTodo, LogOut, Menu, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
+import { onKeyStroke, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
 
@@ -10,7 +10,12 @@ const cycleTheme = () => theme.set(({ light: 'dark', dark: 'system', system: 'li
 const auth = useAuthStore()
 const { ratio, level } = useUsage()
 const route = useRoute()
-const collapsed = useLocalStorage('toonflow:sidebarCollapsed', false)
+const stored = useLocalStorage('toonflow:sidebarCollapsed', false)
+// 좁은 화면에서는 사이드바를 서랍으로 띄우고, 접힘 설정은 넓은 화면에서만 쓴다
+const mobile = useMediaQuery('(max-width: 767px)')
+const drawer = ref(false)
+const collapsed = computed({ get: () => stored.value && !mobile.value, set: (v) => { if (mobile.value) drawer.value = false; else stored.value = v } })
+watch(() => route.fullPath, () => { drawer.value = false })
 
 const paletteOpen = ref(false)
 onKeyStroke(['k', 'K'], (e) => {
@@ -28,9 +33,10 @@ async function signOut() {
 
 <template>
   <div class="flex min-h-svh">
+    <div v-if="drawer" class="fixed inset-0 z-30 bg-black/40 md:hidden" aria-hidden="true" @click="drawer = false" />
     <aside
-      class="bg-sidebar text-sidebar-foreground sticky top-0 flex h-svh shrink-0 flex-col gap-1 p-3 transition-[width]"
-      :class="collapsed ? 'w-16' : 'w-60'"
+      class="bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 flex h-svh shrink-0 flex-col gap-1 overflow-y-auto p-3 transition-[width,translate] md:sticky md:top-0 md:translate-x-0"
+      :class="[collapsed ? 'w-16' : 'w-60', drawer ? 'translate-x-0' : '-translate-x-full']"
     >
       <div class="flex items-center justify-between px-2 py-2">
         <span v-if="!collapsed" class="text-lg font-bold tracking-wide">{{ ko.brand.name }}</span>
@@ -83,8 +89,11 @@ async function signOut() {
       </div>
     </aside>
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="bg-background/90 sticky top-0 z-10 flex h-14 items-center gap-3 border-b px-6 backdrop-blur">
-        <p class="text-sm font-medium">
+      <header class="bg-background/90 sticky top-0 z-10 flex h-14 items-center gap-2 border-b px-3 backdrop-blur md:gap-3 md:px-6">
+        <Button variant="ghost" size="icon" class="md:hidden" :aria-label="ko.nav.menu" @click="drawer = true">
+          <Menu class="size-4" />
+        </Button>
+        <p class="truncate text-sm font-medium">
           {{ current?.label }} <span class="text-muted-foreground">· {{ current?.ko }}</span>
         </p>
         <div class="ml-auto flex items-center gap-1">

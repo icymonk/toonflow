@@ -44,7 +44,7 @@ function saveWorkspace() {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-2xl flex-col gap-6 p-8">
+  <div class="mx-auto flex max-w-2xl flex-col gap-6 p-4 md:p-8">
     <h1 class="text-2xl font-bold">
       {{ t.title }}
     </h1>

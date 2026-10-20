@@ -36,3 +36,4 @@ AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (
 - `typescript`는 `^6`으로 고정. TS 7은 JS API가 없어 Vue 도구와 shadcn-vue CLI가 깨진다.
 - shadcn-vue CLI가 Nuxt 5를 인식하지 못해 루트 `tsconfig.json`의 `compilerOptions.paths`(`@/*`)로 `add`가 동작한다. 지우지 않는다.
 - 가입 허용·운영자 권한: GitHub Actions → **Access** → Run workflow (`allow` / `admin` — admin은 그 이메일로 한 번 로그인한 뒤, 적용은 다시 로그인). 로컬에서는 `GOOGLE_APPLICATION_CREDENTIALS=<서비스계정.json> node functions/scripts/{allow-email,set-admin}.mjs <email>`. 운영자 설정 화면은 `/admin`.
+- Storage 규칙이 `firestore.exists/get`(멤버 확인)을 쓰므로, 프로젝트마다 한 번 Storage 서비스 에이전트 `service-<프로젝트 번호>@gcp-sa-firebasestorage.iam.gserviceaccount.com`에 **Firebase Rules Firestore Service Agent** 역할이 있어야 한다. `firebase deploy --non-interactive`는 이 역할을 붙이지 않고 넘어가고, 없으면 모든 이미지 읽기가 403이다.
