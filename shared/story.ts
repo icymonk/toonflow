@@ -67,6 +67,10 @@ export type Split = z.infer<typeof splitSchema>
 export const REWRITE_MODES = ['rewrite', 'shorter', 'funnier', 'tone', 'refine'] as const
 export type RewriteMode = (typeof REWRITE_MODES)[number]
 export const rewriteSchema = z.object({ text: z.string().min(1).max(3000) })
+/** 추천 입력: 각색안 칸 하나에 넣을 AI 후보 */
+export const SUGGEST_FIELDS = ['logline', 'heading', 'beats', 'punchline'] as const
+export type SuggestField = (typeof SUGGEST_FIELDS)[number]
+export const suggestSchema = z.object({ options: z.array(z.string().trim().min(1).max(1000)).min(1).max(5).transform(o => [...new Set(o)].slice(0, 3)) })
 
 export const storyParams = z.object({
   material: z.string().trim().min(1).max(20000),
@@ -81,6 +85,7 @@ export const storyParams = z.object({
   context: z.string().max(4000).optional(),
   /** STO-13: 부분 다시 쓰기 */
   rewrite: z.object({ mode: z.enum(REWRITE_MODES), text: z.string().min(1).max(3000), tone: z.string().max(40).catch('') }).optional(),
+  suggest: z.object({ field: z.enum(SUGGEST_FIELDS), text: z.string().max(3000).catch(''), scene: z.string().max(3000).optional() }).optional(),
 })
 export type StoryParams = z.infer<typeof storyParams>
 

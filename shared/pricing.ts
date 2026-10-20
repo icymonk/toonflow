@@ -11,6 +11,7 @@ const OUTPUT_TOKENS: Partial<Record<JobType, number>> = {
   'storyboard.split': 4000,
   'publish.caption': 500,
   'story.rewrite': 400,
+  'story.suggest': 500,
   'submission.summary': 400,
 }
 

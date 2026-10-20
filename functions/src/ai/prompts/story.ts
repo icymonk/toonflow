@@ -58,6 +58,24 @@ const rewrite = (p: StoryParams): TextPrompt => {
   }
 }
 
+// 추천 입력
+const SUGGEST_KO = {
+  logline: ['한 줄 요약', '이 화 전체를 한 문장으로, 60자 이내'],
+  heading: ['장면 제목', '장면을 짧게 부르는 제목, 20자 이내'],
+  beats: ['장면 내용', '이 장면에서 일어나는 일을 1~3문장으로. 대사는 넣지 않는다'],
+  punchline: ['마무리', '마지막 장의 펀치라인 한 문장, 40자 이내'],
+} as const
+const suggest = (p: StoryParams): TextPrompt => {
+  const s = p.suggest
+  if (!s) throw new AiError('internal', 'suggest params missing')
+  const [name, rule] = SUGGEST_KO[s.field]
+  return {
+    format: 'suggest',
+    system: `너는 인스타툰 각색 작가야. 각색안 전체를 참고해서 [${name}]에 넣을 후보를 서로 다른 느낌으로 3개 써. ${rule}. 실명·특정 가능한 정보는 쓰지 않는다. 반드시 JSON만: {"options": [str, str, str]}`,
+    prompt: `${p.draft || p.material}${s.scene ? `\n\n[이 장면]\n${s.scene}` : ''}\n\n[지금 ${name}]\n${s.text.trim() || '(비어 있음)'}`,
+  }
+}
+
 // PUB-10
 const caption = (p: StoryParams): TextPrompt => ({
   format: 'caption',
@@ -66,7 +84,7 @@ const caption = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite }
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite, 'story.suggest': suggest }
 
 // INB-23
 const summarize = (material: string): TextPrompt => ({

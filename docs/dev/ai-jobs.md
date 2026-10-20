@@ -35,7 +35,7 @@ retryAiJob: failed일 때만. 예상 비용을 다시 예약 → attempts 0, ret
 ## 2. `workspaces/{ws}/aiJobs/{jobId}`
 | 필드 | 내용 |
 | --- | --- |
-| `type` | `story.analyze` · `story.draft` · `story.titles` · `storyboard.split` · `panel.image` · `style.sample` (2단계: `story.rewrite`, `panel.inpaint`, `character.sheet` …, 3단계: `panel.check`) |
+| `type` | `story.analyze` · `story.draft` · `story.titles` · `storyboard.split` · `panel.image` · `style.sample` (2단계: `story.rewrite`, `panel.inpaint`, `character.sheet` …, 3단계: `panel.check`, 추천 입력: `story.suggest`) |
 | `target` | `{ episodeId?, panelId?, styleId?, characterId? }` |
 | `params` | 종류별 입력 (zod 스키마는 `shared/jobs.ts`) |
 | `inputSnapshot` | 실제 보낸 프롬프트·참조 이미지 경로·모델 설정 (ILL-03, 같은 조건 재생성) |

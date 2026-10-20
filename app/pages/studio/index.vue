@@ -564,6 +564,8 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioStoryEditor
             v-else-if="storyVersion" :version="storyVersion" :active="storyVersion.id === episode.activeStoryVersionId" :edit="edit"
             :versions="story.versions.value" :rev="story.rewriteRev.value" :rewriting="!!story.rewriting.value"
+            :suggesting="story.suggesting.value?.key ?? null" :suggestions="story.suggestions.value"
+            @suggest="(key, f, text, scene) => run(() => story.suggest(storyVersion!, key, f, text, scene))"
             @rewrite="(sid, f, text, m, tone) => run(() => story.rewrite(storyVersion!, sid, f, text, m, tone))" @compare="id => (storyCompareId = id)"
             @save="patch => run(() => story.updateVersion(storyVersion!.id, patch))" @activate="run(() => story.setActive(storyVersion!.id))"
             @remake="run(() => story.draft(1, '', storyVersion!), t.story.started)"

@@ -56,6 +56,19 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '더 짧게' }).first().click()
   await expect(page.getByLabel(/^대사 \(한 줄에 하나/).first()).toHaveValue(/가짜 다시 쓰기/, { timeout: 60_000 })
 
+  // 추천 입력: 한 줄 요약 AI 추천 → 칩을 눌러 칸에 넣고, 넣은 뒤에도 고칠 수 있다
+  await page.getByRole('button', { name: '한 줄 요약 AI 추천 3개 받기' }).click()
+  await page.getByRole('button', { name: '가짜 추천 1' }).click({ timeout: 60_000 })
+  await expect(page.locator('#sv-log')).toHaveValue('가짜 추천 1')
+  // 스냅숏 이름은 단계·시각으로 미리 채우고, 칩으로 바꾼다
+  await page.getByRole('button', { name: '스냅숏' }).click()
+  const snapDialog = page.getByRole('dialog', { name: '스냅숏' })
+  const snapName = snapDialog.getByLabel('스냅숏 이름', { exact: true })
+  await expect(snapName).toHaveValue(/^각색 완료 · /)
+  await snapDialog.getByRole('button', { name: '각색 확정 전' }).click()
+  await expect(snapName).toHaveValue(/^각색 확정 전 · /)
+  await snapDialog.getByRole('button', { name: '닫기' }).click()
+
   // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
   const epStyle = page.getByLabel('이번 화 그림체')
   await epStyle.selectOption({ index: 1 })

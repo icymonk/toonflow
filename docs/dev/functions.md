@@ -40,6 +40,7 @@
 | `story.analyze` | 재료 썰(가림 처리 본문) | 에피소드 `analysis` 갱신 (STO-10) |
 | `story.draft` | 썰 + 설정(톤·장 수·화자·캐릭터) + 개수 n | `storyVersions` n개 (STO-11·12) |
 | `story.titles` | 사용 중 각색안 | 각색안 `titleCandidates` (STO-14) |
+| `story.suggest` | 각색안 + 칸 종류(`logline`·`heading`·`beats`·`punchline`) + 지금 내용 | 반영 없음. 앱이 `providerResult`의 후보 3개를 칩으로 보여 주고, 고르면 칸에 넣는다 (추천 입력) |
 | `storyboard.split` | 사용 중 각색안 + 장 수 | `pages`·`panels` 생성. 이미 그림 있는 컷은 유지 여부를 앱이 먼저 묻고 `keepPanelIds`로 전달 (SBD-01·02) |
 | `panel.image` | 컷 + 캐릭터 + 그림체 + 규격 | 후보 이미지 1장 (컷당 n장이면 작업 n개) (ILL-01·02·20) |
 | `style.sample` | 그림체 + 기준 장면 3개 | 그림체 `samples` (STL-04) |
