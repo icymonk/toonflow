@@ -4,7 +4,7 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { analysisSchema, captionSchema, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
-import { emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
+import { continueOutfits, emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
 import { aiCheckParams, aiCheckSchema, mapCheckItems } from '../../../shared/aicheck'
 import { AiError } from './errors'
 
@@ -106,6 +106,8 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
       if (!ep.exists || ep.get('storyboardJobId') === jobId) return
       const [oldPages, oldPanels] = await Promise.all([tx.get(pagesCol.where('deletedAt', '==', null)), tx.get(panelsCol.where('deletedAt', '==', null))])
       for (const d of [...oldPages.docs, ...oldPanels.docs]) tx.update(d.ref, { deletedAt: now, updatedAt: now })
+      const outfits = continueOutfits(sb.pages.flatMap(pg => pg.panels))
+      let k = 0
       const order = sb.pages.map((pg) => {
         const pageRef = pagesCol.doc()
         const ids = pg.panels.map((pn) => {
@@ -113,7 +115,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
           tx.set(ref, {
             ...emptyPanel(pageRef.id),
             scene: pn.scene, place: pn.place, characterNames: pn.characters, characterIds: matchCharacters(pn.characters, chars), shot: pn.shot,
-            expression: pn.expression, action: pn.action, outfit: pn.outfit, mood: pn.mood,
+            expression: pn.expression, action: pn.action, outfit: outfits[k++] ?? pn.outfit, mood: pn.mood,
             dialogues: pn.dialogues.map((d, i) => ({ id: `d${i + 1}`, type: d.type, speaker: d.speaker, speakerId: null, text: d.text })),
             updatedAt: now,
           })

@@ -188,3 +188,17 @@ export function createHistory(limit = 50) {
     get canRedo() { return undone.length > 0 },
   }
 }
+
+const placeKey = (p: string) => p.replace(/\s/g, '').toLowerCase()
+/** 컷이 같은 장면(같은 장소·시간)인지. 장소가 비어 있으면 다른 장면으로 본다 */
+export const samePlace = (a: string, b: string) => !!placeKey(a) && placeKey(a) === placeKey(b)
+
+/** SBD: 같은 장소·시간이 이어지는 컷은 의상을 그 장면의 첫 의상으로 맞춘다 */
+export function continueOutfits(panels: { place: string, outfit: string }[]): string[] {
+  const out: string[] = []
+  panels.forEach((p, i) => {
+    const prev = panels[i - 1]
+    out.push(prev && samePlace(prev.place, p.place) && out[i - 1] ? out[i - 1]! : p.outfit)
+  })
+  return out
+}

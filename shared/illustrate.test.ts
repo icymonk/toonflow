@@ -1,6 +1,6 @@
 import type { Cut, Panel } from './studio'
 import { describe, expect, it } from 'vitest'
-import { bulkTargets, candidatePath, panelPrompt, zoomCrop, cutSize, FULL_BLEED } from './illustrate'
+import { bulkTargets, candidatePath, panelPrompt, zoomCrop, cutSize, FULL_BLEED, SCENE_REF, sameSceneCuts, sceneRefCut } from './illustrate'
 import { emptyAppearance } from './library'
 import { emptyPanel } from './studio'
 
@@ -20,6 +20,17 @@ describe('illustrate', () => {
     expect(candidatePath('w', 'job_ab_1')).toBe('workspaces/w/aiJobs/job_ab/1.png')
     expect(zoomCrop(2, 0.5, 0)).toEqual({ x: 0.25, y: 0, w: 0.5, h: 0.5 })
     expect(zoomCrop(1, 1, 1).w).toBe(1)
+  })
+  it('finds cuts of the same place and time for outfit reference', () => {
+    const cut = (id: string, place: string, sel?: string) => ({ panel: { ...panel({ place, selectedCandidateId: sel ?? null }), id } }) as Cut
+    const cuts = [cut('a', '카페 · 낮', 'x'), cut('b', '카페·낮'), cut('c', '카페 · 낮', 'y'), cut('d', '집 · 밤', 'z'), cut('e', '')]
+    expect(sameSceneCuts(cuts, cuts[1]!).map(c => c.panel.id)).toEqual(['a', 'b', 'c'])
+    expect(sceneRefCut(cuts, cuts[1]!)?.panel.id).toBe('a')
+    expect(sceneRefCut(cuts, cuts[0]!)?.panel.id).toBe('c')
+    expect(sceneRefCut(cuts, cuts[3]!)).toBeNull()
+    expect(sameSceneCuts(cuts, cuts[4]!).map(c => c.panel.id)).toEqual(['e'])
+    expect(panelPrompt(panel(), [], null, { sceneRef: true })).toContain(SCENE_REF)
+    expect(panelPrompt(panel(), [], null)).not.toContain(SCENE_REF)
   })
   it('picks bulk targets', () => {
     const cut = (id: string, over: Partial<Panel>) => ({ panel: { ...panel(over), id } }) as Cut

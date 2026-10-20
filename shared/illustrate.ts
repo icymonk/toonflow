@@ -1,5 +1,6 @@
 import type { Character, Style } from './library'
 import type { Crop, Cut, Panel } from './studio'
+import { samePlace } from './studio'
 import { describeAppearance, NO_TEXT, stylePrompt, variantFor } from './library'
 import { cutRects, pageSize } from './render'
 
@@ -35,7 +36,28 @@ export function cutSize(cuts: Cut[], cut: Cut, aspect?: string): { w: number, h:
   return { w: Math.round(r.w), h: Math.round(r.h) }
 }
 
-export function panelPrompt(panel: Panel, chars: Character[], style: Style | null, opts: { extra?: string, leaveRoom?: boolean } = {}) {
+/** 같은 장소·시간이 이어지는 컷 묶음 (자기 포함) */
+export function sameSceneCuts(cuts: Cut[], cut: Cut): Cut[] {
+  const i = cuts.findIndex(c => c.panel.id === cut.panel.id)
+  if (i < 0 || !samePlace(cut.panel.place, cut.panel.place)) return [cut]
+  let a = i
+  let b = i
+  while (a > 0 && samePlace(cuts[a - 1]!.panel.place, cut.panel.place)) a--
+  while (b < cuts.length - 1 && samePlace(cuts[b + 1]!.panel.place, cut.panel.place)) b++
+  return cuts.slice(a, b + 1)
+}
+
+/** 같은 장면에서 그림을 고른 가장 가까운 다른 컷 (앞 컷 우선). 의상·외모를 맞추는 참고 그림으로 쓴다 */
+export function sceneRefCut(cuts: Cut[], cut: Cut): Cut | null {
+  const run = sameSceneCuts(cuts, cut)
+  const i = run.findIndex(c => c.panel.id === cut.panel.id)
+  const before = run.slice(0, i).reverse().find(c => c.panel.selectedCandidateId)
+  return before ?? run.slice(i + 1).find(c => c.panel.selectedCandidateId) ?? null
+}
+
+export const SCENE_REF = 'The first reference image is another cut of the same scene (same place and time). Keep every character\'s outfit, hairstyle, colors and accessories exactly the same as in it. Do not copy its composition or pose.'
+
+export function panelPrompt(panel: Panel, chars: Character[], style: Style | null, opts: { extra?: string, leaveRoom?: boolean, sceneRef?: boolean } = {}) {
   const linked = new Set(chars.flatMap(c => [c.name, ...c.aliases]))
   const others = panel.characterNames.filter(n => !linked.has(n))
   return [
@@ -49,6 +71,7 @@ export function panelPrompt(panel: Panel, chars: Character[], style: Style | nul
     panel.mood && `Mood/effects: ${panel.mood}`,
     ...chars.map(c => `Character "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}`),
     others.length ? `Other characters: ${others.join(', ')}` : '',
+    opts.sceneRef ? SCENE_REF : '',
     opts.leaveRoom ? 'Leave some empty space near the top for speech bubbles.' : '',
     FULL_BLEED,
     NO_TEXT,

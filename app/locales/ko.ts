@@ -306,6 +306,8 @@ export const ko = {
       expression: '표정',
       action: '동작',
       outfit: '의상',
+      outfitScene: (n: number) => `같은 장소·시간 컷 ${n}개에도 이 의상 적용`,
+      outfitSceneDone: '같은 장면 컷의 의상을 맞췄어요',
       mood: '분위기·효과',
       dialogues: '대사',
       addLine: '대사 추가',

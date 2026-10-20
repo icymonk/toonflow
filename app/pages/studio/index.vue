@@ -9,7 +9,7 @@ import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, C
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
-import { bulkTargets } from '#shared/illustrate'
+import { bulkTargets, sameSceneCuts } from '#shared/illustrate'
 import { AI_LABEL, autoCheck } from '#shared/render'
 import { creditLine } from '#shared/intake'
 import { matchCharacters } from '#shared/library'
@@ -30,7 +30,7 @@ const edit = computed(() => canEdit(auth.role))
 const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
-// STO-03: 작품 메모 + 주요·이번 화 캐릭터의 성격·말투
+// STO-03: 작품 메모 + 주요·이번 화 캐릭터의 성격·말투·기본 의상
 const storyCtx = computed(() => {
   const ids = new Set([...(s.series.value?.mainCharacterIds ?? []), ...(episode.value?.settings.characterIds ?? [])])
   return storyContext(s.series.value?.memo, lib.characters.value.filter(c => ids.has(c.id)))
@@ -213,6 +213,13 @@ function goStep(st: Step) {
 const selectedId = computed(() => String(route.query.panel ?? '') || cuts.value[0]?.panel.id || '')
 const selectedIndex = computed(() => cuts.value.findIndex(c => c.panel.id === selectedId.value))
 const selected = computed<Cut | undefined>(() => cuts.value[selectedIndex.value])
+// 같은 장소·시간 컷 중 의상이 다른 컷
+const sceneOutfitTargets = computed(() => {
+  const cur = selected.value
+  if (!cur?.panel.outfit.trim()) return []
+  return sameSceneCuts(cuts.value, cur).filter(c => c.panel.id !== cur.panel.id && c.panel.outfit !== cur.panel.outfit)
+})
+const applySceneOutfit = () => Promise.all(sceneOutfitTargets.value.map(c => s.updatePanel(c.panel.id, { outfit: selected.value!.panel.outfit })))
 function select(id: string) {
   flush()
   router.replace({ query: { ...route.query, panel: id } })
@@ -682,7 +689,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :styles="lib.styles.value" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :styles="lib.styles.value" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :scene-outfit-diff="sceneOutfitTargets.length" @outfit-scene="run(applySceneOutfit, t.board.outfitSceneDone)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>
