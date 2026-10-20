@@ -31,7 +31,7 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1))
         <button class="text-muted-foreground text-xs hover:underline" @click="showPrefs = !showPrefs">{{ t.prefs.title }}</button>
       </div>
       <div v-if="showPrefs" class="bg-muted/50 mb-1 flex flex-col gap-1 rounded px-2 py-1.5 text-xs">
-        <label v-for="k in (['done', 'failed', 'usage', 'withdrawn'] as const)" :key="k" class="flex items-center gap-1.5"><input v-model="prefs[k]" type="checkbox"> {{ t.prefs[k] }}</label>
+        <label v-for="k in (['done', 'failed', 'usage', 'withdrawn'] as const)" :key="k" class="flex items-center gap-1.5"><AppCheck v-model="prefs[k]" /> {{ t.prefs[k] }}</label>
       </div>
       <p v-if="usageLevel !== 'ok'" class="rounded px-2 py-1.5 text-xs" :class="level === 'warn' ? 'bg-amber-100 text-amber-900' : 'bg-destructive/10 text-destructive'">
         {{ level === 'warn' ? t.usageWarn : t.usageOver }}

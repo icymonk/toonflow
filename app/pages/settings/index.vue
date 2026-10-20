@@ -90,11 +90,11 @@ function saveWorkspace() {
           <div class="grid grid-cols-2 gap-4">
             <div class="flex flex-col gap-2">
               <Label for="aspect">{{ t.aspect }}</Label>
-              <select id="aspect" v-model="defaults.aspect" :class="selectClass" :disabled="!manage">
+              <AppSelect id="aspect" v-model="defaults.aspect" :class="selectClass" :disabled="!manage">
                 <option value="4:5">4:5 (1080×1350)</option>
                 <option value="1:1">1:1</option>
                 <option value="3:4">3:4</option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-2">
               <Label for="pageCount">{{ t.pageCount }}</Label>
@@ -102,30 +102,30 @@ function saveWorkspace() {
             </div>
             <div class="flex flex-col gap-2">
               <Label for="candidateCount">{{ t.candidateCount }}</Label>
-              <select id="candidateCount" v-model.number="defaults.candidateCount" :class="selectClass" :disabled="!manage">
+              <AppSelect id="candidateCount" v-model.number="defaults.candidateCount" :class="selectClass" :disabled="!manage">
                 <option v-for="n in [1, 2, 3, 4]" :key="n" :value="n">
                   {{ n }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-2">
               <Label for="storyDraftCount">{{ t.storyDraftCount }}</Label>
-              <select id="storyDraftCount" v-model.number="defaults.storyDraftCount" :class="selectClass" :disabled="!manage">
+              <AppSelect id="storyDraftCount" v-model.number="defaults.storyDraftCount" :class="selectClass" :disabled="!manage">
                 <option v-for="n in [1, 2, 3]" :key="n" :value="n">
                   {{ n }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-2">
               <Label for="narrator">{{ t.narrator }}</Label>
-              <select id="narrator" v-model="defaults.narrator" :class="selectClass" :disabled="!manage">
+              <AppSelect id="narrator" v-model="defaults.narrator" :class="selectClass" :disabled="!manage">
                 <option value="first">
                   {{ t.narratorFirst }}
                 </option>
                 <option value="third">
                   {{ t.narratorThird }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
           </div>
           <Button v-if="manage" type="submit" class="self-start" :disabled="saving !== null">

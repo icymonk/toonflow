@@ -5,7 +5,8 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { getStorage } from 'firebase-admin/storage'
 import { logger } from 'firebase-functions'
 import { onTaskDispatched } from 'firebase-functions/v2/tasks'
-import { aiCheckParams } from '../../../shared/aicheck'
+import type { Crop } from '../../../shared/studio'
+import { AI_CHECK_BATCH, aiCheckParams, aiCheckSchema, mergeCheckBatches } from '../../../shared/aicheck'
 import { ACTIVE_STATUSES, JOB_KIND } from '../../../shared/jobs'
 import { imageParams } from '../../../shared/library'
 import { actualKrw } from '../../../shared/pricing'
@@ -23,16 +24,17 @@ const PANEL_SIZE = { w: 1080, h: 1350 }
 
 interface ProviderOutput { result: string | string[], requestId: string, usage: JobUsage }
 
-/** ILL-43·REV-13: 컷마다 고른 그림. 후보 문서의 imagePath (이 워크스페이스 안만) */
-async function checkImages(wsId: string, episodeId: string, panelIds: string[]): Promise<Buffer[]> {
+/** ILL-43·REV-13: 컷마다 고른 그림과 컷에서 보이는 범위. 후보 문서의 imagePath (이 워크스페이스 안만) */
+async function checkImages(wsId: string, episodeId: string, panelIds: string[]): Promise<{ image: Buffer, crop: Crop | null }[]> {
   const db = getFirestore()
   const bucket = getStorage().bucket()
   const col = `workspaces/${wsId}/episodes/${episodeId}/panels`
   return Promise.all(panelIds.map(async (id) => {
-    const cid = (await db.doc(`${col}/${id}`).get()).get('selectedCandidateId')
+    const panel = await db.doc(`${col}/${id}`).get()
+    const cid = panel.get('selectedCandidateId')
     const path = cid ? (await db.doc(`${col}/${id}/candidates/${cid}`).get()).get('imagePath') : null
     if (typeof path !== 'string' || !path.startsWith(`workspaces/${wsId}/`)) throw new AiError('internal', `no image for panel ${id}`)
-    return (await bucket.file(path).download())[0]
+    return { image: (await bucket.file(path).download())[0], crop: (panel.get('crop') as Crop | undefined) ?? null }
   }))
 }
 
@@ -59,9 +61,19 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
   if (type === 'panel.check') {
     const p = aiCheckParams.safeParse(params)
     if (!p.success || !episodeId) throw new AiError('internal', 'bad check params')
-    const images = await checkImages(wsId, episodeId, p.data.panelIds)
-    const out = await textModel(model).generate({ ...checkPrompt(p.data), images })
-    return { result: out.text, requestId: out.requestId, usage: out.usage }
+    const all = await checkImages(wsId, episodeId, p.data.panelIds)
+    const size = AI_CHECK_BATCH[p.data.mode]
+    const batches = Array.from({ length: Math.ceil(all.length / size) }, (_, b) => all.slice(b * size, (b + 1) * size))
+    const outs = await Promise.all(batches.map(bt => textModel(model).generate({ ...checkPrompt(p.data, bt.map(x => x.crop)), images: bt.map(x => x.image) })))
+    const items = mergeCheckBatches(outs.map((o) => {
+      let r: ReturnType<typeof aiCheckSchema.safeParse>
+      try { r = aiCheckSchema.safeParse(JSON.parse(o.text)) }
+      catch { throw new AiError('invalid_output', 'bad check result') }
+      if (!r.success) throw new AiError('invalid_output', 'bad check result')
+      return r.data.items
+    }), size)
+    const usage = { inTokens: outs.reduce((a, o) => a + o.usage.inTokens, 0), outTokens: outs.reduce((a, o) => a + o.usage.outTokens, 0) }
+    return { result: JSON.stringify({ items }), requestId: outs.map(o => o.requestId).join(','), usage }
   }
   const out = await textModel(model).generate(textPrompt(type, params))
   return { result: out.text, requestId: out.requestId, usage: out.usage }

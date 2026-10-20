@@ -65,10 +65,10 @@ async function deleteAccount() {
         <p class="text-muted-foreground text-xs">{{ t.transferHint }}</p>
         <p v-if="!admins.length" class="text-muted-foreground text-xs">{{ t.noAdmins }}</p>
         <div v-else class="flex gap-2">
-          <select v-model="target" class="border-input bg-card h-9 rounded-md border px-3 text-sm" :aria-label="t.pick">
+          <AppSelect v-model="target" class="border-input bg-card h-9 rounded-md border px-3 text-sm" :aria-label="t.pick">
             <option value="">{{ t.pick }}</option>
             <option v-for="a in admins" :key="a.id" :value="a.id">{{ a.name }}</option>
-          </select>
+          </AppSelect>
           <Button size="sm" variant="outline" :disabled="!target" @click="transfer">{{ t.transfer }}</Button>
         </div>
       </section>

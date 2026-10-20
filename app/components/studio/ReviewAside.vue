@@ -3,7 +3,7 @@ import type { AiCheck, AiCheckMode } from '#shared/aicheck'
 import type { Bubble, BubbleStyle, BubbleTemplate, CheckIssue, Typeset } from '#shared/render'
 import type { ChecklistRow, ReviewState } from '#shared/review'
 import type { Cut, DialogueType } from '#shared/studio'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useStorage } from '@vueuse/core'
 import { AI_CHECK_MODES } from '#shared/aicheck'
 import { BUBBLE_TAILS, bubbleStyle, FONTS } from '#shared/render'
 import { REVIEW_STATES } from '#shared/review'
@@ -25,11 +25,9 @@ async function saveTpl() {
   const n = (await promptDialog(t.tpl.namePrompt))?.trim()
   if (n && bubble.value) emit('saveTemplate', n, bubbleStyle(bubble.value))
 }
-function applyTpl(e: Event) {
-  const el = e.target as HTMLSelectElement
-  const tp = props.templates.find(x => x.id === el.value)
+function applyTpl(id: string) {
+  const tp = props.templates.find(x => x.id === id)
   if (tp && bubble.value) emit('bubble', bubble.value.dialogueId, bubbleStyle(tp))
-  el.value = ''
 }
 const newItem = ref('')
 function addItem() {
@@ -38,6 +36,12 @@ function addItem() {
   newItem.value = ''
 }
 const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === 'needs' ? 'text-amber-800' : '')
+// AI 점검 지적 중 틀린 것은 이 브라우저에서 숨긴다
+const hidden = useStorage<string[]>('toonflow:aiCheckHidden', [])
+const hideKey = (it: { panelId: string, issue: string }) => `${props.aiCheck?.jobId}:${it.panelId}:${it.issue}`
+const shownAi = computed(() => props.aiItems.filter(it => !hidden.value.includes(hideKey(it))))
+const hideAi = (it: { panelId: string, issue: string }) => { hidden.value = [...hidden.value.slice(-200), hideKey(it)] }
+const unhideAi = () => { hidden.value = hidden.value.filter(k => !k.startsWith(`${props.aiCheck?.jobId}:`)) }
 </script>
 
 <template>
@@ -50,15 +54,15 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
         <Label for="rev-text" class="text-xs">{{ t.text }}</Label>
         <Textarea id="rev-text" v-model="draft" rows="3" :disabled="!edit" @input="saveText" />
         <label class="flex items-center gap-2 text-xs">{{ t.shape }}
-          <select :value="bubble.shape" :class="sel" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { shape: ($event.target as HTMLSelectElement).value as DialogueType })">
+          <AppSelect :value="bubble.shape" :class="sel" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { shape: $event as DialogueType })">
             <option v-for="s in SHAPES" :key="s" :value="s">{{ t.shapes[s] }}</option>
-          </select>
+          </AppSelect>
         </label>
         <div class="flex items-center gap-3 text-xs">
           <label class="flex items-center gap-2">{{ t.fontSize }}
             <input :value="bubble.fontSize" type="number" min="12" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { fontSize: Number(($event.target as HTMLInputElement).value) })">
           </label>
-          <label class="flex items-center gap-1"><input type="checkbox" :checked="bubble.bold" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { bold: !bubble.bold })">{{ t.bold }}</label>
+          <label class="flex items-center gap-1"><AppCheck :model-value="bubble.bold" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { bold: !bubble.bold })" />{{ t.bold }}</label>
         </div>
         <div class="flex items-center gap-1 text-xs">
           <span class="mr-1">{{ t.tail }}</span>
@@ -70,10 +74,10 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
           </button>
         </div>
         <div v-if="edit" class="flex items-center gap-1 text-xs">
-          <select :class="[sel, 'min-w-0 flex-1']" :aria-label="t.tpl.apply" @change="applyTpl">
+          <AppSelect :class="[sel, 'min-w-0 flex-1']" :aria-label="t.tpl.apply" model-value="" @change="applyTpl">
             <option value="">{{ templates.length ? t.tpl.apply : t.tpl.none }}</option>
             <option v-for="tp in templates" :key="tp.id" :value="tp.id">{{ tp.name }} · {{ t.shapes[tp.shape] }}</option>
-          </select>
+          </AppSelect>
           <Button size="sm" variant="ghost" @click="saveTpl">{{ t.tpl.save }}</Button>
         </div>
       </template>
@@ -83,9 +87,9 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
     <section class="flex flex-col gap-2 border-t pt-3">
       <span class="font-medium">{{ t.typeset }}</span>
       <label class="flex items-center gap-2 text-xs">{{ t.font }}
-        <select :value="typeset.font" :class="sel" :disabled="!edit" @change="emit('typeset', { font: ($event.target as HTMLSelectElement).value as Typeset['font'] })">
+        <AppSelect :value="typeset.font" :class="sel" :disabled="!edit" @change="emit('typeset', { font: $event as Typeset['font'] })">
           <option v-for="f in FONTS" :key="f.id" :value="f.id">{{ f.label }} ({{ f.license }})</option>
-        </select>
+        </AppSelect>
       </label>
       <label class="flex items-center gap-2 text-xs">{{ t.baseSize }}
         <input :value="typeset.fontSize" type="number" min="12" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('typeset', { fontSize: Number(($event.target as HTMLInputElement).value) })">
@@ -99,9 +103,9 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
       <span class="font-medium">{{ t.list }} <span class="text-muted-foreground text-xs font-normal">· {{ t.left(left) }}</span></span>
       <div v-for="r in checklist" :key="r.key" class="flex items-center gap-2 text-xs">
         <span class="flex-1" :class="tone(r.state)">{{ r.custom ?? t.items[r.key] }}<span v-if="r.auto" class="text-muted-foreground"> · {{ t.auto }}</span></span>
-        <select :value="r.state" :class="[sel, 'h-7 text-xs']" :aria-label="r.custom ?? t.items[r.key]" :disabled="!edit || (r.auto && r.state === 'pass' && r.key !== 'privacy')" @change="emit('check', r.key, ($event.target as HTMLSelectElement).value as ReviewState)">
+        <AppSelect :value="r.state" :class="[sel, 'h-7 text-xs']" :aria-label="r.custom ?? t.items[r.key]" :disabled="!edit || (r.auto && r.state === 'pass' && r.key !== 'privacy')" @change="emit('check', r.key, $event as ReviewState)">
           <option v-for="st in REVIEW_STATES" :key="st" :value="st">{{ t.states[st] }}</option>
-        </select>
+        </AppSelect>
         <button v-if="r.custom && edit" class="text-muted-foreground hover:text-destructive" :aria-label="t.removeItem" @click="emit('removeItem', r.custom)">×</button>
       </div>
       <form v-if="edit" class="flex gap-1" @submit.prevent="addItem">
@@ -127,9 +131,18 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
       <p v-if="checking" class="text-muted-foreground text-xs">{{ t.ai.running }}</p>
       <template v-else-if="aiCheck">
         <p class="text-muted-foreground text-xs">{{ t.ai.result(t.ai.modes[aiCheck.mode], aiCheck.count) }}</p>
-        <p v-if="!aiItems.length" class="text-xs text-emerald-700">{{ t.noIssues }}</p>
-        <button v-for="(it, i) in aiItems" :key="i" class="text-left text-xs text-amber-800 hover:underline" @click="emit('pickPanel', it.panelId)">
-          {{ t.ai.item(it.number, it.issue) }}
+        <p v-if="!shownAi.length" class="text-xs text-emerald-700">{{ t.noIssues }}</p>
+        <div v-for="(it, i) in shownAi" :key="i" class="flex items-start gap-1">
+          <button class="flex-1 text-left text-xs text-amber-800 hover:underline" @click="emit('pickPanel', it.panelId)">
+            {{ t.ai.item(it.number, it.issue) }}
+          </button>
+          <button class="text-muted-foreground hover:text-foreground px-1 text-xs" :aria-label="t.ai.hide" :title="t.ai.hide" @click="hideAi(it)">
+            ×
+          </button>
+        </div>
+        <p v-if="aiItems.length" class="text-muted-foreground text-[11px]">{{ t.ai.reference }}</p>
+        <button v-if="aiItems.length > shownAi.length" class="text-muted-foreground self-start text-[11px] underline" @click="unhideAi">
+          {{ t.ai.hidden(aiItems.length - shownAi.length) }} · {{ t.ai.unhide }}
         </button>
       </template>
     </section>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Episode, EpisodeStage, Tone } from '#shared/episodes'
 import { BookOpen, Plus, Trash2 } from '@lucide/vue'
+import { useLocalStorage } from '@vueuse/core'
 import { serverTimestamp } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { createEpisodeInput, EPISODE_STAGES, seriesInput, stageOf, stagePatch, TONES } from '#shared/episodes'
@@ -13,6 +14,19 @@ const auth = useAuthStore()
 const route = useRoute()
 const { series, episodes, loading, createSeries, createEpisode, updateEpisode, updateSeries, duplicate, trash } = useStories()
 const { list: submissions } = useSubmissions()
+const lib = useLibrary()
+// EPI-05 지금 작품 · EPI-06 작품 준비(그림체 → 주요 캐릭터 → 첫 에피소드, 막지 않음)
+const seriesFilter = useSeriesFilter(series)
+const current = computed(() => series.value.find(s => s.id === seriesFilter.value) ?? null)
+const liveStyles = computed(() => lib.styles.value.filter(s => !s.archivedAt))
+const mainChars = computed(() => lib.characters.value.filter(c => !c.deletedAt && !!current.value?.mainCharacterIds?.includes(c.id)))
+const setup = computed(() => {
+  const s = current.value
+  return [!!s?.styleId && lib.styles.value.some(x => x.id === s.styleId), mainChars.value.length > 0, !!s && episodes.value.some(e => e.seriesId === s.id)]
+})
+const hideSetup = useLocalStorage<string[]>('toonflow:stories:setupHidden', [])
+const setStyle = (v: unknown) => current.value && run(() => lib.setSeriesStyle(current.value!.id, String(v ?? '') || null))
+const dot = (done: boolean) => ['flex size-5 shrink-0 items-center justify-center rounded-full border text-xs', done ? 'bg-primary text-primary-foreground border-primary' : '']
 const edit = computed(() => canEdit(auth.role))
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
 
@@ -37,6 +51,7 @@ function submitSeries() {
   return run(async () => {
     const ref = await createSeries(parsed.data)
     epForm.seriesId = ref.id
+    seriesFilter.value = ref.id
     Object.assign(seriesForm, { name: '', intro: '' })
     seriesOpen.value = false
   }, t.created)
@@ -54,8 +69,9 @@ const epForm = reactive({
   narrator: 'first' as 'first' | 'third',
 })
 const usable = computed(() => submissions.value.filter(s => !s.deletedAt && (s.status === 'accepted' || epForm.submissionIds.includes(s.id))))
-watch(series, (list) => {
-  if (!epForm.seriesId && list[0]) epForm.seriesId = list[0].id
+watch([series, seriesFilter], ([list, cur]) => {
+  if (cur) epForm.seriesId = cur
+  else if (!epForm.seriesId && list[0]) epForm.seriesId = list[0].id
 }, { immediate: true })
 watch(() => epForm.seriesId, (id) => {
   const s = series.value.find(x => x.id === id)
@@ -75,7 +91,6 @@ async function submitEpisode() {
 }
 
 // EPI-02·11 목록
-const seriesFilter = ref('')
 const showArchived = ref(false)
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
 const archivedSeries = computed(() => new Set(series.value.filter(s => s.archivedAt).map(s => s.id)))
@@ -144,11 +159,11 @@ async function removeSeries(id: string) {
           </div>
           <div class="flex flex-col gap-1.5">
             <Label for="s-tone">{{ t.tone }}</Label>
-            <select id="s-tone" v-model="seriesForm.tone" :class="selectClass">
+            <AppSelect id="s-tone" v-model="seriesForm.tone" :class="selectClass">
               <option v-for="tone in TONES" :key="tone" :value="tone">
                 {{ t.tones[tone] }}
               </option>
-            </select>
+            </AppSelect>
           </div>
           <div class="flex flex-col gap-1.5">
             <Label for="s-pages">{{ t.pageCount }}</Label>
@@ -178,11 +193,11 @@ async function removeSeries(id: string) {
           <div class="grid gap-3 sm:grid-cols-5">
             <div class="flex flex-col gap-1.5 sm:col-span-2">
               <Label for="e-series">{{ t.series }}</Label>
-              <select id="e-series" v-model="epForm.seriesId" :class="selectClass" required>
+              <AppSelect id="e-series" v-model="epForm.seriesId" :class="selectClass" required>
                 <option v-for="s in series" :key="s.id" :value="s.id">
                   {{ s.name }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-1.5 sm:col-span-3">
               <Label for="e-title">{{ t.title }}</Label>
@@ -190,11 +205,11 @@ async function removeSeries(id: string) {
             </div>
             <div class="flex flex-col gap-1.5">
               <Label for="e-tone">{{ t.tone }}</Label>
-              <select id="e-tone" v-model="epForm.tone" :class="selectClass">
+              <AppSelect id="e-tone" v-model="epForm.tone" :class="selectClass">
                 <option v-for="tone in TONES" :key="tone" :value="tone">
                   {{ t.tones[tone] }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-1.5">
               <Label for="e-pages">{{ t.pageCount }}</Label>
@@ -202,11 +217,11 @@ async function removeSeries(id: string) {
             </div>
             <div class="flex flex-col gap-1.5 sm:col-span-3">
               <Label for="e-narrator">{{ t.narrator }}</Label>
-              <select id="e-narrator" v-model="epForm.narrator" :class="selectClass">
+              <AppSelect id="e-narrator" v-model="epForm.narrator" :class="selectClass">
                 <option v-for="n in ['first', 'third'] as const" :key="n" :value="n">
                   {{ t.narrators[n] }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
           </div>
           <fieldset class="flex flex-col gap-1.5">
@@ -217,7 +232,7 @@ async function removeSeries(id: string) {
               {{ t.noAccepted }}
             </p>
             <label v-for="s in usable" :key="s.id" class="flex items-start gap-2 text-sm">
-              <input v-model="epForm.submissionIds" type="checkbox" :value="s.id" class="mt-1">
+              <AppCheck v-model="epForm.submissionIds" :value="s.id" class="mt-1" />
               <span><span class="font-medium">{{ s.title }}</span> <span class="text-muted-foreground line-clamp-1">{{ s.body }}</span></span>
             </label>
           </fieldset>
@@ -272,8 +287,38 @@ async function removeSeries(id: string) {
         </div>
       </div>
 
+      <section v-if="edit && current && setup.includes(false) && !hideSetup.includes(current.id)" class="bg-card flex flex-col gap-3 rounded-lg border p-4">
+        <div class="flex items-center justify-between">
+          <h2 class="font-semibold">{{ t.setup.title(current.name) }}</h2>
+          <button class="text-muted-foreground text-xs hover:underline" @click="hideSetup = [...hideSetup, current.id]">{{ t.setup.hide }}</button>
+        </div>
+        <p class="text-muted-foreground text-xs">{{ t.setup.body }}</p>
+        <ol class="flex flex-col gap-2 text-sm">
+          <li class="flex flex-wrap items-center gap-2">
+            <span :class="dot(setup[0]!)">{{ setup[0] ? '✓' : 1 }}</span>
+            <span class="w-24">{{ t.setup.style }}</span>
+            <AppSelect :model-value="current.styleId ?? ''" :class="selectClass" :aria-label="t.setup.style" @update:model-value="setStyle">
+              <option value="">{{ t.setup.noStyle }}</option>
+              <option v-for="s in liveStyles" :key="s.id" :value="s.id">{{ s.name }}</option>
+            </AppSelect>
+            <NuxtLink to="/styles" class="text-muted-foreground text-xs underline">{{ t.setup.newStyle }}</NuxtLink>
+          </li>
+          <li class="flex flex-wrap items-center gap-2">
+            <span :class="dot(setup[1]!)">{{ setup[1] ? '✓' : 2 }}</span>
+            <span class="w-24">{{ t.setup.characters }}</span>
+            <span class="text-muted-foreground">{{ mainChars.map(c => c.name).join(', ') || t.setup.noCharacters }}</span>
+            <NuxtLink to="/characters" class="text-muted-foreground text-xs underline">{{ t.setup.pickCharacters }}</NuxtLink>
+          </li>
+          <li class="flex flex-wrap items-center gap-2">
+            <span :class="dot(setup[2]!)">{{ setup[2] ? '✓' : 3 }}</span>
+            <span class="w-24">{{ t.setup.episode }}</span>
+            <Button size="sm" variant="outline" @click="epOpen = true">{{ t.setup.firstEpisode }}</Button>
+          </li>
+        </ol>
+      </section>
+
       <div class="flex items-center gap-2 text-sm">
-        <label class="flex items-center gap-1.5"><input v-model="showArchived" type="checkbox"> {{ t.showArchived }}</label>
+        <label class="flex items-center gap-1.5"><AppCheck v-model="showArchived" /> {{ t.showArchived }}</label>
       </div>
 
       <div class="overflow-x-auto rounded-lg border">
@@ -303,24 +348,24 @@ async function removeSeries(id: string) {
               </td>
               <td class="px-3 py-2">{{ seriesName(e.seriesId) }}</td>
               <td class="px-3 py-2">
-                <select
+                <AppSelect
                   :value="stageOf(e)" :class="selectClass" :disabled="!edit" :aria-label="t.col.stage"
-                  @change="setStage(e, ($event.target as HTMLSelectElement).value as EpisodeStage)"
+                  @change="setStage(e, $event as EpisodeStage)"
                 >
                   <option v-for="st in EPISODE_STAGES" :key="st" :value="st">
                     {{ t.stages[st] }}
                   </option>
-                </select>
+                </AppSelect>
               </td>
               <td class="px-3 py-2">{{ t.pages(e.settings.pageCount) }}</td>
               <td class="px-3 py-2">{{ krw(e.costKrw) }}</td>
               <td class="text-muted-foreground px-3 py-2">{{ date(e) }}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <template v-if="edit">
-                  <select :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" value="" @change="dup(e, ($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''">
+                  <AppSelect :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" model-value="" @change="dup(e, $event)">
                     <option value="" disabled>{{ t.duplicate }}</option>
                     <option v-for="m in (['structure', 'full'] as const)" :key="m" :value="m">{{ t.duplicateModes[m] }}</option>
-                  </select>
+                  </AppSelect>
                   <Button size="sm" variant="ghost" @click="toggleArchive(e)">
                     {{ e.archivedAt ? t.unarchive : t.archive }}
                   </Button>

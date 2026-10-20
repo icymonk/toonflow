@@ -61,11 +61,12 @@ export function aspectRatio(w: number, h: number): string {
 
 export function geminiText(m: ModelEntry, key = () => GEMINI_API_KEY.value(), f?: Fetch): TextModel {
   return {
-    async generate({ system, prompt, format, maxTokens, images }) {
+    async generate({ system, prompt, format, maxTokens, images, imageLabels }) {
       const r = await generateContent(m.id, {
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
-        contents: [{ role: 'user', parts: [...(images ?? []).map(b => ({ inlineData: { mimeType: mimeOf(b), data: b.toString('base64') } })), { text: prompt }] }],
-        generationConfig: { ...(maxTokens ? { maxOutputTokens: maxTokens } : {}), ...(format ? { responseMimeType: 'application/json' } : {}) },
+        contents: [{ role: 'user', parts: [...(images ?? []).flatMap((b, i) => [...(imageLabels?.[i] ? [{ text: imageLabels[i] }] : []), { inlineData: { mimeType: mimeOf(b), data: b.toString('base64') } }]), { text: prompt }] }],
+        // 그림이 있으면 고해상도로 (작은 손가락·글자까지 보게)
+        generationConfig: { ...(maxTokens ? { maxOutputTokens: maxTokens } : {}), ...(format ? { responseMimeType: 'application/json' } : {}), ...(images?.length ? { mediaResolution: 'MEDIA_RESOLUTION_HIGH' } : {}) },
       }, key(), f)
       const text = parts(r).filter(p => p.text && !p.thought).map(p => p.text).join('')
       if (!text) throw new AiError('invalid_output', 'gemini returned no text')

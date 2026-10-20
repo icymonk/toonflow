@@ -1,9 +1,9 @@
 import type { Episode } from '#shared/episodes'
 import type { JobType } from '#shared/jobs'
-import type { RewriteMode, StoryParams, StoryVersion } from '#shared/story'
+import type { RewriteMode, StoryParams, StoryVersion, SuggestField } from '#shared/story'
 import { collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
-import { parseJson, rewriteSchema, textToDialogues, versionToText } from '#shared/story'
+import { parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
 import { ko } from '~/locales/ko'
 import { callFn } from '~/lib/functions'
 
@@ -97,6 +97,28 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
     }, () => {})
   })
   onScopeDispose(() => stopRw?.())
+  /** 추천 입력: 각색안 칸 하나(key)에 AI 후보 3개. 고르면 칸에 넣고 직접 고칠 수 있다 */
+  const suggesting = ref<{ jobId: string, key: string } | null>(null)
+  const suggestions = ref<Record<string, string[]>>({})
+  async function suggest(v: StoryVersion, key: string, field: SuggestField, text: string, scene = '') {
+    const out = await start('story.suggest', { versionId: v.id, draft: versionToText(v), suggest: { field, text, ...(scene ? { scene } : {}) } })
+    suggesting.value = { jobId: out.jobId, key }
+  }
+  let stopSg: (() => void) | undefined
+  watch(suggesting, (sg) => {
+    stopSg?.()
+    if (!sg) return
+    stopSg = onSnapshot(doc($firestore, 'workspaces', ws(), 'aiJobs', sg.jobId), (snap) => {
+      const st = snap.get('status')
+      if (st !== 'succeeded' && st !== 'failed' && st !== 'canceled') return
+      const out = st === 'succeeded' ? parseJson(suggestSchema, String(snap.get('providerResult') ?? '')) : null
+      suggesting.value = null
+      if (!out) return void toast.error(ko.studio.story.suggestFailed)
+      suggestions.value = { ...suggestions.value, [sg.key]: out.options }
+    }, () => {})
+  })
+  watch(() => episode.value?.id, () => (suggestions.value = {}))
+  onScopeDispose(() => stopSg?.())
   /** PUB-10 */
   const caption = (v: StoryVersion) => start('publish.caption', { versionId: v.id, draft: versionToText(v) })
 
@@ -111,5 +133,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, updateVersion, setActive, keepStale, updateSettings }
+  return { versions, sources, material, active, analyze, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, keepStale, updateSettings }
 }

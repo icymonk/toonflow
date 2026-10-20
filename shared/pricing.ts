@@ -5,12 +5,13 @@ import { JOB_KIND } from './jobs'
 /** 글 작업 입력 길이로 토큰을 높게 잡는다 (한국어 1글자 ≈ 1토큰으로 보수적) */
 const OUTPUT_TOKENS: Partial<Record<JobType, number>> = {
   'story.analyze': 800,
-  'panel.check': 600,
+  'panel.check': 1500,
   'story.draft': 3000,
   'story.titles': 300,
   'storyboard.split': 4000,
   'publish.caption': 500,
   'story.rewrite': 400,
+  'story.suggest': 500,
   'submission.summary': 400,
 }
 

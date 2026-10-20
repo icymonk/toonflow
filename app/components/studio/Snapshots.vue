@@ -10,7 +10,12 @@ const props = defineProps<{ s: ReturnType<typeof useStudio>, edit: boolean }>()
 const emit = defineEmits<{ close: [] }>()
 const t = ko.studio.snap
 
-const name = ref('')
+// 추천 입력: 지금 단계·시각으로 이름을 미리 채우고, 칩으로 바꿀 수 있다
+const stamp = () => new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })
+const stage = () => ko.stories.stages[props.s.episode.value?.step ?? 'story']
+const defaultName = () => `${t.done(stage())} · ${stamp()}`
+const name = ref(defaultName())
+const nameChips = computed(() => [t.done(stage()), ...t.chips])
 const busy = ref(false)
 const openId = ref<string | null>(null)
 const when = (x: Snapshot) => (x.createdAt ? new Date(x.createdAt.toMillis()).toLocaleString('ko-KR') : '')
@@ -34,8 +39,8 @@ async function act(fn: () => Promise<unknown>, done: string) {
   }
 }
 const save = () => act(async () => {
-  await props.s.saveSnapshot(name.value || new Date().toLocaleString('ko-KR'))
-  name.value = ''
+  await props.s.saveSnapshot(name.value.trim() || defaultName())
+  name.value = defaultName()
 }, t.saved)
 async function restore(x: Snapshot) {
   if (!await confirmDialog(t.restoreConfirm(x.name))) return
@@ -54,9 +59,12 @@ async function remove(x: Snapshot) {
         <button :aria-label="ko.studio.close" @click="emit('close')"><X class="size-5" /></button>
       </div>
       <p class="text-muted-foreground text-xs">{{ t.hint }}</p>
-      <form v-if="edit" class="flex gap-2" @submit.prevent="save">
-        <Input v-model="name" maxlength="40" :placeholder="t.namePlaceholder" :aria-label="t.namePlaceholder" />
-        <Button type="submit" :loading="busy">{{ t.save }}</Button>
+      <form v-if="edit" class="flex flex-col gap-1.5" @submit.prevent="save">
+        <div class="flex gap-2">
+          <Input v-model="name" maxlength="40" :placeholder="t.namePlaceholder" :aria-label="t.nameLabel" />
+          <Button type="submit" :loading="busy">{{ t.save }}</Button>
+        </div>
+        <AppSuggest :label="t.nameLabel" :items="nameChips" @pick="v => (name = `${v} · ${stamp()}`)" />
       </form>
       <p v-if="!s.snapshots.value.length" class="text-muted-foreground py-4 text-center text-sm">{{ t.empty }}</p>
       <ul class="flex flex-col gap-2">

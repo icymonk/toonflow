@@ -3,6 +3,7 @@ import type { StoryParams } from '../../../../shared/story'
 import type { TextFormat } from '../types'
 import { storyParams } from '../../../../shared/story'
 import { AiError } from '../errors'
+import { guard } from './guard'
 
 const TONE_KO = { empathy: '공감', comedy: '코믹', touching: '감동', cider: '사이다', horror: '공포', info: '정보' } as const
 const LINE_TYPES = '대사 type은 speech(말), thought(생각), whisper(속삭임), shout(외침), narration(내레이션), sfx(효과음) 중 하나.'
@@ -39,7 +40,8 @@ const split = (p: StoryParams): TextPrompt => ({
   format: 'split',
   system: `너는 인스타툰 콘티 작가야. 각색안을 ${p.pageCount}장짜리 인스타툰 콘티로 나눠. pages는 정확히 ${p.pageCount}개, 장마다 panels 1~4개(기본 1컷, 대사가 많거나 빠른 전개면 2컷). 마지막 장은 펀치라인 1컷. `
     + 'scene은 그림 AI가 그릴 장면 설명(누가, 어디서, 무엇을. 글자·말풍선은 넣지 않는다), place는 장소·시간, characters는 등장인물 이름, '
-    + 'shot은 closeup|bust|full|wide|pov 중 하나, expression·action·outfit은 주인공의 표정·동작·의상, mood는 분위기·효과(집중선, 땀방울 등). '
+    + 'shot은 closeup|bust|full|wide|pov 중 하나, expression·action은 주인공의 표정·동작, outfit은 그 컷 등장인물의 의상(여럿이면 "이름: 의상, 이름: 의상"), mood는 분위기·효과(집중선, 땀방울 등). '
+    + '같은 장소·시간이 이어지는 컷은 place와 outfit을 글자까지 똑같이 적어. 의상은 장소나 시간이 바뀌어 갈아입을 이유가 있을 때만 바꿔. 작품 참고에 기본 의상이 있으면 그걸 기준으로 해. '
     + `dialogues는 그 컷의 대사(한 개에 40자 이내). ${LINE_TYPES} `
     + '반드시 JSON만: {"pages": [{"panels": [{"scene": str, "place": str, "characters": [str], "shot": str, "expression": str, "action": str, "outfit": str, "mood": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}]}]}',
   prompt: p.draft || p.material,
@@ -58,6 +60,24 @@ const rewrite = (p: StoryParams): TextPrompt => {
   }
 }
 
+// 추천 입력
+const SUGGEST_KO = {
+  logline: ['한 줄 요약', '이 화 전체를 한 문장으로, 60자 이내'],
+  heading: ['장면 제목', '장면을 짧게 부르는 제목, 20자 이내'],
+  beats: ['장면 내용', '이 장면에서 일어나는 일을 1~3문장으로. 대사는 넣지 않는다'],
+  punchline: ['마무리', '마지막 장의 펀치라인 한 문장, 40자 이내'],
+} as const
+const suggest = (p: StoryParams): TextPrompt => {
+  const s = p.suggest
+  if (!s) throw new AiError('internal', 'suggest params missing')
+  const [name, rule] = SUGGEST_KO[s.field]
+  return {
+    format: 'suggest',
+    system: `너는 인스타툰 각색 작가야. 각색안 전체를 참고해서 [${name}]에 넣을 후보를 서로 다른 느낌으로 3개 써. ${rule}. 실명·특정 가능한 정보는 쓰지 않는다. 반드시 JSON만: {"options": [str, str, str]}`,
+    prompt: `${p.draft || p.material}${s.scene ? `\n\n[이 장면]\n${s.scene}` : ''}\n\n[지금 ${name}]\n${s.text.trim() || '(비어 있음)'}`,
+  }
+}
+
 // PUB-10
 const caption = (p: StoryParams): TextPrompt => ({
   format: 'caption',
@@ -66,7 +86,7 @@ const caption = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite }
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite, 'story.suggest': suggest }
 
 // INB-23
 const summarize = (material: string): TextPrompt => ({
@@ -79,6 +99,10 @@ const summarize = (material: string): TextPrompt => ({
 
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
+  return guard(buildPrompt(type, params))
+}
+
+function buildPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
   if (type === 'submission.summary') return summarize(String(params.material ?? '').slice(0, 20000))
   const build = BUILDERS[type]
   if (!build) return { system: '', prompt: JSON.stringify(params) }
@@ -86,5 +110,5 @@ export function textPrompt(type: JobType, params: Record<string, unknown>): Text
   if (!p.success) throw new AiError('internal', `bad params for ${type}`)
   const out = build(p.data)
   // STO-03
-  return p.data.context ? { ...out, prompt: `${out.prompt}\n\n[작품 참고 — 설정·캐릭터 말투]\n${p.data.context}` } : out
+  return p.data.context ? { ...out, prompt: `${out.prompt}\n\n[작품 참고 — 설정·지난 화·캐릭터 말투]\n${p.data.context}` } : out
 }

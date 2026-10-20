@@ -96,12 +96,12 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
         <Label for="ill-extra" class="text-xs">{{ t.extra }}</Label>
         <Input id="ill-extra" v-model="extra" :placeholder="t.extraPh" maxlength="200" />
       </div>
-      <label class="flex items-center gap-2 text-xs"><input v-model="leaveRoom" type="checkbox"> {{ t.leaveRoom }}</label>
+      <label class="flex items-center gap-2 text-xs"><AppCheck v-model="leaveRoom" /> {{ t.leaveRoom }}</label>
       <p class="text-muted-foreground text-xs">{{ t.noText }}</p>
       <div class="flex items-center gap-2">
-        <select v-model.number="n" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.count">
+        <AppSelect v-model.number="n" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.count">
           <option v-for="i in 4" :key="i" :value="i">{{ i }}</option>
-        </select>
+        </AppSelect>
         <Button class="flex-1" size="sm" :loading="busy" @click="emit('generate', n, { extra, leaveRoom })">
           <Sparkles class="size-4" /> {{ (has ? t.regenerate : t.generate)(n, estimate(n)) }}
         </Button>
@@ -147,14 +147,14 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
         <Button size="sm" variant="outline" @click="emit('variant', cut.panel.selectedCandidateId!)">{{ t.variant }}</Button>
         <Button size="sm" variant="outline" @click="maskId = cut.panel.selectedCandidateId!">{{ t.inpaint }}</Button>
       </div>
-      <label class="flex items-center gap-2 text-xs">{{ t.zoom }}<input v-model.number="zoom" type="range" min="1" max="3" step="0.05" class="flex-1" @input="saveCrop"></label>
-      <label class="flex items-center gap-2 text-xs">{{ t.x }}<input v-model.number="cx" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
-      <label class="flex items-center gap-2 text-xs">{{ t.y }}<input v-model.number="cy" type="range" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop"></label>
+      <label class="flex items-center gap-2 text-xs">{{ t.zoom }}<AppSlider v-model="zoom" min="1" max="3" step="0.05" class="flex-1" @input="saveCrop" /></label>
+      <label class="flex items-center gap-2 text-xs">{{ t.x }}<AppSlider v-model="cx" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop" /></label>
+      <label class="flex items-center gap-2 text-xs">{{ t.y }}<AppSlider v-model="cy" min="0" max="1" step="0.01" class="flex-1" :disabled="zoom <= 1" @input="saveCrop" /></label>
       <div class="flex items-center justify-between pt-2">
         <span class="text-sm font-medium">{{ t.adjust }}</span>
         <button class="text-muted-foreground flex items-center gap-0.5 text-xs underline" @click="resetAdjust"><RotateCcw class="size-3" />{{ t.resetAdjust }}</button>
       </div>
-      <label v-for="k in ADJUST_KEYS" :key="k" class="flex items-center gap-2 text-xs">{{ t[k] }}<input v-model.number="adj[k]" type="range" min="50" max="150" step="1" class="flex-1" :aria-label="t[k]" @input="saveAdjust"><span class="w-8 text-right tabular-nums">{{ adj[k] }}</span></label>
+      <label v-for="k in ADJUST_KEYS" :key="k" class="flex items-center gap-2 text-xs">{{ t[k] }}<AppSlider v-model="adj[k]" min="50" max="150" step="1" class="flex-1" :aria-label="t[k]" @input="saveAdjust" /><span class="w-8 text-right tabular-nums">{{ adj[k] }}</span></label>
     </div>
     <StudioMaskEditor v-if="maskPath" :path="maskPath" @close="maskId = null" @done="onMask" />
   </div>

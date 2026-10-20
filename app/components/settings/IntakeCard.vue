@@ -93,7 +93,7 @@ async function copy() {
           </p>
         </div>
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="form.enabled" type="checkbox" :disabled="!manage">
+          <AppCheck v-model="form.enabled" :disabled="!manage" />
           {{ t.enabled }}
         </label>
         <div class="flex flex-col gap-1.5">
@@ -121,7 +121,7 @@ async function copy() {
           <Textarea id="in-consent" v-model="form.consentText" rows="3" :maxlength="INTAKE_LIMITS.consent" :placeholder="CONSENT_TEXT" :disabled="!manage" />
         </div>
         <label class="flex items-center gap-2 text-sm">
-          <input v-model="form.images" type="checkbox" :disabled="!manage">
+          <AppCheck v-model="form.images" :disabled="!manage" />
           {{ t.images }}
         </label>
         <p v-if="form.images" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">

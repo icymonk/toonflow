@@ -8,7 +8,10 @@ import { ko } from '~/locales/ko'
 const t = ko.assetsPage
 const a = useAssets()
 const tpl = useBubbleTemplates()
-const { episodes } = useStories()
+const { series, episodes } = useStories()
+const seriesFilter = useSeriesFilter(series)
+const seriesEpisodes = computed(() => episodes.value.filter(e => !seriesFilter.value || e.seriesId === seriesFilter.value))
+watch(seriesFilter, () => (ep.value = ''))
 const tab = ref<'generated' | 'refs'>('generated')
 const ep = ref('')
 const q = ref('')
@@ -21,8 +24,9 @@ const splitTags = (s: string) => s.split(',').map(x => x.trim()).filter(Boolean)
 const sceneOf = (g: { input?: unknown }) => (g.input as { scene?: string } | null)?.scene ?? ''
 const styleVer = (g: { input?: unknown }) => (g.input as { styleVersion?: number | null } | null)?.styleVersion ?? null
 const epTitle = (id: string | null) => episodes.value.find(e => e.id === id)?.title ?? ''
-const gen = computed(() => a.generated.value.filter(g => (!ep.value || g.episodeId === ep.value) && (!q.value.trim() || sceneOf(g).includes(q.value.trim()))))
-const refs = computed(() => a.assets.value.filter(x => !q.value.trim() || x.name.includes(q.value.trim()) || x.tags.some(tg => tg.includes(q.value.trim()))))
+const inSeries = (episodeId: string | null) => !seriesFilter.value || seriesEpisodes.value.some(e => e.id === episodeId)
+const gen = computed(() => a.generated.value.filter(g => inSeries(g.episodeId) && (!ep.value || g.episodeId === ep.value) && (!q.value.trim() || sceneOf(g).includes(q.value.trim()))))
+const refs = computed(() => a.assets.value.filter(x => (!seriesFilter.value || x.seriesId === seriesFilter.value) && (!q.value.trim() || x.name.includes(q.value.trim()) || x.tags.some(tg => tg.includes(q.value.trim())))))
 const items = computed(() => (tab.value === 'generated' ? gen.value.map(g => ({ id: g.id, path: g.imagePath })) : refs.value.map(r => ({ id: r.id, path: r.path }))))
 const fGen = computed(() => (tab.value === 'generated' ? gen.value.find(g => g.id === focus.value) : undefined))
 const fRef = computed(() => (tab.value === 'refs' ? refs.value.find(r => r.id === focus.value) : undefined))
@@ -43,7 +47,7 @@ async function upload(files: File[]) {
   const imgs = files.filter(f => f.type.startsWith('image/'))
   if (!imgs.length) return
   try {
-    await a.upload(imgs, splitTags(tagInput.value))
+    await a.upload(imgs, splitTags(tagInput.value), seriesFilter.value || null)
     toast.success(t.uploaded(imgs.length))
     tab.value = 'refs'
   }
@@ -95,10 +99,11 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </ul>
       </details>
       <div class="flex flex-wrap items-center gap-2">
-        <select v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
+        <AppSeriesScope />
+        <AppSelect v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
           <option value="">{{ t.allEpisodes }}</option>
-          <option v-for="e in episodes" :key="e.id" :value="e.id">{{ e.title }}</option>
-        </select>
+          <option v-for="e in seriesEpisodes" :key="e.id" :value="e.id">{{ e.title }}</option>
+        </AppSelect>
         <Input v-model="q" class="h-9 w-full sm:w-60" :placeholder="t.search" />
         <Button size="sm" variant="outline" :disabled="!sel.size" @click="download">{{ t.download(sel.size) }}</Button>
         <template v-if="tab === 'refs'">
@@ -118,7 +123,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
           <div v-for="i in items" :key="i.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': focus === i.id }">
             <button class="block w-full" @click="focus = i.id"><AppStorageImg :path="i.path" class="aspect-[4/5] w-full" /></button>
-            <input type="checkbox" class="absolute top-1.5 left-1.5 size-4" :checked="sel.has(i.id)" :aria-label="t.select" @change="toggle(i.id)">
+            <AppCheck class="absolute top-1.5 left-1.5 size-4" :model-value="sel.has(i.id)" :aria-label="t.select" @change="toggle(i.id)" />
           </div>
         </div>
       </div>
@@ -140,6 +145,11 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         <p class="break-all">{{ fRef.name }} · {{ formatBytes(fRef.size) }}</p>
         <Label class="text-xs">{{ t.tags }}</Label>
         <Input :model-value="fRef.tags.join(', ')" @change="(e: Event) => a.setTags(fRef!.id, splitTags((e.target as HTMLInputElement).value))" />
+        <Label class="text-xs">{{ t.series }}</Label>
+        <AppSelect :model-value="fRef.seriesId ?? ''" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.series" @update:model-value="(v: string) => a.setSeries(fRef!.id, v || null)">
+          <option value="">{{ t.sharedAll }}</option>
+          <option v-for="s in series" :key="s.id" :value="s.id">{{ s.name }}</option>
+        </AppSelect>
         <Button size="sm" variant="ghost" class="text-destructive self-start" @click="a.remove(fRef!).then(() => (focus = null))">{{ t.remove }}</Button>
       </template>
     </aside>

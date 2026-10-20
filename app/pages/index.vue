@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import { useLocalStorage } from '@vueuse/core'
+import { toast } from 'vue-sonner'
+import { canEdit } from '#shared/roles'
+import { STYLE_PRESETS } from '#shared/library'
+import { errorMessage } from '~/lib/errors'
 import { monthStats, todayTasks } from '#shared/home'
 import { ko } from '~/locales/ko'
 
 // CMN-01 이어서 하기, CMN-04 빠른 시작, CMN-05 처음 사용 안내
 const t = ko.home
 const auth = useAuthStore()
-const { episodes, series } = useStories()
-const { characters, styles } = useLibrary()
+const { episodes: all, series, createSeries, createEpisode } = useStories()
+const { characters, styles, setSeriesStyle } = useLibrary()
+// EPI-05 작품을 골라 두면 그 작품 에피소드만
+const current = useSeriesFilter(series)
+const cur = computed(() => series.value.find(s => s.id === current.value) ?? null)
+const episodes = computed(() => all.value.filter(e => !current.value || e.seriesId === current.value))
 const recent = computed(() => episodes.value.filter(e => !e.archivedAt).slice(0, 5))
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
 // CMN-02 오늘 할 일 · CMN-03 이번 달 현황
@@ -27,10 +35,38 @@ const month = computed(() => monthStats(episodes.value))
 const krw = (n: number) => `₩${n.toLocaleString('ko-KR')}`
 const hideGuide = useLocalStorage('toonflow:guideHidden', false)
 const guide = computed(() => [
-  { done: styles.value.length > 0, label: t.guide.style, to: '/styles' },
-  { done: characters.value.length > 0, label: t.guide.character, to: '/characters' },
+  { done: cur.value ? !!cur.value.styleId : styles.value.length > 0, label: t.guide.style, to: cur.value ? '/stories' : '/styles' },
+  { done: cur.value ? (cur.value.mainCharacterIds?.length ?? 0) > 0 : characters.value.length > 0, label: t.guide.character, to: '/characters' },
   { done: episodes.value.length > 0, label: t.guide.episode, to: '/stories' },
 ])
+
+// CMN-04 빠른 시작: 썰만 넣으면 작품·에피소드를 만들고 기본 그림체로 각색 시작
+const edit = computed(() => canEdit(auth.role))
+const quickText = ref('')
+const quicking = ref(false)
+async function quickStart() {
+  const storyText = quickText.value.trim()
+  if (!storyText || quicking.value) return
+  quicking.value = true
+  try {
+    const d = auth.workspace!.defaults
+    const name = storyText.split('\n')[0]!.trim().slice(0, 24) || t.quick.seriesName
+    const { id: seriesId } = await createSeries({ name, intro: t.quick.seriesName, tone: 'empathy', pageCount: d.pageCount })
+    const live = styles.value.filter(x => !x.archivedAt)
+    const style = live.find(x => x.name === STYLE_PRESETS[0]!.name) ?? live[0]
+    if (style) await setSeriesStyle(seriesId, style.id)
+    const { episodeId } = await createEpisode({ seriesId, title: '', submissionIds: [], storyText, tone: 'empathy', pageCount: d.pageCount, narrator: d.narrator })
+    current.value = seriesId
+    quickText.value = ''
+    await navigateTo({ path: '/studio', query: { episode: episodeId, adapt: '1' } })
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+  finally {
+    quicking.value = false
+  }
+}
 </script>
 
 <template>
@@ -44,6 +80,13 @@ const guide = computed(() => [
       <Button as-child><NuxtLink to="/stories">{{ t.start }}</NuxtLink></Button>
       <Button variant="outline" as-child><NuxtLink to="/inbox">{{ t.addStory }}</NuxtLink></Button>
     </div>
+
+    <section v-if="edit" class="bg-card flex flex-col gap-2 rounded-lg border p-4">
+      <h2 class="font-semibold">{{ t.quick.title }}</h2>
+      <p class="text-muted-foreground text-xs">{{ t.quick.body }}</p>
+      <Textarea v-model="quickText" rows="3" maxlength="20000" :placeholder="t.quick.placeholder" :aria-label="t.quick.title" />
+      <Button class="self-start" :disabled="quicking || !quickText.trim()" @click="quickStart">{{ quicking ? t.quick.starting : t.quick.start }}</Button>
+    </section>
 
     <div class="grid gap-4 sm:grid-cols-2">
       <section class="bg-card flex flex-col gap-2 rounded-lg border p-4">

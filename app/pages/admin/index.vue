@@ -230,9 +230,9 @@ function saveModels() {
                   <form class="flex flex-wrap items-end gap-2" @submit.prevent="savePlan(r.id)">
                     <div class="flex flex-col gap-1">
                       <Label :for="`plan-${r.id}`">{{ t.planSelect }}</Label>
-                      <select :id="`plan-${r.id}`" v-model="grant.plan" class="border-input bg-background h-8 rounded-md border px-2">
+                      <AppSelect :id="`plan-${r.id}`" v-model="grant.plan" class="border-input bg-background h-8 rounded-md border px-2">
                         <option v-for="p in PLANS" :key="p" :value="p">{{ ko.plans[p] }}</option>
-                      </select>
+                      </AppSelect>
                     </div>
                     <div class="flex flex-col gap-1">
                       <Label :for="`credit-${r.id}`">{{ t.credit }}</Label>
@@ -257,7 +257,7 @@ function saveModels() {
           <CardDescription>{{ t.waitlistHint }}</CardDescription>
         </CardHeader>
         <CardContent class="flex flex-col gap-2">
-          <label class="flex items-center gap-2 text-xs"><input v-model="showDecided" type="checkbox">{{ t.showDecided }}</label>
+          <label class="flex items-center gap-2 text-xs"><AppCheck v-model="showDecided" />{{ t.showDecided }}</label>
           <p v-if="!shownWaitlist.length" class="text-muted-foreground text-sm">
             {{ t.noWaitlist }}
           </p>

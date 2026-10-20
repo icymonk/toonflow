@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { pick } from './pick'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { unzipSync } from 'fflate'
@@ -56,10 +57,23 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '더 짧게' }).first().click()
   await expect(page.getByLabel(/^대사 \(한 줄에 하나/).first()).toHaveValue(/가짜 다시 쓰기/, { timeout: 60_000 })
 
+  // 추천 입력: 한 줄 요약 AI 추천 → 칩을 눌러 칸에 넣고, 넣은 뒤에도 고칠 수 있다
+  await page.getByRole('button', { name: '한 줄 요약 AI 추천 3개 받기' }).click()
+  await page.getByRole('button', { name: '가짜 추천 1' }).click({ timeout: 60_000 })
+  await expect(page.locator('#sv-log')).toHaveValue('가짜 추천 1')
+  // 스냅숏 이름은 단계·시각으로 미리 채우고, 칩으로 바꾼다
+  await page.getByRole('button', { name: '스냅숏' }).click()
+  const snapDialog = page.getByRole('dialog', { name: '스냅숏' })
+  const snapName = snapDialog.getByLabel('스냅숏 이름', { exact: true })
+  await expect(snapName).toHaveValue(/^각색 완료 · /)
+  await snapDialog.getByRole('button', { name: '각색 확정 전' }).click()
+  await expect(snapName).toHaveValue(/^각색 확정 전 · /)
+  await snapDialog.getByRole('button', { name: '닫기' }).click()
+
   // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
   const epStyle = page.getByLabel('이번 화 그림체')
-  await epStyle.selectOption({ index: 1 })
-  await expect(epStyle).not.toHaveValue('')
+  await pick(epStyle, { index: 1 })
+  await expect(epStyle).not.toHaveAttribute('data-value', '')
 
   // 에피소드 없이 제작실에 오면 마지막에 연 에피소드가 열리고, "다른 에피소드"는 목록을 보여 준다
   const epUrl = page.url()
@@ -113,12 +127,12 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '전체 미리보기' }).click()
   await expect(page.getByRole('dialog', { name: '전체 미리보기' }).locator('svg text').first()).toBeVisible()
   await page.keyboard.press('Escape')
-  for (const item of ['오탈자', '개인정보', '출처·크레딧']) await page.getByLabel(item, { exact: true }).selectOption('pass')
+  for (const item of ['오탈자', '개인정보', '출처·크레딧']) await pick(page.getByLabel(item, { exact: true }), 'pass')
   await expect(page.getByText('모두 통과')).toBeVisible()
 
   // AI 그림 품질 점검 (REV-13, 가짜 모델은 1번 그림을 지적)
   await page.getByRole('button', { name: /그림 품질 점검/ }).click()
-  await expect(page.getByText(/가짜 점검: 손 모양이 어색해 보여요/)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/가짜 점검: 손 모양이 어색해 보여요/).first()).toBeVisible({ timeout: 60_000 })
 
   // ZIP
   await page.getByRole('tab', { name: /Export/ }).click()
@@ -133,8 +147,8 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   const preview = page.getByLabel('영상 미리 보기')
   await expect(preview).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: /초/ }).first()).toBeVisible()
-  await page.getByLabel('움직임', { exact: true }).selectOption('zoomIn')
-  await expect(page.getByLabel('움직임', { exact: true })).toHaveValue('zoomIn')
+  await pick(page.getByLabel('움직임', { exact: true }), 'zoomIn')
+  await expect(page.getByLabel('움직임', { exact: true })).toHaveAttribute('data-value', 'zoomIn')
   // 저장된 값이 다시 그려질 때까지 확인한다 (느린 CI에서 입력 직후 화면이 새로 그려지면 다시 입력)
   await expect(async () => {
     await page.getByLabel('보여 줄 시간(초)').fill('3')
@@ -151,7 +165,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByLabel('보여 줄 시간(초)').fill('0.5')
   await page.getByLabel('보여 줄 시간(초)').blur()
   await page.getByRole('button', { name: '모든 컷에 이 시간' }).click()
-  await page.getByLabel('표지(첫 화면)').selectOption({ index: 1 })
+  await pick(page.getByLabel('표지(첫 화면)'), { index: 1 })
   // 배경음악 (PUB-36): 1초 사인파 WAV
   const pcm = Buffer.alloc(48_000 * 2)
   for (let i = 0; i < 48_000; i++) pcm.writeInt16LE(Math.round(Math.sin(i / 48_000 * 2 * Math.PI * 440) * 8000), i * 2)
@@ -214,7 +228,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   // CMN-40: 공개 제보 페이지 신고
   await guest.goto(link!)
   await guest.getByText('이 페이지 신고').click()
-  await guest.getByLabel('신고 이유').selectOption('spam')
+  await pick(guest.getByLabel('신고 이유'), 'spam')
   await guest.getByLabel('자세한 내용 (선택)').fill('광고 글이 올라와요')
   await guest.getByRole('button', { name: '신고하기' }).click()
   await expect(guest.getByText('신고했어요. 운영자가 확인해요.')).toBeVisible()
@@ -225,6 +239,18 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '알림' }).click()
   await page.getByRole('link', { name: /제보자가 동의를 철회했어요/ }).click()
   await expect(page).toHaveURL(/\/inbox\?id=/)
+
+  // CMN-04 빠른 시작: 썰만 넣으면 작품·에피소드를 만들고 각색이 바로 시작된다. EPI-05 그 작품이 지금 작품이 된다
+  await page.goto('/')
+  await page.getByLabel('썰로 바로 만들어 보기').fill(`빠른 시작 썰\n${STORY}`)
+  await page.getByRole('button', { name: '바로 만들기' }).click()
+  await page.waitForURL(/\/studio\?episode=/)
+  await expect(page.getByText('사용 중').first()).toBeVisible({ timeout: 90_000 })
+  await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('빠른 시작 썰')
+  await page.goto('/characters')
+  await expect(page.getByText('빠른 시작 썰만 보는 중')).toBeVisible()
+  await page.getByRole('button', { name: '모든 작품' }).click()
+  await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('모든 작품')
 
   // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
   await page.goto('/')

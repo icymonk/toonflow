@@ -14,7 +14,7 @@ provide('lib', lib)
 const route = useRoute()
 const router = useRouter()
 const q = ref('')
-const seriesFilter = ref('')
+const seriesFilter = useSeriesFilter(lib.series)
 const archived = ref(false)
 const seriesOf = (id: string) => lib.series.value.filter(s => s.mainCharacterIds?.includes(id))
 const list = computed(() => lib.characters.value.filter(c => !!c.archivedAt === archived.value
@@ -23,7 +23,11 @@ const list = computed(() => lib.characters.value.filter(c => !!c.archivedAt === 
 const current = computed(() => lib.characters.value.find(c => c.id === route.query.id) ?? null)
 const select = (id?: string) => router.replace({ query: id ? { id } : {} })
 async function create() {
-  try { select((await lib.createCharacter({ name: t.newCharacter })).id) }
+  try {
+    const id = (await lib.createCharacter({ name: t.newCharacter })).id
+    if (seriesFilter.value) await lib.setMain(seriesFilter.value, id, true)
+    select(id)
+  }
   catch (e) { toast.error(errorMessage(e) ?? ko.errors.unknown) }
 }
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
@@ -42,15 +46,8 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       </div>
       <div class="flex flex-wrap gap-2">
         <Input v-model="q" :placeholder="t.search" :aria-label="t.search" class="w-48" />
-        <select v-model="seriesFilter" :class="selectClass" :aria-label="t.allSeries">
-          <option value="">
-            {{ t.allSeries }}
-          </option>
-          <option v-for="s in lib.series.value" :key="s.id" :value="s.id">
-            {{ s.name }}
-          </option>
-        </select>
-        <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
+        <AppSeriesScope />
+        <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="archived" /> {{ t.archived }}</label>
       </div>
       <AppListSkeleton v-if="!lib.loaded.characters" />
       <div v-else-if="!lib.characters.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">

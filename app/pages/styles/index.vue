@@ -14,7 +14,9 @@ provide('lib', lib)
 const route = useRoute()
 const router = useRouter()
 const archived = ref(false)
-const list = computed(() => lib.styles.value.filter(s => !!s.archivedAt === archived.value))
+const seriesFilter = useSeriesFilter(lib.series)
+const filterStyleId = computed(() => lib.series.value.find(s => s.id === seriesFilter.value)?.styleId ?? null)
+const list = computed(() => lib.styles.value.filter(s => !!s.archivedAt === archived.value && (!seriesFilter.value || s.id === filterStyleId.value)))
 // STL-05 비교
 const compareId = ref('')
 const compareWith = computed(() => lib.styles.value.find(s => s.id === compareId.value && s.id !== current.value?.id) ?? null)
@@ -22,7 +24,12 @@ const usedBy = (id: string) => lib.series.value.filter(s => s.styleId === id).le
 const current = computed(() => lib.styles.value.find(s => s.id === route.query.id) ?? null)
 const select = (id?: string) => router.replace({ query: id ? { id } : {} })
 async function create() {
-  try { select((await lib.createStyle()).id) }
+  try {
+    const id = (await lib.createStyle()).id
+    // 작품마다 그림체는 하나라서, 아직 없는 작품에만 연결
+    if (seriesFilter.value && !filterStyleId.value) await lib.setSeriesStyle(seriesFilter.value, id)
+    select(id)
+  }
   catch (e) { toast.error(errorMessage(e) ?? ko.errors.unknown) }
 }
 </script>
@@ -38,7 +45,10 @@ async function create() {
           <Plus class="size-4" /> {{ t.newStyle }}
         </Button>
       </div>
-      <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
+      <div class="flex flex-wrap gap-2">
+        <AppSeriesScope />
+        <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="archived" /> {{ t.archived }}</label>
+      </div>
       <AppListSkeleton v-if="!lib.loaded.styles" />
       <div v-else-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
         <p class="text-foreground font-medium">
@@ -57,10 +67,10 @@ async function create() {
       </div>
       <div v-if="current && lib.styles.value.length > 1" class="flex flex-col gap-2 border-t pt-3">
         <label class="flex items-center gap-2 text-sm">{{ t.compareWith }}
-          <select v-model="compareId" class="border-input bg-card h-8 rounded-md border px-2 text-sm">
+          <AppSelect v-model="compareId" class="border-input bg-card h-8 rounded-md border px-2 text-sm">
             <option value="">-</option>
             <option v-for="s in lib.styles.value.filter(x => x.id !== current!.id)" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
+          </AppSelect>
         </label>
         <div v-if="compareWith" class="grid grid-cols-2 gap-3">
           <div v-for="s in [current, compareWith]" :key="s.id" class="flex flex-col gap-1">
