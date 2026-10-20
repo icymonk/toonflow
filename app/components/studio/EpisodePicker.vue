@@ -12,13 +12,14 @@ const route = useRoute()
 const auth = useAuthStore()
 const { series, episodes, loading } = useStories()
 const last = useLocalStorage<Record<string, string>>('toonflow:studio:last', {})
-const recent = computed(() => episodes.value.filter(e => !e.archivedAt).slice(0, 12))
+const current = useSeriesFilter(series)
+const recent = computed(() => episodes.value.filter(e => !e.archivedAt && (!current.value || e.seriesId === current.value)).slice(0, 12))
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
 
 watch(loading, (l) => {
   if (l || route.query.pick) return
   const id = last.value[auth.workspace?.id ?? '']
-  if (id && episodes.value.some(e => e.id === id)) navigateTo({ path: '/studio', query: { episode: id } }, { replace: true })
+  if (id && episodes.value.some(e => e.id === id && (!current.value || e.seriesId === current.value))) navigateTo({ path: '/studio', query: { episode: id } }, { replace: true })
 }, { immediate: true })
 </script>
 
@@ -34,9 +35,12 @@ watch(loading, (l) => {
       </NuxtLink>
     </AppEmptyState>
     <template v-else>
-      <p class="text-muted-foreground text-sm">
-        {{ t.pick }}
-      </p>
+      <div class="flex flex-wrap items-center gap-2">
+        <p class="text-muted-foreground text-sm">
+          {{ t.pick }}
+        </p>
+        <AppSeriesScope />
+      </div>
       <ul class="divide-y rounded-lg border">
         <li v-for="e in recent" :key="e.id">
           <NuxtLink :to="{ path: '/studio', query: { episode: e.id } }" class="hover:bg-muted flex items-center justify-between gap-3 px-4 py-3">

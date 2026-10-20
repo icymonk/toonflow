@@ -37,6 +37,9 @@ const storyCtx = computed(() => {
 })
 const story = useStory(episode, computed(() => cuts.value.length > 0), storyCtx)
 const lib = useLibrary()
+// EPI-05 에피소드를 열면 그 작품이 지금 작품이 돼요
+const currentSeries = useSeriesFilter(lib.series)
+watch(() => episode.value?.seriesId, id => id && (currentSeries.value = id), { immediate: true })
 const selectedPanelId = computed(() => String(route.query.panel ?? '') || cuts.value[0]?.panel.id || '')
 const ill = useIllustrate(s, lib, selectedPanelId)
 const presence = usePresence(episodeId, selectedPanelId)
@@ -174,10 +177,19 @@ async function makeCharacter(panel: Panel, name: string, once: boolean) {
   await run(async () => {
     const ref = await lib.createCharacter({ name, episodeId: once ? episode.value!.id : null })
     queueEdit(panel, 'characterIds', [...new Set([...(panel.characterIds ?? []), ref.id])])
+    if (!once && episode.value?.seriesId) await lib.setMain(episode.value.seriesId, ref.id, true)
   }, ko.library.created)
 }
 const storySel = computed(() => String(route.query.version ?? '') || story.active.value?.id || story.versions.value.at(-1)?.id || '')
 const storyVersion = computed(() => story.versions.value.find(v => v.id === storySel.value) ?? null)
+// CMN-04 빠른 시작으로 왔으면 각색을 한 번 바로 시작
+const autoAdapt = ref(route.query.adapt === '1')
+watch(() => [story.material.value, episode.value?.id] as const, ([m, id]) => {
+  if (!autoAdapt.value || !m || !id || !edit.value) return
+  autoAdapt.value = false
+  router.replace({ query: { ...route.query, adapt: undefined } })
+  if (!story.versions.value.length) run(() => story.draft(1), t.story.started)
+}, { immediate: true })
 // STO-23
 const storyCompareId = ref('')
 const compareVersion = computed(() => story.versions.value.find(v => v.id === storyCompareId.value && v.id !== storySel.value) ?? null)

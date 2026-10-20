@@ -46,14 +46,7 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       </div>
       <div class="flex flex-wrap gap-2">
         <Input v-model="q" :placeholder="t.search" :aria-label="t.search" class="w-48" />
-        <AppSelect v-model="seriesFilter" :class="selectClass" :aria-label="t.allSeries">
-          <option value="">
-            {{ t.allSeries }}
-          </option>
-          <option v-for="s in lib.series.value" :key="s.id" :value="s.id">
-            {{ s.name }}
-          </option>
-        </AppSelect>
+        <AppSeriesScope />
         <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="archived" /> {{ t.archived }}</label>
       </div>
       <AppListSkeleton v-if="!lib.loaded.characters" />

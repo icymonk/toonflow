@@ -99,10 +99,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </ul>
       </details>
       <div class="flex flex-wrap items-center gap-2">
-        <AppSelect v-model="seriesFilter" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="ko.library.allSeries">
-          <option value="">{{ ko.library.allSeries }}</option>
-          <option v-for="s in series" :key="s.id" :value="s.id">{{ s.name }}</option>
-        </AppSelect>
+        <AppSeriesScope />
         <AppSelect v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
           <option value="">{{ t.allEpisodes }}</option>
           <option v-for="e in seriesEpisodes" :key="e.id" :value="e.id">{{ e.title }}</option>

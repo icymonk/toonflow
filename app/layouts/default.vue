@@ -50,6 +50,7 @@ async function signOut() {
         </button>
       </div>
       <AppWorkspaceSwitcher :collapsed="collapsed" />
+      <AppSeriesSwitcher :collapsed="collapsed" />
       <nav class="flex flex-col gap-0.5">
         <NuxtLink
           v-for="item in NAV_MAIN"
