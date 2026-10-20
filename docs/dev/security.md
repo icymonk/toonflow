@@ -28,6 +28,8 @@
 | `intakeTokens/*` (3-D 확인 링크) | 서버만 | 서버만 |
 | `intakeBlocks/{slug}` (3-E 막은 제보 페이지) | 누구나 | 서버만 |
 | `reports/*` (3-E 신고) | 운영자 | 서버만 |
+| `feedback/{id}` (CMN-60~63) | 본인, 운영자 | 만들기: 본인(`status == 'open'`). 운영자: `status`·`adminReplyAt`만. 본인: 댓글을 달 때 `status = 'open'`·`userReplyAt`만 |
+| `feedback/{id}/replies/*` | 본인, 운영자 | 만들기만: `by == 'admin'`은 운영자, `by == 'user'`는 본인 |
 | `workspaces/{ws}/config/intake` | `canView` | `canManage` (`slug`·`bannedWords`만) |
 | `workspaces/{ws}/submissions/{id}/private/*` | `canManage` | 서버만 (`submitIntake`) |
 | Storage `workspaces/{ws}/intake/**` | `canView` | 서버만 |

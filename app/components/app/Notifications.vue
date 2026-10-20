@@ -2,11 +2,15 @@
 import type { JobNote } from '~/composables/useNotifications'
 import { Bell } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
+import { hasNewReply } from '#shared/feedback'
 import { ko } from '~/locales/ko'
 
 const t = ko.notifications
 const { shown: jobs, withdrawals, prefs, unread, markSeen } = useNotifications()
 const showPrefs = ref(false)
+// CMN-62 피드백 답변: 피드백 화면에서 읽으면 사라져요
+const fb = useFeedback()
+const answered = computed(() => (prefs.value.feedback ? fb.mine.value.filter(f => f.adminReplyAt).slice(0, 5) : []))
 const usageLevel = computed(() => (prefs.value.usage ? level.value : 'ok'))
 const { level } = useUsage()
 const open = ref(false)
@@ -17,7 +21,7 @@ function toggle() {
   if (open.value) markSeen()
 }
 const link = (j: JobNote) => j.target?.episodeId ? { path: '/studio', query: { episode: j.target.episodeId, ...(j.target.panelId ? { panel: j.target.panelId } : {}) } } : j.type === 'style.sample' ? '/styles' : '/characters'
-const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1))
+const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1) + (prefs.value.feedback ? fb.unread.value : 0))
 </script>
 
 <template>
@@ -31,7 +35,7 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1))
         <button class="text-muted-foreground text-xs hover:underline" @click="showPrefs = !showPrefs">{{ t.prefs.title }}</button>
       </div>
       <div v-if="showPrefs" class="bg-muted/50 mb-1 flex flex-col gap-1 rounded px-2 py-1.5 text-xs">
-        <label v-for="k in (['done', 'failed', 'usage', 'withdrawn'] as const)" :key="k" class="flex items-center gap-1.5"><AppCheck v-model="prefs[k]" /> {{ t.prefs[k] }}</label>
+        <label v-for="k in (['done', 'failed', 'usage', 'withdrawn', 'feedback'] as const)" :key="k" class="flex items-center gap-1.5"><AppCheck v-model="prefs[k]" /> {{ t.prefs[k] }}</label>
       </div>
       <p v-if="usageLevel !== 'ok'" class="rounded px-2 py-1.5 text-xs" :class="level === 'warn' ? 'bg-amber-100 text-amber-900' : 'bg-destructive/10 text-destructive'">
         {{ level === 'warn' ? t.usageWarn : t.usageOver }}
@@ -40,7 +44,11 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1))
         <span class="text-destructive">{{ w.published ? t.withdrawnAfter : t.withdrawnBefore }}</span>
         <span class="text-muted-foreground text-xs">{{ new Date(w.at.toMillis()).toLocaleString('ko-KR') }}</span>
       </NuxtLink>
-      <p v-if="!jobs.length && !withdrawals.length" class="text-muted-foreground px-2 py-3 text-xs">{{ t.empty }}</p>
+      <NuxtLink v-for="f in answered" :key="`fb-${f.id}`" :to="{ path: '/feedback', query: { id: f.id } }" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
+        <span :class="hasNewReply(f, fb.seen.value) ? 'text-primary font-medium' : ''">{{ ko.feedback.answered }}</span>
+        <span class="text-muted-foreground truncate text-xs">{{ f.text }}</span>
+      </NuxtLink>
+      <p v-if="!jobs.length && !withdrawals.length && !answered.length" class="text-muted-foreground px-2 py-3 text-xs">{{ t.empty }}</p>
       <NuxtLink v-for="j in jobs" :key="j.id" :to="link(j)" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
         <span :class="j.status === 'failed' ? 'text-destructive' : ''">{{ t.types[j.type] ?? j.type }} · {{ j.status === 'failed' ? t.failed : t.done }}</span>
         <span class="text-muted-foreground text-xs">{{ j.finishedAt!.toMillis() > 0 ? new Date(j.finishedAt!.toMillis()).toLocaleString('ko-KR') : '' }}</span>
