@@ -3,6 +3,7 @@ import type { StoryParams } from '../../../../shared/story'
 import type { TextFormat } from '../types'
 import { storyParams } from '../../../../shared/story'
 import { AiError } from '../errors'
+import { guard } from './guard'
 
 const TONE_KO = { empathy: '공감', comedy: '코믹', touching: '감동', cider: '사이다', horror: '공포', info: '정보' } as const
 const LINE_TYPES = '대사 type은 speech(말), thought(생각), whisper(속삭임), shout(외침), narration(내레이션), sfx(효과음) 중 하나.'
@@ -79,6 +80,10 @@ const summarize = (material: string): TextPrompt => ({
 
 /** 글 작업 프롬프트. 아직 처리기가 없는 종류는 params를 그대로 보낸다 */
 export function textPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
+  return guard(buildPrompt(type, params))
+}
+
+function buildPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
   if (type === 'submission.summary') return summarize(String(params.material ?? '').slice(0, 20000))
   const build = BUILDERS[type]
   if (!build) return { system: '', prompt: JSON.stringify(params) }
