@@ -7,6 +7,17 @@ definePageMeta({ layout: 'auth' })
 
 const auth = useAuthStore()
 const pending = ref(false)
+const unverified = computed(() => !!auth.user && !auth.user.emailVerified)
+
+async function resend() {
+  try {
+    await auth.resendVerification()
+    toast.success(ko.waiting.resent)
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+}
 
 async function retry() {
   pending.value = true
@@ -31,12 +42,15 @@ async function other() {
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>{{ ko.waiting.title }}</CardTitle>
-      <CardDescription>{{ ko.waiting.description(auth.user?.email ?? '') }}</CardDescription>
+      <CardTitle>{{ unverified ? ko.waiting.verifyTitle : ko.waiting.title }}</CardTitle>
+      <CardDescription>{{ (unverified ? ko.waiting.verify : ko.waiting.description)(auth.user?.email ?? '') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-2">
       <Button :disabled="pending" @click="retry">
         {{ ko.waiting.retry }}
+      </Button>
+      <Button v-if="unverified" variant="outline" @click="resend">
+        {{ ko.waiting.resend }}
       </Button>
       <Button variant="outline" @click="other">
         {{ ko.waiting.other }}
