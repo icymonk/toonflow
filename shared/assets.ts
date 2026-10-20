@@ -12,6 +12,7 @@ export interface Asset {
   name: string
   size: number
   tags: string[]
+  seriesId?: string | null
   createdBy: string
   createdAt?: { toMillis: () => number } | null
 }

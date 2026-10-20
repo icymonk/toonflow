@@ -33,15 +33,16 @@ export function useAssets() {
   }, { immediate: true })
   onScopeDispose(() => stops.forEach(f => f()))
 
-  async function upload(files: File[], tags: string[]) {
+  async function upload(files: File[], tags: string[], seriesId: string | null = null) {
     for (const f of files) {
       const ref = doc(collection($firestore, 'workspaces', ws(), 'assets'))
       const path = `workspaces/${ws()}/refs/assets/${ref.id}/${Date.now()}-${f.name.replace(/[^\w.-]/g, '_')}`
       await uploadBytes(sref($storage, path), f, { contentType: f.type })
-      await setDoc(ref, { path, name: f.name.slice(0, 100), size: f.size, tags, createdBy: getAuth().currentUser!.uid, createdAt: serverTimestamp() })
+      await setDoc(ref, { path, name: f.name.slice(0, 100), size: f.size, tags, seriesId, createdBy: getAuth().currentUser!.uid, createdAt: serverTimestamp() })
     }
   }
   const setTags = (id: string, tags: string[]) => updateDoc(doc($firestore, 'workspaces', ws(), 'assets', id), { tags })
+  const setSeries = (id: string, seriesId: string | null) => updateDoc(doc($firestore, 'workspaces', ws(), 'assets', id), { seriesId })
   async function remove(a: Asset) {
     await deleteDoc(doc($firestore, 'workspaces', ws(), 'assets', a.id))
     await deleteObject(sref($storage, a.path)).catch(() => {})
@@ -49,5 +50,5 @@ export function useAssets() {
   const blob = (path: string) => getBlob(sref($storage, path))
   const cleanup = (days: number) => callFn($functions, 'cleanupCandidates', { workspaceId: ws(), olderThanDays: days })
   const usage = () => callFn($functions, 'storageUsage', { workspaceId: ws() })
-  return { assets, generated, loaded, upload, setTags, remove, blob, cleanup, usage }
+  return { assets, generated, loaded, upload, setTags, setSeries, remove, blob, cleanup, usage }
 }

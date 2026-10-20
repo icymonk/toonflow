@@ -190,6 +190,8 @@ export const ko = {
     source: '출처',
     episode: '에피소드',
     tags: '태그 (쉼표로)',
+    series: '작품',
+    sharedAll: '전체 공유 (작품 없음)',
     remove: '삭제',
     uploaded: (n: number) => `${n}개 올렸어요`,
     sources: { ai: 'AI 생성', upload: '직접 올림', import: '가져옴' },
