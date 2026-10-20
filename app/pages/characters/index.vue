@@ -42,15 +42,15 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       </div>
       <div class="flex flex-wrap gap-2">
         <Input v-model="q" :placeholder="t.search" :aria-label="t.search" class="w-48" />
-        <select v-model="seriesFilter" :class="selectClass" :aria-label="t.allSeries">
+        <AppSelect v-model="seriesFilter" :class="selectClass" :aria-label="t.allSeries">
           <option value="">
             {{ t.allSeries }}
           </option>
           <option v-for="s in lib.series.value" :key="s.id" :value="s.id">
             {{ s.name }}
           </option>
-        </select>
-        <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
+        </AppSelect>
+        <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="archived" /> {{ t.archived }}</label>
       </div>
       <AppListSkeleton v-if="!lib.loaded.characters" />
       <div v-else-if="!lib.characters.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">

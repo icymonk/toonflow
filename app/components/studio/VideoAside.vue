@@ -50,15 +50,15 @@ watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
 <template>
   <div class="flex flex-col gap-3 text-sm">
     <label class="flex items-center gap-2 text-xs">{{ t.aspect }}
-      <select :value="settings.aspect" :class="sel" :disabled="!edit" @change="emit('save', { aspect: val($event) as VideoSettings['aspect'] })">
+      <AppSelect :value="settings.aspect" :class="sel" :disabled="!edit" @change="emit('save', { aspect: $event as VideoSettings['aspect'] })">
         <option v-for="(v, k) in VIDEO_SIZES" :key="k" :value="k">{{ k }} ({{ v.w }}×{{ v.h }}){{ k === '9:16' ? ` · ${t.reels}` : '' }}</option>
-      </select>
+      </AppSelect>
     </label>
     <label class="flex items-center gap-2 text-xs">{{ t.unit }}
-      <select :value="settings.unit" :class="sel" :disabled="!edit" @change="emit('save', { unit: val($event) as VideoSettings['unit'] })">
+      <AppSelect :value="settings.unit" :class="sel" :disabled="!edit" @change="emit('save', { unit: $event as VideoSettings['unit'] })">
         <option value="panel">{{ t.unitPanel }}</option>
         <option value="page">{{ t.unitPage }}</option>
-      </select>
+      </AppSelect>
     </label>
     <p class="text-xs">{{ t.total(fmtSec(total)) }}</p>
     <div v-if="total > REELS_MAX_MS" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900" role="alert">{{ t.overLimit(REELS_MAX_MS / 1000) }}</div>
@@ -76,20 +76,20 @@ watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
         <Button size="sm" variant="outline" :disabled="!edit" @click="emit('all', clip.durationMs)">{{ t.applyAll }}</Button>
       </div>
       <label v-if="!isCover" class="flex items-center gap-2 text-xs">{{ t.motion }}
-        <select :value="clip.motion" :aria-label="t.motion" :class="sel" :disabled="!edit" @change="set({ motion: val($event) as ClipSettings['motion'] })">
+        <AppSelect :value="clip.motion" :aria-label="t.motion" :class="sel" :disabled="!edit" @change="set({ motion: $event as ClipSettings['motion'] })">
           <option v-for="m in MOTIONS" :key="m" :value="m">{{ t.motions[m] }}</option>
-        </select>
+        </AppSelect>
       </label>
       <label v-if="!isCover && clip.motion !== 'none'" class="flex items-center gap-2 text-xs">{{ t.strength }}
-        <select :value="clip.strength" :class="sel" :disabled="!edit" @change="set({ strength: val($event) as ClipSettings['strength'] })">
+        <AppSelect :value="clip.strength" :class="sel" :disabled="!edit" @change="set({ strength: $event as ClipSettings['strength'] })">
           <option v-for="(_, k) in STRENGTHS" :key="k" :value="k">{{ t.strengths[k] }}</option>
-        </select>
+        </AppSelect>
       </label>
       <template v-if="index > 0">
         <label class="flex items-center gap-2 text-xs">{{ t.transition }}
-          <select :value="clip.transition" :class="sel" :disabled="!edit" @change="set({ transition: val($event) as ClipSettings['transition'] })">
+          <AppSelect :value="clip.transition" :class="sel" :disabled="!edit" @change="set({ transition: $event as ClipSettings['transition'] })">
             <option v-for="x in TRANSITIONS" :key="x" :value="x">{{ t.transitions[x] }}</option>
-          </select>
+          </AppSelect>
         </label>
         <label v-if="clip.transition !== 'cut'" class="flex items-center gap-2 text-xs">{{ t.transitionMs }}
           <input type="number" :value="clip.transitionMs / 1000" min="0.1" max="1" step="0.1" :class="[sel, 'w-20']" :disabled="!edit" @change="set({ transitionMs: Math.round(Number(val($event)) * 1000) })">
@@ -97,19 +97,19 @@ watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
       </template>
       <p v-else class="text-muted-foreground text-xs">{{ t.firstNoTransition }}</p>
       <label v-if="!isCover && clip.bubbles > 1" class="flex items-center gap-2 text-xs">{{ t.reveal }}
-        <select :value="clip.reveal" :class="sel" :disabled="!edit" @change="set({ reveal: val($event) as ClipSettings['reveal'] })">
+        <AppSelect :value="clip.reveal" :class="sel" :disabled="!edit" @change="set({ reveal: $event as ClipSettings['reveal'] })">
           <option value="together">{{ t.reveals.together }}</option>
           <option value="sequence">{{ t.reveals.sequence }}</option>
-        </select>
+        </AppSelect>
       </label>
     </section>
 
     <section class="flex flex-col gap-2 border-t pt-3">
       <label class="flex items-center gap-2 text-xs">{{ t.cover }}
-        <select :value="settings.coverId ?? ''" :aria-label="t.cover" :class="sel" :disabled="!edit" @change="emit('save', { coverId: val($event) || null })">
+        <AppSelect :value="settings.coverId ?? ''" :aria-label="t.cover" :class="sel" :disabled="!edit" @change="emit('save', { coverId: $event || null })">
           <option value="">{{ t.coverNone }}</option>
           <option v-for="(c, i) in coverOptions" :key="c.id" :value="c.id">{{ t.clip(i + 1) }}</option>
-        </select>
+        </AppSelect>
       </label>
       <p class="text-muted-foreground text-xs">{{ t.coverHint }}</p>
     </section>
@@ -121,14 +121,14 @@ watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
         <audio v-if="musicUrl" :src="musicUrl" controls class="h-8 w-full" />
         <p class="text-muted-foreground text-xs">{{ t.musicPreviewNote }}</p>
         <label class="flex items-center gap-2 text-xs">{{ t.musicVolume }}
-          <input type="range" min="0" max="1" step="0.05" :value="settings.musicVolume" :aria-label="t.musicVolume" class="flex-1" :disabled="!edit" @change="emit('save', { musicVolume: Number(val($event)) })">
+          <AppSlider min="0" max="1" step="0.05" :model-value="settings.musicVolume" :aria-label="t.musicVolume" class="flex-1" :disabled="!edit" @change="emit('save', { musicVolume: $event })" />
           <span class="w-9 text-right tabular-nums">{{ Math.round(settings.musicVolume * 100) }}%</span>
         </label>
         <label class="flex items-center gap-2 text-xs">{{ t.musicFadeOut }}
           <input type="number" min="0" max="10" step="0.5" :value="settings.musicFadeOutMs / 1000" :class="[sel, 'w-20']" :disabled="!edit" @change="emit('save', { musicFadeOutMs: Math.round(Math.min(10, Math.max(0, Number(val($event)))) * 1000) })">
         </label>
         <label class="flex items-center gap-2 text-xs">
-          <input type="checkbox" :checked="settings.musicLoop" :disabled="!edit" @change="emit('save', { musicLoop: ($event.target as HTMLInputElement).checked })">
+          <AppCheck :model-value="settings.musicLoop" :disabled="!edit" @change="emit('save', { musicLoop: $event })" />
           {{ t.musicLoop }}
         </label>
         <Button size="sm" variant="outline" class="self-start" :disabled="!edit" @click="emit('removeMusic')">{{ t.musicRemove }}</Button>
@@ -136,7 +136,7 @@ watch(() => [props.clip?.id, props.clip?.durationMs] as const, ([, ms]) => {
       <template v-else>
         <p class="text-muted-foreground text-xs">{{ t.musicNone }}</p>
         <label class="flex items-center gap-2 text-xs">
-          <input v-model="rights" type="checkbox" :disabled="!edit">
+          <AppCheck v-model="rights" :disabled="!edit" />
           {{ t.musicRights }}
         </label>
         <label class="text-xs" :class="rights && edit ? 'cursor-pointer' : 'pointer-events-none opacity-50'">

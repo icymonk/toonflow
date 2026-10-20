@@ -31,7 +31,6 @@ function addMemo(phrase: string) {
 }
 // 그림체: 컷 > 이번 화 > 작품. 등장 캐릭터: 작품 주요 + 이번 화
 const lk = ko.studio.look
-const checked = (e: Event) => (e.target as HTMLInputElement).checked
 function toggleEpisodeChar(id: string, on: boolean) {
   const ids = new Set(props.episode.settings.characterIds ?? [])
   if (on) ids.add(id)
@@ -46,17 +45,17 @@ function toggleEpisodeChar(id: string, on: boolean) {
       {{ t.settings }}
     </h3>
     <div class="grid grid-cols-2 gap-2">
-      <select :value="episode.settings.tone" :class="selectClass" :disabled="!edit" :aria-label="ko.stories.tone" @change="emit('settings', { tone: ($event.target as HTMLSelectElement).value as Episode['settings']['tone'] })">
+      <AppSelect :value="episode.settings.tone" :class="selectClass" :disabled="!edit" :aria-label="ko.stories.tone" @change="emit('settings', { tone: $event as Episode['settings']['tone'] })">
         <option v-for="tone in TONES" :key="tone" :value="tone">
           {{ ko.stories.tones[tone] }}
         </option>
-      </select>
+      </AppSelect>
       <Input :model-value="episode.settings.pageCount" type="number" min="1" max="20" :disabled="!edit" :aria-label="ko.stories.pageCount" @change="emit('settings', { pageCount: Number(($event.target as HTMLInputElement).value) })" />
-      <select :value="episode.settings.narrator" :class="[selectClass, 'col-span-2']" :disabled="!edit" :aria-label="ko.stories.narrator" @change="emit('settings', { narrator: ($event.target as HTMLSelectElement).value as 'first' | 'third' })">
+      <AppSelect :value="episode.settings.narrator" :class="[selectClass, 'col-span-2']" :disabled="!edit" :aria-label="ko.stories.narrator" @change="emit('settings', { narrator: $event as 'first' | 'third' })">
         <option v-for="n in ['first', 'third'] as const" :key="n" :value="n">
           {{ ko.stories.narrators[n] }}
         </option>
-      </select>
+      </AppSelect>
     </div>
     <Textarea v-model="extra" :disabled="!edit" rows="2" :placeholder="t.extraRequest" :aria-label="t.extraRequest" maxlength="500" @input="saveExtra" />
     <AppSuggest v-if="edit" :label="t.extraRequest" :items="t.extraChips" @pick="addExtra" />
@@ -111,16 +110,16 @@ function toggleEpisodeChar(id: string, on: boolean) {
       {{ lk.title }}
     </h3>
     <label class="flex flex-col gap-1 text-xs">{{ lk.seriesStyle }}
-      <select :value="seriesStyleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('seriesStyle', ($event.target as HTMLSelectElement).value || null)">
+      <AppSelect :value="seriesStyleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('seriesStyle', $event || null)">
         <option value="">{{ lk.none }}</option>
         <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
-      </select>
+      </AppSelect>
     </label>
     <label class="flex flex-col gap-1 text-xs">{{ lk.episodeStyle }}
-      <select :value="episode.settings.styleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('settings', { styleId: ($event.target as HTMLSelectElement).value || null })">
+      <AppSelect :value="episode.settings.styleId ?? ''" :class="selectClass" :disabled="!edit" @change="emit('settings', { styleId: $event || null })">
         <option value="">{{ lk.followSeries }}</option>
         <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
-      </select>
+      </AppSelect>
     </label>
     <p v-if="!styles.length" class="text-muted-foreground text-xs">
       {{ lk.noStyles }} <NuxtLink to="/styles" class="underline">{{ lk.goStyles }}</NuxtLink>
@@ -135,8 +134,8 @@ function toggleEpisodeChar(id: string, on: boolean) {
     <div v-for="c in characters" :key="c.id" class="flex items-center justify-between gap-2 text-xs">
       <span class="truncate">{{ c.name }}</span>
       <span class="flex shrink-0 gap-6 pr-3">
-        <input type="checkbox" :checked="seriesMainIds.includes(c.id)" :disabled="!edit" :aria-label="lk.mainOf(c.name)" @change="emit('seriesMain', c.id, checked($event))">
-        <input type="checkbox" :checked="episode.settings.characterIds?.includes(c.id) ?? false" :disabled="!edit" :aria-label="lk.episodeOf(c.name)" @change="toggleEpisodeChar(c.id, checked($event))">
+        <AppCheck :model-value="seriesMainIds.includes(c.id)" :disabled="!edit" :aria-label="lk.mainOf(c.name)" @change="emit('seriesMain', c.id, $event)" />
+        <AppCheck :model-value="episode.settings.characterIds?.includes(c.id) ?? false" :disabled="!edit" :aria-label="lk.episodeOf(c.name)" @change="toggleEpisodeChar(c.id, $event)" />
       </span>
     </div>
     <p class="text-muted-foreground text-xs">

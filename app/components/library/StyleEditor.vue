@@ -74,11 +74,11 @@ const enums = [
     <div class="grid grid-cols-2 gap-2">
       <div v-for="e in enums" :key="e.key" class="flex flex-col gap-1">
         <Label :for="`s-${e.key}`" class="text-xs">{{ e.label }}</Label>
-        <select :id="`s-${e.key}`" v-model="(form as Record<string, unknown>)[e.key]" :class="selectClass" :disabled="!edit">
+        <AppSelect :id="`s-${e.key}`" v-model="(form as Record<string, unknown>)[e.key]" :class="selectClass" :disabled="!edit">
           <option v-for="v in e.list" :key="v" :value="v">
             {{ (e.names as Record<string, string>)[v] }}
           </option>
-        </select>
+        </AppSelect>
       </div>
     </div>
     <div v-if="form.palette === 'custom'" class="flex flex-col gap-1">
@@ -93,7 +93,7 @@ const enums = [
     <div class="flex flex-col gap-2">
       <span class="text-sm font-medium">{{ t.refImages }}</span>
       <label class="flex items-center gap-2 text-xs">
-        <input v-model="form.rightsConfirmed" type="checkbox" :disabled="!edit"> {{ t.rights }}
+        <AppCheck v-model="form.rightsConfirmed" :disabled="!edit" /> {{ t.rights }}
       </label>
       <LibraryRefImages :paths="refs" :edit="edit" :locked="!form.rightsConfirmed" @upload="upload" @remove="removeRef" />
     </div>
@@ -120,7 +120,7 @@ const enums = [
     <div v-if="lib.series.value.length" class="flex flex-col gap-1.5">
       <span class="text-sm font-medium">{{ t.usedIn }}</span>
       <label v-for="s in lib.series.value" :key="s.id" class="flex items-center gap-2 text-sm">
-        <input type="checkbox" :checked="s.styleId === style.id" :disabled="!edit" @change="lib.setSeriesStyle(s.id, ($event.target as HTMLInputElement).checked ? style.id : null).catch(fail)">
+        <AppCheck :model-value="s.styleId === style.id" :disabled="!edit" @change="lib.setSeriesStyle(s.id, $event ? style.id : null).catch(fail)" />
         {{ s.name }}
       </label>
     </div>

@@ -95,10 +95,10 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </ul>
       </details>
       <div class="flex flex-wrap items-center gap-2">
-        <select v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
+        <AppSelect v-if="tab === 'generated'" v-model="ep" class="border-input bg-card h-9 rounded-md border px-2 text-sm">
           <option value="">{{ t.allEpisodes }}</option>
           <option v-for="e in episodes" :key="e.id" :value="e.id">{{ e.title }}</option>
-        </select>
+        </AppSelect>
         <Input v-model="q" class="h-9 w-full sm:w-60" :placeholder="t.search" />
         <Button size="sm" variant="outline" :disabled="!sel.size" @click="download">{{ t.download(sel.size) }}</Button>
         <template v-if="tab === 'refs'">
@@ -118,7 +118,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
           <div v-for="i in items" :key="i.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': focus === i.id }">
             <button class="block w-full" @click="focus = i.id"><AppStorageImg :path="i.path" class="aspect-[4/5] w-full" /></button>
-            <input type="checkbox" class="absolute top-1.5 left-1.5 size-4" :checked="sel.has(i.id)" :aria-label="t.select" @change="toggle(i.id)">
+            <AppCheck class="absolute top-1.5 left-1.5 size-4" :model-value="sel.has(i.id)" :aria-label="t.select" @change="toggle(i.id)" />
           </div>
         </div>
       </div>

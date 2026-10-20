@@ -16,8 +16,7 @@ const t = ko.studio.publish
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
 const url = ref('')
 const val = (e: Event) => (e.target as HTMLInputElement | HTMLTextAreaElement).value
-async function toggleLabel(e: Event) {
-  (e.target as HTMLInputElement).checked = props.aiLabel
+async function toggleLabel() {
   if (props.aiLabel && !await confirmDialog(t.aiLabelOff)) return
   emit('settings', { aiLabel: !props.aiLabel })
 }
@@ -30,18 +29,18 @@ async function copy() {
 <template>
   <div class="flex flex-col gap-3 text-sm">
     <label class="flex items-center gap-2 text-xs">{{ t.aspect }}
-      <select :value="aspect" :class="sel" :disabled="!edit" @change="emit('settings', { aspect: val($event) })">
+      <AppSelect :value="aspect" :class="sel" :disabled="!edit" @change="emit('settings', { aspect: $event })">
         <option v-for="(v, k) in PAGE_SIZES" :key="k" :value="k">{{ k }} ({{ v.w }}×{{ v.h }})</option>
-      </select>
+      </AppSelect>
     </label>
     <p class="text-muted-foreground text-xs">{{ t.aspectNote }}</p>
     <label class="flex items-center gap-2 text-xs">{{ t.format }}
-      <select :value="format" :class="sel" :disabled="!edit" @change="emit('settings', { format: val($event) })">
+      <AppSelect :value="format" :class="sel" :disabled="!edit" @change="emit('settings', { format: $event })">
         <option value="jpg">{{ t.jpg }}</option>
         <option value="png">PNG</option>
-      </select>
+      </AppSelect>
     </label>
-    <label class="flex items-center gap-2 text-xs"><input type="checkbox" :checked="hiRes" :disabled="!edit" @change="emit('settings', { hiRes: !hiRes })">{{ t.hiRes }}</label>
+    <label class="flex items-center gap-2 text-xs"><AppCheck :model-value="hiRes" :disabled="!edit" @change="emit('settings', { hiRes: !hiRes })" />{{ t.hiRes }}</label>
     <div v-if="withdrawn" class="rounded-md bg-red-100 px-2 py-1.5 text-xs text-red-900" role="alert">{{ t.withdrawnAlert(withdrawn) }}</div>
     <div v-if="pageCount > POST_LIMIT" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900" role="alert">{{ t.overLimit(pageCount, POST_LIMIT) }}</div>
     <Button :disabled="!!progress || !pageCount" @click="emit('all')"><Download class="size-4" /> {{ t.all(pageCount) }}</Button>
@@ -55,12 +54,12 @@ async function copy() {
       </Button>
       <Textarea :model-value="captionText" rows="4" class="text-xs" :placeholder="t.captionPh" :disabled="!edit" @change="emit('captionText', val($event))" />
       <p v-if="hashtags.length" class="text-primary text-xs">{{ hashtags.join(' ') }}</p>
-      <label class="flex items-center gap-2 text-xs"><input type="checkbox" :checked="aiLabel" :disabled="!edit" @change.prevent="toggleLabel">{{ t.aiLabel }}</label>
+      <label class="flex items-center gap-2 text-xs"><AppCheck :model-value="aiLabel" :disabled="!edit" @change="toggleLabel" />{{ t.aiLabel }}</label>
       <label v-if="credit" class="flex items-center gap-2 text-xs">{{ t.creditPlace }}
-        <select :value="creditPlace" :class="sel" :disabled="!edit" :aria-label="t.creditPlace" @change="emit('settings', { creditPlace: val($event) })">
+        <AppSelect :value="creditPlace" :class="sel" :disabled="!edit" :aria-label="t.creditPlace" @change="emit('settings', { creditPlace: $event })">
           <option value="caption">{{ t.creditCaption }}</option>
           <option value="page">{{ t.creditPage }}</option>
-        </select>
+        </AppSelect>
       </label>
       <p v-if="credit" class="text-muted-foreground text-xs">{{ credit }}</p>
       <p class="text-muted-foreground text-xs">{{ t.caption }}</p>

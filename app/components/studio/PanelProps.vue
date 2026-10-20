@@ -44,11 +44,11 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
 <template>
   <div v-if="page.panelIds.length === 2" class="flex flex-col gap-1.5">
     <Label>{{ t.layout }}</Label>
-    <select :value="page.layout" :class="selectClass" :disabled="!edit" @change="emit('layout', ($event.target as HTMLSelectElement).value as PageLayout)">
+    <AppSelect :value="page.layout" :class="selectClass" :disabled="!edit" @change="emit('layout', $event as PageLayout)">
       <option v-for="l in layoutOptions(2)" :key="l" :value="l">
         {{ t.layouts[l] }}
       </option>
-    </select>
+    </AppSelect>
   </div>
   <div class="flex flex-col gap-1.5">
     <div v-if="edit" class="flex flex-wrap gap-1">
@@ -56,10 +56,10 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
       <Button size="sm" variant="outline" :disabled="!hasNext" @click="emit('merge')">{{ ko.studio.board.merge }}</Button>
     </div>
     <label v-if="styles?.length" class="flex items-center gap-2 text-xs">{{ ko.studio.illustrate.panelStyle }}
-      <select :value="panel.styleId ?? ''" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :disabled="!edit" @change="emit('edit', 'styleId', ($event.target as HTMLSelectElement).value || null)">
+      <AppSelect :value="panel.styleId ?? ''" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :disabled="!edit" @change="emit('edit', 'styleId', $event || null)">
         <option value="">{{ ko.studio.illustrate.seriesStyle }}</option>
         <option v-for="st in styles" :key="st.id" :value="st.id">{{ st.name }}</option>
-      </select>
+      </AppSelect>
     </label>
     <Label for="p-scene">{{ ko.studio.scene }}</Label>
     <Textarea id="p-scene" :model-value="panel.scene" :disabled="!edit" rows="4" maxlength="2000" @update:model-value="emit('edit', 'scene', String($event))" />
@@ -97,11 +97,11 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
     </div>
     <div class="flex flex-col gap-1">
       <Label class="text-xs">{{ t.shot }}</Label>
-      <select :value="panel.shot" :class="selectClass" :disabled="!edit" @change="emit('edit', 'shot', ($event.target as HTMLSelectElement).value)">
+      <AppSelect :value="panel.shot" :class="selectClass" :disabled="!edit" @change="emit('edit', 'shot', $event)">
         <option v-for="sh in ['', ...SHOTS]" :key="sh" :value="sh">
           {{ t.shots[sh as keyof typeof t.shots] }}
         </option>
-      </select>
+      </AppSelect>
     </div>
     <div v-for="f in (['expression', 'action', 'outfit', 'mood'] as const)" :key="f" class="flex flex-col gap-1">
       <Label :for="`p-${f}`" class="text-xs">{{ t[f] }}</Label>
@@ -118,11 +118,11 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
     </div>
     <div v-for="(d, i) in lines" :key="d.id" class="flex flex-col gap-1 rounded-md border p-1.5">
       <div class="flex gap-1">
-        <select v-model="d.type" :class="[selectClass, 'h-8 w-24']" :disabled="!edit" :aria-label="t.line" @change="saveLines">
+        <AppSelect v-model="d.type" :class="[selectClass, 'h-8 w-24']" :disabled="!edit" :aria-label="t.line" @change="saveLines">
           <option v-for="ty in TYPES" :key="ty" :value="ty">
             {{ t.lineTypes[ty] }}
           </option>
-        </select>
+        </AppSelect>
         <Input v-model="d.speaker" class="h-8 flex-1" :disabled="!edit || d.type === 'narration' || d.type === 'sfx'" :placeholder="t.speaker" :aria-label="t.speaker" @input="saveLines" />
         <template v-if="edit">
           <button :aria-label="ko.studio.moveUp" :disabled="i === 0" @click="moveLine(i, -1)"><ArrowUp class="size-3.5" /></button>

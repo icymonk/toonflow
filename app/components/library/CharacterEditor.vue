@@ -154,7 +154,7 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
     <div v-if="lib.series.value.length" class="flex flex-col gap-1.5">
       <span class="text-sm font-medium">{{ t.mainIn }}</span>
       <label v-for="s in lib.series.value" :key="s.id" class="flex items-center gap-2 text-sm">
-        <input type="checkbox" :checked="s.mainCharacterIds?.includes(character.id)" :disabled="!edit" @change="lib.setMain(s.id, character.id, ($event.target as HTMLInputElement).checked).catch(fail)">
+        <AppCheck :model-value="s.mainCharacterIds?.includes(character.id)" :disabled="!edit" @change="lib.setMain(s.id, character.id, $event).catch(fail)" />
         {{ s.name }}
       </label>
     </div>
@@ -164,14 +164,14 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       <LibraryRefImages :paths="refs" :cover="character.coverPath" :edit="edit" @upload="upload" @remove="removeRef" @cover="setCover" />
       <div v-if="edit" class="flex flex-col gap-1.5 rounded-md border p-2">
         <Label for="c-style" class="text-xs">{{ t.styleFor }}</Label>
-        <select id="c-style" v-model="styleId" :class="selectClass">
+        <AppSelect id="c-style" v-model="styleId" :class="selectClass">
           <option value="">
             {{ t.noStyle }}
           </option>
           <option v-for="s in lib.styles.value" :key="s.id" :value="s.id">
             {{ s.name }}
           </option>
-        </select>
+        </AppSelect>
         <Button size="sm" variant="outline" :disabled="job?.status === 'queued' || job?.status === 'running'" @click="generate">
           <Sparkles class="size-4" /> {{ t.generate(2, lib.estimate(2)) }}
         </Button>
@@ -203,10 +203,10 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       </div>
       <p v-else class="text-muted-foreground text-xs">{{ t.variantsHint }}</p>
       <div v-if="edit" class="flex items-center gap-1.5">
-        <select v-model="vKind" :class="selectClass" :aria-label="t.variants">
+        <AppSelect v-model="vKind" :class="selectClass" :aria-label="t.variants">
           <option value="expression">{{ t.variantKinds.expression }}</option>
           <option value="outfit">{{ t.variantKinds.outfit }}</option>
-        </select>
+        </AppSelect>
         <Input v-model="vLabel" class="h-8" maxlength="20" :placeholder="t.variantLabel" />
         <label class="hover:bg-muted shrink-0 cursor-pointer rounded-md border px-2 py-1 text-xs">{{ t.uploadVariant }}<input type="file" accept="image/*" class="hidden" @change="(e: Event) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) uploadVariant(f); (e.target as HTMLInputElement).value = '' }"></label>
       </div>

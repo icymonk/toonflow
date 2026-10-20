@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs'
+import { pick } from './pick'
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { unzipSync } from 'fflate'
@@ -71,8 +72,8 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
   const epStyle = page.getByLabel('이번 화 그림체')
-  await epStyle.selectOption({ index: 1 })
-  await expect(epStyle).not.toHaveValue('')
+  await pick(epStyle, { index: 1 })
+  await expect(epStyle).not.toHaveAttribute('data-value', '')
 
   // 에피소드 없이 제작실에 오면 마지막에 연 에피소드가 열리고, "다른 에피소드"는 목록을 보여 준다
   const epUrl = page.url()
@@ -126,7 +127,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '전체 미리보기' }).click()
   await expect(page.getByRole('dialog', { name: '전체 미리보기' }).locator('svg text').first()).toBeVisible()
   await page.keyboard.press('Escape')
-  for (const item of ['오탈자', '개인정보', '출처·크레딧']) await page.getByLabel(item, { exact: true }).selectOption('pass')
+  for (const item of ['오탈자', '개인정보', '출처·크레딧']) await pick(page.getByLabel(item, { exact: true }), 'pass')
   await expect(page.getByText('모두 통과')).toBeVisible()
 
   // AI 그림 품질 점검 (REV-13, 가짜 모델은 1번 그림을 지적)
@@ -146,8 +147,8 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   const preview = page.getByLabel('영상 미리 보기')
   await expect(preview).toBeVisible()
   await expect(page.getByRole('listitem').filter({ hasText: /초/ }).first()).toBeVisible()
-  await page.getByLabel('움직임', { exact: true }).selectOption('zoomIn')
-  await expect(page.getByLabel('움직임', { exact: true })).toHaveValue('zoomIn')
+  await pick(page.getByLabel('움직임', { exact: true }), 'zoomIn')
+  await expect(page.getByLabel('움직임', { exact: true })).toHaveAttribute('data-value', 'zoomIn')
   // 저장된 값이 다시 그려질 때까지 확인한다 (느린 CI에서 입력 직후 화면이 새로 그려지면 다시 입력)
   await expect(async () => {
     await page.getByLabel('보여 줄 시간(초)').fill('3')
@@ -164,7 +165,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByLabel('보여 줄 시간(초)').fill('0.5')
   await page.getByLabel('보여 줄 시간(초)').blur()
   await page.getByRole('button', { name: '모든 컷에 이 시간' }).click()
-  await page.getByLabel('표지(첫 화면)').selectOption({ index: 1 })
+  await pick(page.getByLabel('표지(첫 화면)'), { index: 1 })
   // 배경음악 (PUB-36): 1초 사인파 WAV
   const pcm = Buffer.alloc(48_000 * 2)
   for (let i = 0; i < 48_000; i++) pcm.writeInt16LE(Math.round(Math.sin(i / 48_000 * 2 * Math.PI * 440) * 8000), i * 2)
@@ -227,7 +228,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   // CMN-40: 공개 제보 페이지 신고
   await guest.goto(link!)
   await guest.getByText('이 페이지 신고').click()
-  await guest.getByLabel('신고 이유').selectOption('spam')
+  await pick(guest.getByLabel('신고 이유'), 'spam')
   await guest.getByLabel('자세한 내용 (선택)').fill('광고 글이 올라와요')
   await guest.getByRole('button', { name: '신고하기' }).click()
   await expect(guest.getByText('신고했어요. 운영자가 확인해요.')).toBeVisible()

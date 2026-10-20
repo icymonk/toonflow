@@ -92,7 +92,7 @@ async function join() {
           <Textarea id="wl-note" v-model="form.note" rows="3" maxlength="500" />
           <input v-model="form.website" type="text" name="website" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true">
           <label class="flex items-start gap-2 text-sm">
-            <input v-model="form.agree" type="checkbox" class="mt-1">
+            <AppCheck v-model="form.agree" class="mt-1" />
             <span>{{ t.agree }}</span>
           </label>
           <Button type="submit" :disabled="pending || !form.email || !form.name">{{ t.submit }}</Button>

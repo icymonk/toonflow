@@ -46,7 +46,7 @@ function done() {
         <AppStorageImg :path="path" class="aspect-[4/5] w-full" />
         <canvas ref="cv" class="absolute inset-0 h-full w-full cursor-crosshair touch-none opacity-50" @pointerdown="down" @pointermove="paint" @pointerup="drawing = false" @pointerleave="drawing = false" />
       </div>
-      <label class="flex items-center gap-2 text-xs">{{ t.brush }}<input v-model.number="size" type="range" min="10" max="120" class="flex-1"></label>
+      <label class="flex items-center gap-2 text-xs">{{ t.brush }}<AppSlider v-model="size" min="10" max="120" class="flex-1" /></label>
       <Input v-model="change" :placeholder="t.inpaintPh" />
       <div class="flex gap-2">
         <Button size="sm" :disabled="!change.trim()" @click="done">{{ t.inpaintGo }}</Button>

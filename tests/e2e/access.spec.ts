@@ -1,4 +1,5 @@
 import type { Browser, Page } from '@playwright/test'
+import { pick } from './pick'
 import { expect, test } from '@playwright/test'
 
 // 4-H: 대기 명단 → 운영자 승인 → 가입 (CMN-41·52), 초대 링크 → 참여 (ACC-20)
@@ -74,7 +75,7 @@ test('대기 명단 신청 → 운영자 승인 → 가입, 초대 링크 → �
 
   // 초대 링크 (허용 목록에 없는 사람도 참여)
   await page.goto('/settings')
-  await page.getByLabel('초대할 역할').selectOption('editor')
+  await pick(page.getByLabel('초대할 역할'), 'editor')
   await page.getByRole('button', { name: '초대 링크 만들기' }).click()
   const link = await page.getByLabel('초대 링크').inputValue()
   const invitee = await fresh(browser)
@@ -92,7 +93,7 @@ test('대기 명단 신청 → 운영자 승인 → 가입, 초대 링크 → �
   // AIU-24: 운영자가 요금제·크레딧을 직접 주면 설정의 한도에 반영된다
   await page.goto('/admin')
   await page.locator('tr', { hasText: 'e2e-ops의 스튜디오' }).getByRole('button', { name: '요금제' }).click()
-  await page.getByLabel('요금제 선택').selectOption('pro')
+  await pick(page.getByLabel('요금제 선택'), 'pro')
   await page.getByLabel('이번 달 추가 크레딧 (원)').fill('10000')
   await page.getByRole('button', { name: '지급' }).click()
   await expect(page.getByText(/프로 · 한도 ₩510,000/)).toBeVisible()
