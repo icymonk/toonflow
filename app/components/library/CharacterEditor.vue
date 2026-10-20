@@ -4,7 +4,7 @@ import type { Library } from '~/composables/useLibrary'
 import { Archive, Loader2, Sparkles, Trash2 } from '@lucide/vue'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
-import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, SHEET, withHint } from '#shared/library'
+import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, emptyAppearance, SHEET, withHint } from '#shared/library'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
 
@@ -15,7 +15,11 @@ const lib = inject<Library>('lib')!
 const t = ko.library
 const fail = (e: unknown) => toast.error(errorMessage(e) ?? ko.errors.unknown)
 
-const form = reactive<CharacterInput>(structuredClone(toRaw({ ...props.character, aliases: [...props.character.aliases] })))
+const c = props.character
+const form = reactive<CharacterInput>({
+  name: c.name, aliases: [...c.aliases], intro: c.intro, personality: c.personality ?? '', speech: [...(c.speech ?? [])],
+  appearance: { ...emptyAppearance(), ...c.appearance }, appearanceText: c.appearanceText, episodeId: c.episodeId,
+})
 const aliases = ref(props.character.aliases.join(', '))
 const speech = ref((props.character.speech ?? []).join('\n'))
 watchDebounced([form, aliases, speech], () => {
