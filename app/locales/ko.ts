@@ -685,7 +685,7 @@ export const ko = {
     makeOnce: '이번 화만',
     created: '캐릭터를 만들었어요',
   },
-  seriesScope: { label: '작업할 작품', all: '모든 작품', only: (name: string) => `${name}만 보는 중` },
+  seriesScope: { label: '작업할 작품', filter: '작품별로 보기', all: '모든 작품' },
   home: {
     start: '새 에피소드 만들기',
     addStory: '썰 등록',

@@ -248,8 +248,14 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(page.getByText('사용 중').first()).toBeVisible({ timeout: 90_000 })
   await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('빠른 시작 썰')
   await page.goto('/characters')
-  await expect(page.getByText('빠른 시작 썰만 보는 중')).toBeVisible()
-  await page.getByRole('button', { name: '모든 작품' }).click()
+  // 캐릭터 화면 위 작품 선택도 같은 값: 모든 작품으로 풀었다가 다시 고를 수 있다
+  const scope = page.getByRole('combobox', { name: '작품별로 보기' })
+  await expect(scope).toContainText('빠른 시작 썰')
+  await pick(scope, '')
+  await expect(scope).toContainText('모든 작품')
+  await pick(scope, { index: 1 })
+  await expect(page.getByRole('combobox', { name: '작업할 작품' })).not.toContainText('모든 작품')
+  await pick(scope, '')
   await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('모든 작품')
 
   // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
