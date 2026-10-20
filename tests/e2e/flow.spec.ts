@@ -132,7 +132,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // AI 그림 품질 점검 (REV-13, 가짜 모델은 1번 그림을 지적)
   await page.getByRole('button', { name: /그림 품질 점검/ }).click()
-  await expect(page.getByText(/가짜 점검: 손 모양이 어색해 보여요/)).toBeVisible({ timeout: 60_000 })
+  await expect(page.getByText(/가짜 점검: 손 모양이 어색해 보여요/).first()).toBeVisible({ timeout: 60_000 })
 
   // ZIP
   await page.getByRole('tab', { name: /Export/ }).click()

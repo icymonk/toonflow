@@ -387,7 +387,7 @@ export const ko = {
       format: '형식',
       jpg: 'JPG (고품질, 기본)',
       all: (n: number) => `ZIP으로 모두 내려받기 (${n}장)`,
-      one: (n: number) => `${n}장만 내려받기`,
+      one: (n: number) => `지금 보는 장만 내려받기 (${n}번째)`,
       progress: (a: number, b: number) => `그리는 중 ${a} / ${b}장`,
       overLimit: (n: number, max: number) => `인스타그램 한 게시물에는 ${max}장까지 올릴 수 있어요. ${n}장이라 ${max}장씩 나눠 ZIP 여러 개로 내려받아요.`,
       aiLabel: '마지막 장에 "AI 생성 이미지 포함" 표시',
@@ -445,7 +445,7 @@ export const ko = {
       noIssues: '문제 없음',
       ai: {
         title: 'AI 점검 (선택)',
-        hint: '고른 그림을 AI가 살펴봐요. 누를 때마다 비용이 들고, 한 번에 앞에서부터 12컷까지 봐요.',
+        hint: '고른 그림을 AI가 살펴봐요. 누를 때마다 비용이 들고, 한 번에 앞에서부터 12컷까지 봐요. 확실한 문제만 보여 줘요.',
         modes: { quality: '그림 품질 점검', consistency: '캐릭터 일관성 점검' } as Record<'quality' | 'consistency', string>,
         run: (label: string, n: number, krw: number) => `${label} (${n}컷) · 약 ₩${krw.toLocaleString()}`,
         running: 'AI가 살펴보는 중이에요…',
@@ -453,6 +453,10 @@ export const ko = {
         none: '점검할 그림이 없어요',
         result: (label: string, n: number) => `${label} 결과 · ${n}컷 살펴봄`,
         item: (n: number, issue: string) => `${n}컷: ${issue}`,
+        reference: 'AI 판단이라 틀릴 수 있어요. 그림을 직접 보고 확인해 주세요.',
+        hide: '이 지적 숨기기',
+        hidden: (n: number) => `숨긴 지적 ${n}개`,
+        unhide: '다시 보기',
       },
       tpl: {
         apply: '템플릿 적용',

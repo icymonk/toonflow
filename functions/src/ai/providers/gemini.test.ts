@@ -22,6 +22,14 @@ describe('geminiText', () => {
     expect(JSON.parse(init.body as string).systemInstruction.parts[0].text).toBe('s')
   })
 
+  it('puts a label before each image and asks for high media resolution', async () => {
+    const f = reply(200, { candidates: [{ content: { parts: [{ text: '{}' }] } }] })
+    const png = Buffer.from([0x89, 0x50, 0x4E, 0x47])
+    await geminiText(model, key, f).generate({ system: 's', prompt: 'p', format: 'check', images: [png, png], imageLabels: ['그림 1', '그림 2'] })
+    const body = JSON.parse((f.mock.calls[0] as unknown as [string, RequestInit])[1].body as string)
+    expect(body.contents[0].parts.map((x: { text?: string }) => x.text ?? 'img')).toEqual(['그림 1', 'img', '그림 2', 'img', 'p'])
+    expect(body.generationConfig.mediaResolution).toBe('MEDIA_RESOLUTION_HIGH')
+  })
   it('maps errors', async () => {
     const run = (status: number, body: unknown = {}) => geminiText(model, key, reply(status, body)).generate({ system: '', prompt: 'p' }).catch((e: AiError) => e.code)
     expect(await run(429)).toBe('rate_limited')
