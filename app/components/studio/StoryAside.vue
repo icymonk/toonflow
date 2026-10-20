@@ -19,6 +19,16 @@ const a = computed(() => props.episode.analysis)
 const memo = ref(props.seriesMemo)
 watch(() => props.seriesMemo, v => (memo.value = v))
 const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000)), 800)
+/** 추천 입력: 자주 쓰는 문구를 새 줄로 덧붙인다 */
+const addLine = (cur: string, phrase: string, max: number) => [cur.trimEnd(), phrase].filter(Boolean).join('\n').slice(0, max)
+function addExtra(phrase: string) {
+  extra.value = addLine(extra.value, phrase, 500)
+  saveExtra()
+}
+function addMemo(phrase: string) {
+  memo.value = addLine(memo.value, phrase, 1000)
+  saveMemo()
+}
 // 그림체: 컷 > 이번 화 > 작품. 등장 캐릭터: 작품 주요 + 이번 화
 const lk = ko.studio.look
 const checked = (e: Event) => (e.target as HTMLInputElement).checked
@@ -49,6 +59,7 @@ function toggleEpisodeChar(id: string, on: boolean) {
       </select>
     </div>
     <Textarea v-model="extra" :disabled="!edit" rows="2" :placeholder="t.extraRequest" :aria-label="t.extraRequest" maxlength="500" @input="saveExtra" />
+    <AppSuggest v-if="edit" :label="t.extraRequest" :items="t.extraChips" @pick="addExtra" />
   </section>
 
   <section class="flex flex-col gap-2 border-t pt-3">
@@ -136,6 +147,7 @@ function toggleEpisodeChar(id: string, on: boolean) {
   <section class="flex flex-col gap-2 border-t pt-3">
     <h3 class="text-sm font-semibold">{{ t.seriesMemo }}</h3>
     <Textarea v-model="memo" rows="3" class="text-xs" :placeholder="t.seriesMemoPh" :disabled="!edit" maxlength="1000" @input="saveMemo" />
+    <AppSuggest v-if="edit" :label="t.seriesMemo" :items="t.memoChips" @pick="addMemo" />
     <p class="text-muted-foreground text-xs">{{ t.contextNote }}</p>
     <Label for="s-cover" class="text-xs">{{ t.coverText }}</Label>
     <Input id="s-cover" :model-value="coverText" class="h-8 text-xs" :disabled="!edit" @change="emit('seriesFixed', { coverText: ($event.target as HTMLInputElement).value.slice(0, 200) })" />

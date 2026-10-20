@@ -13,6 +13,7 @@ export const fakeText: TextModel = {
       titles: { titles: ['제목 1', '제목 2', '제목 3', '제목 4', '제목 5'] },
       caption: { caption: '가짜 캡션 본문', hashtags: ['#인스타툰', '#공감툰'] },
       rewrite: { text: '가짜 다시 쓰기' },
+      suggest: { options: ['가짜 추천 1', '가짜 추천 2', '가짜 추천 3'] },
       summary: { summary: ['첫째 줄', '둘째 줄', '셋째 줄'], genre: 'comedy', score: 72, reason: '반전이 뚜렷해요' },
       check: { items: [{ index: 1, issue: '가짜 점검: 손 모양이 어색해 보여요' }] },
     }
