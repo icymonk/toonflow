@@ -293,6 +293,11 @@ function saveNow(panel: Panel, field: keyof Panel, value: unknown) {
 
 // SBD-01·02·03 자동 콘티 · 다시 나누기 · 빈 콘티
 const view = useLocalStorage<'cut' | 'board' | 'script'>('toonflow:studio:view', 'cut')
+const lastOpened = useLocalStorage<Record<string, string>>('toonflow:studio:last', {})
+watch(() => episode.value?.id, (id) => {
+  const ws = auth.workspace?.id
+  if (id && ws) lastOpened.value = { ...lastOpened.value, [ws]: id }
+}, { immediate: true })
 async function autoSplit() {
   const v = story.active.value
   if (!v) return toast.warning(t.board.needStory)
@@ -385,7 +390,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
 </script>
 
 <template>
-  <AppMenuPage v-if="!episodeId" menu="studio" />
+  <StudioEpisodePicker v-if="!episodeId" />
   <div v-else-if="s.missing.value" class="p-8">
     <AppEmptyState :icon="Clapperboard" :title="t.notFound" :body="ko.empty.studio.body">
       <NuxtLink to="/stories" class="text-sm underline">
@@ -396,6 +401,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
   <div v-else-if="episode" class="flex h-[calc(100dvh-3.5rem)] flex-col">
     <!-- 위: 에피소드 정보 · 단계 탭 · 저장 상태 -->
     <div class="flex flex-wrap items-center gap-3 border-b px-4 py-2">
+      <NuxtLink :to="{ path: '/studio', query: { pick: '1' } }" class="text-muted-foreground text-xs hover:underline">
+        ← {{ t.picker.switch }}
+      </NuxtLink>
       <NuxtLink :to="{ path: '/stories' }" class="text-muted-foreground text-sm hover:underline">
         {{ s.seriesName.value }}
       </NuxtLink>

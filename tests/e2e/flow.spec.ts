@@ -61,6 +61,15 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await epStyle.selectOption({ index: 1 })
   await expect(epStyle).not.toHaveValue('')
 
+  // 에피소드 없이 제작실에 오면 마지막에 연 에피소드가 열리고, "다른 에피소드"는 목록을 보여 준다
+  const epUrl = page.url()
+  await page.goto('/studio')
+  await page.waitForURL(epUrl)
+  await page.getByRole('link', { name: /다른 에피소드/ }).click()
+  await expect(page.getByText('이어서 작업할 에피소드를 고르세요')).toBeVisible()
+  await page.getByRole('listitem').getByRole('link').first().click()
+  await page.waitForURL(epUrl)
+
   // 콘티
   await page.getByRole('tab', { name: /Storyboard/ }).click()
   await page.getByRole('button', { name: '자동 콘티' }).click()

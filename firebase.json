@@ -254,6 +254,13 @@
         }
       },
       {
+        "source": "/fn/grantPlan",
+        "function": {
+          "functionId": "grantPlan",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/fn/logAdminView",
         "function": {
           "functionId": "logAdminView",

@@ -1,7 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { formatKrw, monthKey, remainingKrw, usageLevel, usageRatio } from './usage'
+import { asPlan, effectiveLimitKrw, formatKrw, monthKey, planCapKrw, remainingKrw, usageLevel, usageRatio } from './usage'
 
 describe('usage', () => {
+  it('caps the workspace limit at the plan and adds this month\'s credit (AIU-24)', () => {
+    expect(planCapKrw('free', undefined)).toBe(50000)
+    expect(planCapKrw('pro', { planLimitsKrw: { basic: 1, pro: 900 } })).toBe(900)
+    expect(effectiveLimitKrw({ plan: 'free' })).toBe(50000)
+    expect(effectiveLimitKrw({ plan: 'free', wsLimitKrw: 200000 })).toBe(50000)
+    expect(effectiveLimitKrw({ plan: 'basic', wsLimitKrw: 20000, creditKrw: 5000 })).toBe(25000)
+    expect(effectiveLimitKrw({ plan: 'pro', creditKrw: 10000 })).toBe(510000)
+    expect(asPlan('enterprise')).toBe('free')
+  })
   it('uses the Korean month', () => {
     expect(monthKey(new Date('2026-10-31T15:30:00Z'))).toBe('202611')
     expect(monthKey(new Date('2026-10-31T14:30:00Z'))).toBe('202610')
