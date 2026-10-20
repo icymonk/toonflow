@@ -3,7 +3,7 @@ import type { AiCheck, AiCheckMode } from '#shared/aicheck'
 import type { Bubble, BubbleStyle, BubbleTemplate, CheckIssue, Typeset } from '#shared/render'
 import type { ChecklistRow, ReviewState } from '#shared/review'
 import type { Cut, DialogueType } from '#shared/studio'
-import { useDebounceFn } from '@vueuse/core'
+import { useDebounceFn, useStorage } from '@vueuse/core'
 import { AI_CHECK_MODES } from '#shared/aicheck'
 import { BUBBLE_TAILS, bubbleStyle, FONTS } from '#shared/render'
 import { REVIEW_STATES } from '#shared/review'
@@ -36,6 +36,12 @@ function addItem() {
   newItem.value = ''
 }
 const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === 'needs' ? 'text-amber-800' : '')
+// AI 점검 지적 중 틀린 것은 이 브라우저에서 숨긴다
+const hidden = useStorage<string[]>('toonflow:aiCheckHidden', [])
+const hideKey = (it: { panelId: string, issue: string }) => `${props.aiCheck?.jobId}:${it.panelId}:${it.issue}`
+const shownAi = computed(() => props.aiItems.filter(it => !hidden.value.includes(hideKey(it))))
+const hideAi = (it: { panelId: string, issue: string }) => { hidden.value = [...hidden.value.slice(-200), hideKey(it)] }
+const unhideAi = () => { hidden.value = hidden.value.filter(k => !k.startsWith(`${props.aiCheck?.jobId}:`)) }
 </script>
 
 <template>
@@ -125,9 +131,18 @@ const tone = (st: ReviewState) => (st === 'pass' ? 'text-emerald-700' : st === '
       <p v-if="checking" class="text-muted-foreground text-xs">{{ t.ai.running }}</p>
       <template v-else-if="aiCheck">
         <p class="text-muted-foreground text-xs">{{ t.ai.result(t.ai.modes[aiCheck.mode], aiCheck.count) }}</p>
-        <p v-if="!aiItems.length" class="text-xs text-emerald-700">{{ t.noIssues }}</p>
-        <button v-for="(it, i) in aiItems" :key="i" class="text-left text-xs text-amber-800 hover:underline" @click="emit('pickPanel', it.panelId)">
-          {{ t.ai.item(it.number, it.issue) }}
+        <p v-if="!shownAi.length" class="text-xs text-emerald-700">{{ t.noIssues }}</p>
+        <div v-for="(it, i) in shownAi" :key="i" class="flex items-start gap-1">
+          <button class="flex-1 text-left text-xs text-amber-800 hover:underline" @click="emit('pickPanel', it.panelId)">
+            {{ t.ai.item(it.number, it.issue) }}
+          </button>
+          <button class="text-muted-foreground hover:text-foreground px-1 text-xs" :aria-label="t.ai.hide" :title="t.ai.hide" @click="hideAi(it)">
+            ×
+          </button>
+        </div>
+        <p v-if="aiItems.length" class="text-muted-foreground text-[11px]">{{ t.ai.reference }}</p>
+        <button v-if="aiItems.length > shownAi.length" class="text-muted-foreground self-start text-[11px] underline" @click="unhideAi">
+          {{ t.ai.hidden(aiItems.length - shownAi.length) }} · {{ t.ai.unhide }}
         </button>
       </template>
     </section>

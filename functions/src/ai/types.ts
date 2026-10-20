@@ -3,7 +3,7 @@ export interface TextResult { text: string, usage: { inTokens: number, outTokens
 /** JSON으로 받을 응답 종류 (가짜 모델은 이 값으로 고정 결과를 고른다) */
 export type TextFormat = 'analysis' | 'draft' | 'titles' | 'split' | 'caption' | 'rewrite' | 'summary' | 'check' | 'suggest'
 export interface TextModel {
-  generate: (req: { system: string, prompt: string, format?: TextFormat, maxTokens?: number, images?: Buffer[] }) => Promise<TextResult>
+  generate: (req: { system: string, prompt: string, format?: TextFormat, maxTokens?: number, images?: Buffer[], imageLabels?: string[] }) => Promise<TextResult>
 }
 export interface ImageResult { images: Buffer[], requestId: string, billedImages: number }
 export interface ImageModel {
