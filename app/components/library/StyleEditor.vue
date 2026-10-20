@@ -49,7 +49,7 @@ async function samples() {
 
 const archive = () => lib.update('styles', props.style.id, { archivedAt: props.style.archivedAt ? null : new Date() }).catch(fail)
 async function remove() {
-  if (!window.confirm(t.removeConfirm)) return
+  if (!await confirmDialog(t.removeConfirm)) return
   await lib.remove('styles', props.style.id).then(() => emit('removed'), fail)
 }
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
@@ -112,7 +112,7 @@ const enums = [
       <p v-else-if="job?.status === 'failed'" class="text-destructive text-xs">
         {{ t.failed }}
       </p>
-      <Button v-if="edit" size="sm" variant="outline" :disabled="busy" @click="samples">
+      <Button v-if="edit" size="sm" variant="outline" :loading="busy" @click="samples">
         <Sparkles class="size-4" /> {{ t.samples(lib.estimate(3)) }}
       </Button>
     </div>

@@ -66,7 +66,7 @@ async function download() {
   catch { toast.error(t.downloadFailed) }
 }
 async function cleanup() {
-  if (!window.confirm(t.cleanupConfirm(days.value))) return
+  if (!await confirmDialog(t.cleanupConfirm(days.value))) return
   try {
     const r = await a.cleanup(days.value)
     toast.success(t.cleaned(r.deleted))
@@ -113,7 +113,8 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </template>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto rounded-md" @dragover.prevent @drop.prevent="e => upload([...(e.dataTransfer?.files ?? [])])">
-        <p v-if="!items.length" class="text-muted-foreground p-6 text-center text-sm">{{ t.empty }}<br><span v-if="tab === 'refs'" class="text-xs">{{ t.drop }}</span></p>
+        <AppListSkeleton v-if="!(tab === 'generated' ? a.loaded.generated : a.loaded.assets)" />
+        <p v-else-if="!items.length" class="text-muted-foreground p-6 text-center text-sm">{{ t.empty }}<br><span v-if="tab === 'refs'" class="text-xs">{{ t.drop }}</span></p>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
           <div v-for="i in items" :key="i.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': focus === i.id }">
             <button class="block w-full" @click="focus = i.id"><AppStorageImg :path="i.path" class="aspect-[4/5] w-full" /></button>

@@ -68,7 +68,7 @@ async function loadOverview() {
   views.value = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() }) as AdminView) : []
 }
 async function openWs(id: string) {
-  const reason = window.prompt(t.viewReason)?.trim()
+  const reason = (await promptDialog(t.viewReason))?.trim()
   if (!reason) return
   try {
     opened[id] = await callFn($functions, 'logAdminView', { workspaceId: id, reason })

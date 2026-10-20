@@ -39,7 +39,8 @@ async function create() {
         </Button>
       </div>
       <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
-      <div v-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
+      <AppListSkeleton v-if="!lib.loaded.styles" />
+      <div v-else-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
         <p class="text-foreground font-medium">
           {{ ko.empty.styles.title }}
         </p>

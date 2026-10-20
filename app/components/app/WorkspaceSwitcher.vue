@@ -25,8 +25,8 @@ async function attempt(fn: () => Promise<void>) {
   }
 }
 const go = (id: string) => (id === auth.workspace?.id ? (open.value = false) : attempt(() => auth.switchTo(id)))
-function create() {
-  const name = window.prompt(t.createPrompt)?.trim()
+async function create() {
+  const name = (await promptDialog(t.createPrompt))?.trim()
   if (name) return attempt(() => auth.createWorkspace(name.slice(0, 40)))
 }
 </script>

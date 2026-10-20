@@ -28,7 +28,7 @@ async function load() {
 onMounted(load)
 
 async function withdraw() {
-  if (!window.confirm(t.withdrawConfirm)) return
+  if (!await confirmDialog(t.withdrawConfirm)) return
   busy.value = true
   try {
     await callFn($functions, 'withdrawIntake', { token })
@@ -61,7 +61,7 @@ async function withdraw() {
         {{ t[info.state] }}
       </p>
       <a v-for="u in info.urls" :key="u" :href="u" target="_blank" rel="noopener" class="text-primary break-all text-sm underline">{{ u }}</a>
-      <Button v-if="info.state !== 'withdrawn' && info.state !== 'withdrawRequested'" variant="outline" :disabled="busy" @click="withdraw">
+      <Button v-if="info.state !== 'withdrawn' && info.state !== 'withdrawRequested'" variant="outline" :loading="busy" @click="withdraw">
         {{ t.withdraw }}
       </Button>
     </section>

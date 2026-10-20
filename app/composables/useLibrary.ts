@@ -20,17 +20,25 @@ export function useLibrary() {
   const styles = ref<Style[]>([])
   const series = ref<Series[]>([])
   const models = ref<ModelsConfig | null>(null)
+  const loaded = reactive({ characters: false, styles: false })
   const ws = () => auth.workspace!.id
   const col = (name: LibraryKind | 'series') => collection($firestore, 'workspaces', ws(), name)
 
   const stops: (() => void)[] = []
   watch(() => auth.workspace?.id, (id) => {
     stops.splice(0).forEach(s => s())
+    loaded.characters = loaded.styles = false
     if (!id) return
     const live = <T>(snap: { docs: { id: string, data: () => unknown }[] }) => snap.docs.map(d => ({ id: d.id, ...(d.data() as object) }) as unknown as T & { deletedAt?: unknown }).filter(x => !x.deletedAt)
     stops.push(
-      onSnapshot(query(col('characters'), orderBy('createdAt', 'desc')), s => (characters.value = live<Character>(s)), () => {}),
-      onSnapshot(query(col('styles'), orderBy('createdAt', 'desc')), s => (styles.value = live<Style>(s)), () => {}),
+      onSnapshot(query(col('characters'), orderBy('createdAt', 'desc')), (s) => {
+        characters.value = live<Character>(s)
+        loaded.characters = true
+      }, () => (loaded.characters = true)),
+      onSnapshot(query(col('styles'), orderBy('createdAt', 'desc')), (s) => {
+        styles.value = live<Style>(s)
+        loaded.styles = true
+      }, () => (loaded.styles = true)),
       onSnapshot(col('series'), s => (series.value = live<Series>(s)), () => {}),
       onSnapshot(doc($firestore, 'config', 'models'), s => (models.value = (s.data() as ModelsConfig | undefined) ?? null), () => {}),
     )
@@ -87,6 +95,6 @@ export function useLibrary() {
     return job
   }
 
-  return { characters, styles, series, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, estimateText, watchJob, appearances }
+  return { characters, styles, series, loaded, createCharacter, createStyle, update, remove, upload, removeFile, setMain, setSeriesStyle, generate, estimate, estimateText, watchJob, appearances }
 }
 export type Library = ReturnType<typeof useLibrary>

@@ -14,14 +14,22 @@ export function useAssets() {
   const ws = () => auth.workspace!.id
   const assets = ref<Asset[]>([])
   const generated = ref<GenImage[]>([])
+  const loaded = reactive({ assets: false, generated: false })
   const stops: (() => void)[] = []
   watch(() => auth.workspace?.id, (w) => {
     stops.splice(0).forEach(f => f())
     assets.value = []
     generated.value = []
+    loaded.assets = loaded.generated = false
     if (!w) return
-    stops.push(onSnapshot(query(collection($firestore, 'workspaces', w, 'assets'), orderBy('createdAt', 'desc')), s => (assets.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as Asset)), () => {}))
-    stops.push(onSnapshot(query(collectionGroup($firestore, 'candidates'), where('workspaceId', '==', w), orderBy('createdAt', 'desc'), limit(300)), s => (generated.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as GenImage)), () => {}))
+    stops.push(onSnapshot(query(collection($firestore, 'workspaces', w, 'assets'), orderBy('createdAt', 'desc')), (s) => {
+      assets.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as Asset)
+      loaded.assets = true
+    }, () => (loaded.assets = true)))
+    stops.push(onSnapshot(query(collectionGroup($firestore, 'candidates'), where('workspaceId', '==', w), orderBy('createdAt', 'desc'), limit(300)), (s) => {
+      generated.value = s.docs.map(d => ({ id: d.id, ...d.data() }) as GenImage)
+      loaded.generated = true
+    }, () => (loaded.generated = true)))
   }, { immediate: true })
   onScopeDispose(() => stops.forEach(f => f()))
 
@@ -41,5 +49,5 @@ export function useAssets() {
   const blob = (path: string) => getBlob(sref($storage, path))
   const cleanup = (days: number) => callFn($functions, 'cleanupCandidates', { workspaceId: ws(), olderThanDays: days })
   const usage = () => callFn($functions, 'storageUsage', { workspaceId: ws() })
-  return { assets, generated, upload, setTags, remove, blob, cleanup, usage }
+  return { assets, generated, loaded, upload, setTags, remove, blob, cleanup, usage }
 }

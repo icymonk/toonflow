@@ -49,12 +49,12 @@ async function act(fn: () => Promise<unknown>, msg?: string) {
   }
 }
 const setRole = (m: Member, role: string) => act(() => callFn($functions, 'setMemberRole', { workspaceId: ws(), uid: m.id, role: role as 'editor' }), t.saved)
-function remove(m: Member) {
-  if (window.confirm(t.removeConfirm(name(m)))) return act(() => callFn($functions, 'removeMember', { workspaceId: ws(), uid: m.id }), t.removed)
+async function remove(m: Member) {
+  if (await confirmDialog(t.removeConfirm(name(m)))) return act(() => callFn($functions, 'removeMember', { workspaceId: ws(), uid: m.id }), t.removed)
 }
 const setLimit = (m: Member, v: string) => act(() => callFn($functions, 'setMemberLimit', { workspaceId: ws(), uid: m.id, monthlyLimitKrw: v.trim() ? Math.round(Number(v)) : null }), t.saved)
-function leave() {
-  if (!window.confirm(t.leaveConfirm)) return
+async function leave() {
+  if (!await confirmDialog(t.leaveConfirm)) return
   return act(async () => {
     await callFn($functions, 'leaveWorkspace', { workspaceId: ws() })
     window.location.assign('/')

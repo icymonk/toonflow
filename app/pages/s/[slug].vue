@@ -215,7 +215,7 @@ function again() {
             </option>
           </select>
           <Textarea v-model="report.detail" rows="2" maxlength="500" :aria-label="t.report.detail" :placeholder="t.report.detail" />
-          <Button size="sm" variant="outline" type="submit" class="self-start" :disabled="reporting">
+          <Button size="sm" variant="outline" type="submit" class="self-start" :loading="reporting">
             {{ t.report.send }}
           </Button>
         </form>

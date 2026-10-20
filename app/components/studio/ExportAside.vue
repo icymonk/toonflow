@@ -16,8 +16,9 @@ const t = ko.studio.publish
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
 const url = ref('')
 const val = (e: Event) => (e.target as HTMLInputElement | HTMLTextAreaElement).value
-function toggleLabel() {
-  if (props.aiLabel && !window.confirm(t.aiLabelOff)) return
+async function toggleLabel(e: Event) {
+  (e.target as HTMLInputElement).checked = props.aiLabel
+  if (props.aiLabel && !await confirmDialog(t.aiLabelOff)) return
   emit('settings', { aiLabel: !props.aiLabel })
 }
 async function copy() {

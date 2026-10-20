@@ -51,7 +51,7 @@ async function save() {
           <Label for="monthlyLimit">{{ t.monthlyLimit }}</Label>
           <Input id="monthlyLimit" v-model.number="limitInput" type="number" min="0" step="1000" class="w-40" />
         </div>
-        <Button type="submit" :disabled="saving">
+        <Button type="submit" :loading="saving">
           {{ t.save }}
         </Button>
       </form>

@@ -102,7 +102,7 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
         <select v-model.number="n" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.count">
           <option v-for="i in 4" :key="i" :value="i">{{ i }}</option>
         </select>
-        <Button class="flex-1" size="sm" :disabled="busy" @click="emit('generate', n, { extra, leaveRoom })">
+        <Button class="flex-1" size="sm" :loading="busy" @click="emit('generate', n, { extra, leaveRoom })">
           <Sparkles class="size-4" /> {{ (has ? t.regenerate : t.generate)(n, estimate(n)) }}
         </Button>
       </div>
