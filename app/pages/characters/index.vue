@@ -30,8 +30,8 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 gap-6 p-6">
-    <section class="flex min-w-0 flex-1 flex-col gap-4">
+  <div class="flex min-h-0 flex-1 gap-6 p-4 lg:p-6">
+    <section class="min-w-0 flex-1 flex-col gap-4" :class="current ? 'hidden lg:flex' : 'flex'">
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-xl font-semibold">
           {{ t.characters }}
@@ -69,7 +69,10 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
         </button>
       </div>
     </section>
-    <aside v-if="current" class="w-[380px] shrink-0 overflow-y-auto border-l pl-6">
+    <aside v-if="current" class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[380px] lg:shrink-0 lg:border-l lg:pl-6">
+      <Button variant="ghost" size="sm" class="self-start lg:hidden" @click="select()">
+        {{ t.backToList }}
+      </Button>
       <LibraryCharacterEditor :key="current.id" :character="current" :edit="edit" @removed="select()" />
     </aside>
   </div>
