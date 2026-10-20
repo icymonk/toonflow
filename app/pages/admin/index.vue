@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import type { AdminOverview, AdminView } from '#shared/activity'
+import type { AdminOverview, AdminView, OverviewRow } from '#shared/activity'
+import type { Plan } from '#shared/usage'
 import type { Report, ReportAction } from '#shared/reports'
 import type { WaitlistAction, WaitlistEntry } from '#shared/waitlist'
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { failRate } from '#shared/activity'
+import { PLANS } from '#shared/usage'
 import { DEFAULT_LIMITS, DEFAULT_MODELS, limitsConfig, modelsConfig, parseEmails } from '#shared/config'
 import { errorMessage } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
@@ -15,7 +17,7 @@ const { $auth, $firestore, $functions } = useNuxtApp()
 const t = ko.admin
 const isAdmin = ref<boolean | null>(null)
 const emails = ref('')
-const limits = reactive({ ...DEFAULT_LIMITS })
+const limits = reactive({ ...DEFAULT_LIMITS, planLimitsKrw: { ...DEFAULT_LIMITS.planLimitsKrw } })
 const modelsText = ref('')
 
 onMounted(async () => {
@@ -24,7 +26,7 @@ onMounted(async () => {
   if (!isAdmin.value) return
   const [access, lim, models] = await Promise.all(['access', 'limits', 'models'].map(id => getDoc(doc($firestore, 'config', id))))
   emails.value = ((access!.get('allowedEmails') as string[] | undefined) ?? []).join('\n')
-  Object.assign(limits, { ...DEFAULT_LIMITS, ...lim!.data() })
+  Object.assign(limits, { ...DEFAULT_LIMITS, ...lim!.data(), planLimitsKrw: { ...DEFAULT_LIMITS.planLimitsKrw, ...lim!.get('planLimitsKrw') } })
   modelsText.value = JSON.stringify({ ...DEFAULT_MODELS, ...models!.data() }, null, 2)
   await loadReports()
   await loadWaitlist()
@@ -66,6 +68,29 @@ async function loadOverview() {
   overview.value = await callFn($functions, 'adminOverview', {}).catch(() => null)
   const snap = await getDocs(query(collectionGroup($firestore, 'adminViews'), orderBy('at', 'desc'), limit(50))).catch(() => null)
   views.value = snap ? snap.docs.map(d => ({ id: d.id, ...d.data() }) as AdminView) : []
+}
+// AIU-24 요금제·크레딧 직접 지급 (결제 연동 전)
+const editingPlan = ref<string>()
+const grant = reactive({ plan: 'free' as Plan, creditKrw: 0 })
+const granting = ref(false)
+function editPlan(r: OverviewRow) {
+  editingPlan.value = editingPlan.value === r.id ? undefined : r.id
+  Object.assign(grant, { plan: r.plan, creditKrw: 0 })
+}
+async function savePlan(id: string) {
+  granting.value = true
+  try {
+    await callFn($functions, 'grantPlan', { workspaceId: id, plan: grant.plan, creditKrw: Number(grant.creditKrw) || 0 })
+    toast.success(t.granted)
+    editingPlan.value = undefined
+    await loadOverview()
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
+  }
+  finally {
+    granting.value = false
+  }
 }
 async function openWs(id: string) {
   const reason = (await promptDialog(t.viewReason))?.trim()
@@ -150,6 +175,11 @@ function saveModels() {
             <Label for="ml">{{ t.monthlyLimit }}</Label>
             <Input id="ml" v-model.number="limits.monthlyLimitKrw" type="number" min="0" step="1000" />
           </div>
+          <div v-for="p in (['basic', 'pro'] as const)" :key="p" class="flex flex-col gap-2">
+            <Label :for="`pl-${p}`">{{ t.planLimit(ko.plans[p]) }}</Label>
+            <Input :id="`pl-${p}`" v-model.number="limits.planLimitsKrw[p]" type="number" min="0" step="1000" />
+          </div>
+          <div />
           <div class="flex flex-col gap-2">
             <Label for="co">{{ t.confirmOver }}</Label>
             <Input id="co" v-model.number="limits.confirmOverKrw" type="number" min="0" step="500" />
@@ -185,14 +215,34 @@ function saveModels() {
           <table class="w-full text-left">
             <thead class="text-muted-foreground"><tr><th class="py-1 font-normal">{{ t.wsName }}</th><th class="font-normal">{{ t.wsSpent }}</th><th /></tr></thead>
             <tbody>
-              <tr v-for="r in overview.rows" :key="r.id" class="border-t">
-                <td class="py-1.5">{{ r.name }} <span class="text-muted-foreground">{{ r.id }}</span><span v-if="r.deleteAt" class="text-destructive"> · {{ t.wsDeleting }}</span></td>
+              <template v-for="r in overview.rows" :key="r.id">
+              <tr class="border-t">
+                <td class="py-1.5">{{ r.name }} <span class="text-muted-foreground">{{ r.id }}</span><span v-if="r.deleteAt" class="text-destructive"> · {{ t.wsDeleting }}</span><br><span class="text-muted-foreground">{{ t.wsPlan(ko.plans[r.plan], r.limitKrw, r.creditKrw) }}</span></td>
                 <td>₩{{ r.spentKrw.toLocaleString() }}</td>
                 <td class="text-right">
                   <span v-if="opened[r.id]" class="text-muted-foreground mr-2">{{ t.wsCounts(opened[r.id]!.episodes, opened[r.id]!.submissions, opened[r.id]!.members) }}</span>
+                  <Button size="sm" variant="outline" class="mr-1 h-7" @click="editPlan(r)">{{ t.plan }}</Button>
                   <Button size="sm" variant="outline" class="h-7" @click="openWs(r.id)">{{ t.view }}</Button>
                 </td>
               </tr>
+              <tr v-if="editingPlan === r.id">
+                <td colspan="3" class="pb-2">
+                  <form class="flex flex-wrap items-end gap-2" @submit.prevent="savePlan(r.id)">
+                    <div class="flex flex-col gap-1">
+                      <Label :for="`plan-${r.id}`">{{ t.planSelect }}</Label>
+                      <select :id="`plan-${r.id}`" v-model="grant.plan" class="border-input bg-background h-8 rounded-md border px-2">
+                        <option v-for="p in PLANS" :key="p" :value="p">{{ ko.plans[p] }}</option>
+                      </select>
+                    </div>
+                    <div class="flex flex-col gap-1">
+                      <Label :for="`credit-${r.id}`">{{ t.credit }}</Label>
+                      <Input :id="`credit-${r.id}`" v-model.number="grant.creditKrw" type="number" min="0" step="1000" class="h-8 w-36" />
+                    </div>
+                    <Button type="submit" size="sm" :loading="granting">{{ t.grant }}</Button>
+                  </form>
+                </td>
+              </tr>
+              </template>
             </tbody>
           </table>
           <div v-if="views.length" class="flex flex-col gap-1 border-t pt-2">

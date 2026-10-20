@@ -8,6 +8,6 @@ import 'vue-sonner/style.css'
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
-  <Toaster rich-colors position="top-center" />
+  <Toaster rich-colors position="bottom-right" />
   <AppDialogHost />
 </template>

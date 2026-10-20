@@ -1,7 +1,6 @@
 import type { Transaction } from 'firebase-admin/firestore'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { DEFAULT_LIMITS } from '../../../shared/config'
-import { monthKey } from '../../../shared/usage'
+import { asPlan, effectiveLimitKrw, monthKey } from '../../../shared/usage'
 
 const db = () => getFirestore()
 export const usageRef = (wsId: string, month = monthKey()) => db().doc(`workspaces/${wsId}/usage/${month}`)
@@ -14,7 +13,7 @@ export async function reserve(tx: Transaction, wsId: string, amountKrw: number, 
     tx.get(db().doc('config/limits')),
     uid ? tx.get(db().doc(`workspaces/${wsId}/members/${uid}`)) : Promise.resolve(null),
   ])
-  const limit = (ws.get('monthlyLimitKrw') as number | undefined) ?? (limits.get('monthlyLimitKrw') as number | undefined) ?? DEFAULT_LIMITS.monthlyLimitKrw
+  const limit = effectiveLimitKrw({ plan: asPlan(ws.get('plan')), wsLimitKrw: ws.get('monthlyLimitKrw') as number | undefined, limits: limits.data(), creditKrw: usage.get('creditKrw') as number | undefined })
   const used = ((usage.get('spentKrw') as number | undefined) ?? 0) + ((usage.get('reservedKrw') as number | undefined) ?? 0)
   if (used + amountKrw > limit) return false
   // AIU-22: 멤버 한도는 이번 달 그 멤버가 쓴 금액으로 본다

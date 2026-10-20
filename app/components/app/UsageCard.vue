@@ -8,11 +8,11 @@ import { ko } from '~/locales/ko'
 
 const { $functions } = useNuxtApp()
 const auth = useAuthStore()
-const { limitKrw, usedKrw, ratio, level } = useUsage()
+const { plan, capKrw, creditKrw, baseLimitKrw, limitKrw, usedKrw, ratio, level } = useUsage()
 const t = ko.settings
 const limitInput = ref<number>()
 watchEffect(() => {
-  if (limitInput.value === undefined) limitInput.value = limitKrw.value
+  if (limitInput.value === undefined) limitInput.value = baseLimitKrw.value
 })
 const saving = ref(false)
 
@@ -38,6 +38,7 @@ async function save() {
     <CardHeader>
       <CardTitle>{{ t.usage }}</CardTitle>
       <CardDescription>{{ t.usageLine(formatKrw(usedKrw), formatKrw(limitKrw)) }}</CardDescription>
+      <CardDescription>{{ t.planLine(ko.plans[plan], formatKrw(capKrw), creditKrw ? formatKrw(creditKrw) : null) }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="bg-muted h-2 overflow-hidden rounded-full">
@@ -49,7 +50,7 @@ async function save() {
       <form v-if="canManage(auth.role)" class="flex items-end gap-2" @submit.prevent="save">
         <div class="flex flex-col gap-2">
           <Label for="monthlyLimit">{{ t.monthlyLimit }}</Label>
-          <Input id="monthlyLimit" v-model.number="limitInput" type="number" min="0" step="1000" class="w-40" />
+          <Input id="monthlyLimit" v-model.number="limitInput" type="number" min="0" :max="capKrw" step="1000" class="w-40" />
         </div>
         <Button type="submit" :loading="saving">
           {{ t.save }}

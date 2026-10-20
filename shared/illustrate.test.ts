@@ -1,6 +1,6 @@
 import type { Cut, Panel } from './studio'
 import { describe, expect, it } from 'vitest'
-import { bulkTargets, candidatePath, panelPrompt, zoomCrop } from './illustrate'
+import { bulkTargets, candidatePath, panelPrompt, zoomCrop, cutSize, FULL_BLEED } from './illustrate'
 import { emptyAppearance } from './library'
 import { emptyPanel } from './studio'
 
@@ -26,5 +26,20 @@ describe('illustrate', () => {
     const cuts = [cut('a', {}), cut('b', { selectedCandidateId: 'x' }), cut('c', { selectedCandidateId: 'x', staleFrom: 'scene' }), cut('d', {})]
     expect(bulkTargets(cuts, 'empty', new Set(['d'])).map(c => c.panel.id)).toEqual(['a'])
     expect(bulkTargets(cuts, 'stale', new Set()).map(c => c.panel.id)).toEqual(['c'])
+  })
+})
+
+describe('cutSize', () => {
+  const cut = (pageId: string, layout: string, indexInPage: number) => ({ page: { id: pageId, layout }, panel: {}, pageIndex: 0, indexInPage, number: 1 }) as unknown as import('./studio').Cut
+  it('matches the cut cell so images are generated in the cell aspect', () => {
+    const two = [cut('p', '2v', 0), cut('p', '2v', 1)]
+    const s = cutSize(two, two[0]!, '4:5')
+    expect(s.w).toBe(1032)
+    expect(s.w / s.h).toBeGreaterThan(1.5)
+    const one = [cut('q', '1', 0)]
+    expect(cutSize(one, one[0]!, '1:1')).toEqual({ w: 1032, h: 1032 })
+  })
+  it('asks for a borderless full-bleed image', () => {
+    expect(FULL_BLEED).toMatch(/no white margins/)
   })
 })

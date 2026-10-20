@@ -21,12 +21,11 @@ export const ko = {
   empty: {
     inbox: { title: '아직 제보가 없어요', body: '받은 썰을 붙여 넣어 직접 등록할 수 있어요.' },
     stories: { title: '아직 작품이 없어요', body: '작품을 만들고 첫 에피소드를 시작해 보세요.' },
-    studio: { title: '열린 에피소드가 없어요', body: 'Stories에서 에피소드를 고르면 제작실이 열려요.' },
+    studio: { title: '아직 에피소드가 없어요', body: 'Stories에서 작품과 에피소드를 만들면 제작실에서 이어서 작업할 수 있어요.' },
     characters: { title: '아직 캐릭터가 없어요', body: '외형과 참조 이미지를 등록하면 컷마다 같은 모습으로 그려요.' },
     styles: { title: '아직 그림체가 없어요', body: '그림체를 만들어 두면 모든 컷에 같은 화풍을 써요.' },
     assets: { title: '에셋 보관함은 2단계에 열려요', body: '지금은 제작실 안에서 후보 이미지를 볼 수 있어요.' },
     publish: { title: '아직 발행 기록이 없어요', body: '에피소드를 내보내고 게시하면 여기에 남아요.' },
-    soon: '곧 만들어요',
   },
   inbox: {
     add: '제보 등록',
@@ -198,6 +197,8 @@ export const ko = {
   },
   studio: {
     open: '제작실 열기',
+    look: { title: '그림체·캐릭터', seriesStyle: '작품 그림체 (모든 화 기본)', episodeStyle: '이번 화 그림체', followSeries: '작품 그림체 따르기', none: '정하지 않음', noStyles: '아직 그림체가 없어요.', goStyles: '그림체 만들기', characters: '캐릭터', main: '작품 주요', thisEpisode: '이번 화', mainOf: (n: string) => `${n} 작품 주요 캐릭터`, episodeOf: (n: string) => `${n} 이번 화 등장`, noCharacters: '아직 캐릭터가 없어요.', goCharacters: '캐릭터 만들기', hint: '그림체는 컷 > 이번 화 > 작품 순으로 적용돼요. 체크한 캐릭터의 성격·말투는 각색에 쓰이고, 컷에 이름이 나오면 그 모습으로 그려요.' },
+    picker: { pick: '이어서 작업할 에피소드를 고르세요', create: '에피소드 만들기', all: 'Stories에서 전체 보기', untitled: '제목 없음', number: (n: number) => `${n}화`, switch: '다른 에피소드' },
     keys: { title: '단축키', list: { '1~5': '단계 이동', 'J / →': '다음 컷', 'K / ←': '이전 컷', 'G': '그림 단계에서 선택 컷 생성', 'Ctrl+Z': '실행 취소 (Shift: 다시 실행)', 'Ctrl+K': '검색·명령 팔레트', '?': '단축키 목록' } as Record<string, string> },
     snap: {
       button: '스냅숏',
@@ -688,7 +689,9 @@ export const ko = {
     failed: '실패',
     usageWarn: '이번 달 AI 사용량이 한도의 80%를 넘었어요',
     usageOver: '이번 달 AI 사용 한도에 도달했어요. 새 AI 작업이 막혀요',
-    prefs: { title: '알림 설정', done: 'AI 생성 완료', failed: 'AI 생성 실패', usage: '사용량 경고(80%·100%)' },
+    withdrawnBefore: '제보자가 동의를 철회했어요',
+    withdrawnAfter: '게시한 제보의 동의 철회 요청이 왔어요',
+    prefs: { title: '알림 설정', done: 'AI 생성 완료', failed: 'AI 생성 실패', usage: '사용량 경고(80%·100%)', withdrawn: '제보 동의 철회' },
     types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약', 'panel.check': 'AI 점검' } as Record<string, string>,
   },
   publishList: {
@@ -817,7 +820,7 @@ export const ko = {
     empty: '아직 기록이 없어요.',
     someone: '알 수 없는 멤버',
     operator: '운영자',
-    actions: { 'invite.create': '초대 링크 만듦', 'invite.accept': '초대로 참여', 'member.role': '역할 바꿈', 'member.remove': '멤버 내보냄', 'member.leave': '나감', 'workspace.delete': '워크스페이스 삭제 예약', 'workspace.restore': '워크스페이스 되살림', 'workspace.transfer': '소유권 넘김' } as Record<string, string>,
+    actions: { 'invite.create': '초대 링크 만듦', 'invite.accept': '초대로 참여', 'member.role': '역할 바꿈', 'member.remove': '멤버 내보냄', 'member.leave': '나감', 'workspace.delete': '워크스페이스 삭제 예약', 'workspace.restore': '워크스페이스 되살림', 'workspace.transfer': '소유권 넘김', 'plan.grant': '운영자가 요금제·크레딧 지급' } as Record<string, string>,
     views: '운영자 열람 기록',
     viewsHint: '운영자가 이 워크스페이스를 열어 본 기록이에요 (개인정보처리방침에 안내).',
   },
@@ -883,6 +886,7 @@ export const ko = {
     usageWarn: '한도의 80%를 넘었어요.',
     usageBlocked: '한도에 닿아 새 AI 작업을 시작할 수 없어요.',
     monthlyLimit: '월 한도 (원)',
+    planLine: (plan: string, cap: string, credit: string | null) => `요금제 ${plan} · 월 한도 최대 ${cap}${credit ? ` · 이번 달 추가 크레딧 ${credit}` : ''}. 요금제는 운영자에게 요청해 주세요.`,
     intake: {
       title: '제보 링크',
       hint: '독자가 로그인 없이 썰을 보내는 공개 페이지예요. 받은 썰은 Inbox에 "제보 링크" 출처로 들어와요.',
@@ -911,7 +915,8 @@ export const ko = {
     access: '가입 허용 이메일',
     accessHint: '한 줄에 하나씩. 여기 있는 이메일만 가입할 수 있어요.',
     limits: '기본 한도',
-    monthlyLimit: '워크스페이스 기본 월 한도 (원)',
+    monthlyLimit: '무료 요금제 월 한도 (원)',
+    planLimit: (plan: string) => `${plan} 요금제 월 한도 (원)`,
     confirmOver: '1회 확인 기준 (원)',
     maxConcurrent: '워크스페이스 동시 작업 수',
     models: '모델 · 가격표 (JSON)',
@@ -933,6 +938,12 @@ export const ko = {
     wsName: '워크스페이스',
     wsSpent: '이번 달 비용',
     wsDeleting: '삭제 예정',
+    wsPlan: (plan: string, limit: number, credit: number) => `${plan} · 한도 ₩${limit.toLocaleString()}${credit ? ` (크레딧 ₩${credit.toLocaleString()} 포함)` : ''}`,
+    plan: '요금제',
+    planSelect: '요금제 선택',
+    credit: '이번 달 추가 크레딧 (원)',
+    grant: '지급',
+    granted: '요금제·크레딧을 바꿨어요. 워크스페이스 활동 기록에 남아요.',
     view: '열람',
     viewReason: '열람 이유 (기록에 남고 그 워크스페이스 소유자·관리자도 봐요)',
     wsCounts: (e: number, s: number, m: number) => `에피소드 ${e} · 제보 ${s} · 멤버 ${m}`,
@@ -972,7 +983,9 @@ export const ko = {
     bannedWord: '보낼 수 없는 표현이 들어 있어요. 고쳐서 다시 보내 주세요.',
     tooMany: '잠깐 사이에 여러 번 보냈어요. 10분 뒤에 다시 보내 주세요.',
     tokenNotFound: '확인 링크가 맞지 않거나 지워진 제보예요.',
+    overPlan: '요금제 월 한도보다 높게 정할 수 없어요. 더 필요하면 운영자에게 요청해 주세요.',
   },
+  plans: { free: '무료', basic: '베이직', pro: '프로' },
 } as const
 
 export type Messages = typeof ko
