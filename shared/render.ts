@@ -110,13 +110,13 @@ export function syncBubbles(panel: Pick<Panel, 'dialogues'> & { bubbles?: Bubble
 
 export type CheckKind = 'noImage' | 'outside' | 'smallText' | 'noBubble' | 'pii'
 export interface CheckIssue { kind: CheckKind, panelId: string, number: number, dialogueId?: string }
-/** REV-11 자동 점검 (그림·말풍선) */
-export function autoCheck(cuts: Cut[]): CheckIssue[] {
+/** REV-11 자동 점검 (그림·말풍선). bubblesOf: 화면·출력에 실제로 그려지는 말풍선 (저장 안 된 대사는 자동 자리) */
+export function autoCheck(cuts: Cut[], bubblesOf?: (cut: Cut) => Bubble[]): CheckIssue[] {
   const out: CheckIssue[] = []
   for (const c of cuts) {
     const p = c.panel as Panel & { bubbles?: Bubble[] | null }
     if (!p.selectedCandidateId) out.push({ kind: 'noImage', panelId: p.id, number: c.number })
-    const bs = new Map((p.bubbles ?? []).map(b => [b.dialogueId, b]))
+    const bs = new Map((bubblesOf ? bubblesOf(c) : (p.bubbles ?? [])).map(b => [b.dialogueId, b]))
     for (const d of p.dialogues) {
       if (findPii(d.text).length) out.push({ kind: 'pii', panelId: p.id, number: c.number, dialogueId: d.id })
       const b = bs.get(d.id)
