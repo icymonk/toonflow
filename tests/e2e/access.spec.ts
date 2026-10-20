@@ -88,4 +88,15 @@ test('대기 명단 신청 → 운영자 승인 → 가입, 초대 링크 → �
   await expect(invitee.getByText('승인 대기 중')).toBeHidden()
   await page.reload()
   await expect(page.getByText(INVITEE, { exact: true })).toBeVisible()
+
+  // AIU-24: 운영자가 요금제·크레딧을 직접 주면 설정의 한도에 반영된다
+  await page.goto('/admin')
+  await page.locator('tr', { hasText: 'e2e-ops의 스튜디오' }).getByRole('button', { name: '요금제' }).click()
+  await page.getByLabel('요금제 선택').selectOption('pro')
+  await page.getByLabel('이번 달 추가 크레딧 (원)').fill('10000')
+  await page.getByRole('button', { name: '지급' }).click()
+  await expect(page.getByText(/프로 · 한도 ₩510,000/)).toBeVisible()
+  await page.goto('/settings')
+  await expect(page.getByText(/요금제 프로 · 월 한도 최대 ₩500,000 · 이번 달 추가 크레딧 ₩10,000/)).toBeVisible()
+  await expect(page.getByText(/\/ ₩510,000/)).toBeVisible()
 })

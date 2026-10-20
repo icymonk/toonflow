@@ -2,7 +2,8 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { adminOverviewInput, logAdminViewInput } from '../../../shared/activity'
 import { ERROR_KEYS } from '../../../shared/callables'
-import { monthKey } from '../../../shared/usage'
+import { asPlan, effectiveLimitKrw, grantPlanInput, monthKey } from '../../../shared/usage'
+import { logActivity } from '../lib/activity'
 import { authedCallable } from '../lib/callable'
 
 const requireAdmin = (token: Record<string, unknown>) => {
@@ -15,8 +16,21 @@ export const adminOverview = authedCallable(adminOverviewInput, async ({ token }
   const db = getFirestore()
   const month = monthKey()
   const wss = (await db.collection('workspaces').get()).docs
-  const usages = await Promise.all(wss.map(w => w.ref.collection('usage').doc(month).get()))
-  const rows = wss.map((w, i) => ({ id: w.id, name: (w.get('name') as string) ?? '', ownerId: (w.get('ownerId') as string) ?? '', spentKrw: (usages[i]!.get('spentKrw') as number | undefined) ?? 0, deleteAt: w.get('deleteAt')?.toMillis?.() ?? null }))
+  const [usages, limits] = await Promise.all([Promise.all(wss.map(w => w.ref.collection('usage').doc(month).get())), db.doc('config/limits').get()])
+  const rows = wss.map((w, i) => {
+    const plan = asPlan(w.get('plan'))
+    const creditKrw = (usages[i]!.get('creditKrw') as number | undefined) ?? 0
+    return {
+      id: w.id,
+      name: (w.get('name') as string) ?? '',
+      ownerId: (w.get('ownerId') as string) ?? '',
+      spentKrw: (usages[i]!.get('spentKrw') as number | undefined) ?? 0,
+      deleteAt: w.get('deleteAt')?.toMillis?.() ?? null,
+      plan,
+      creditKrw,
+      limitKrw: effectiveLimitKrw({ plan, wsLimitKrw: w.get('monthlyLimitKrw') as number | undefined, limits: limits.data(), creditKrw }),
+    }
+  })
     .sort((a, b) => b.spentKrw - a.spentKrw)
   const jobs = (await db.collectionGroup('aiJobs').where('month', '==', month).select('status', 'model').get()).docs
   const byModel: Record<string, { total: number, failed: number }> = {}
@@ -39,4 +53,16 @@ export const logAdminView = authedCallable(logAdminViewInput, async ({ uid, toke
   await ws.collection('adminViews').add({ by: uid, email: typeof token.email === 'string' ? token.email : null, reason: data.reason, workspaceId: data.workspaceId, at: FieldValue.serverTimestamp() })
   const [episodes, submissions, members] = await Promise.all(['episodes', 'submissions', 'members'].map(c => ws.collection(c).count().get()))
   return { episodes: episodes!.data().count, submissions: submissions!.data().count, members: members!.data().count }
+})
+
+/** AIU-24: 결제 전에는 운영자가 요금제를 정하고 이번 달 추가 크레딧을 준다. 워크스페이스 활동 기록에 남는다 */
+export const grantPlan = authedCallable(grantPlanInput, async ({ uid, token, data }) => {
+  requireAdmin(token)
+  const db = getFirestore()
+  const ws = db.doc(`workspaces/${data.workspaceId}`)
+  if (!(await ws.get()).exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+  await ws.update({ plan: data.plan })
+  if (data.creditKrw > 0) await ws.collection('usage').doc(monthKey()).set({ creditKrw: FieldValue.increment(data.creditKrw) }, { merge: true })
+  await logActivity(data.workspaceId, uid, 'plan.grant', { plan: data.plan, creditKrw: data.creditKrw })
+  return { ok: true as const }
 })
