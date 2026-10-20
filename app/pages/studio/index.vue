@@ -6,7 +6,7 @@ import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
 import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, History, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
-import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage } from '@vueuse/core'
+import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
 import { bulkTargets } from '#shared/illustrate'
@@ -232,6 +232,14 @@ const leftOpen = useLocalStorage('toonflow:studio:leftOpen', true)
 const rightOpen = useLocalStorage('toonflow:studio:rightOpen', true)
 const leftW = useLocalStorage('toonflow:studio:leftW', 260)
 const rightW = useLocalStorage('toonflow:studio:rightW', 320)
+// STU: 좁은 화면에서는 목록·작업·속성을 탭으로 나눠 한 번에 하나만 전체 폭으로
+const wide = useMediaQuery('(min-width: 1024px)')
+const pane = ref<'list' | 'work' | 'props'>('work')
+const showLeft = computed(() => (wide.value ? leftOpen.value : pane.value === 'list'))
+const showRight = computed(() => (wide.value ? rightOpen.value : pane.value === 'props'))
+watch(selectedPanelId, (n, o) => {
+  if (!wide.value && o && n !== o) pane.value = 'work'
+})
 function resize(e: PointerEvent, side: 'left' | 'right') {
   const startX = e.clientX
   const start = side === 'left' ? leftW.value : rightW.value
@@ -400,7 +408,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
   </div>
   <div v-else-if="episode" class="flex h-[calc(100dvh-3.5rem)] flex-col">
     <!-- 위: 에피소드 정보 · 단계 탭 · 저장 상태 -->
-    <div class="flex flex-wrap items-center gap-3 border-b px-4 py-2">
+    <div class="flex flex-wrap items-center gap-2 border-b px-3 py-2 sm:gap-3 sm:px-4">
       <NuxtLink :to="{ path: '/studio', query: { pick: '1' } }" class="text-muted-foreground text-xs hover:underline">
         ← {{ t.picker.switch }}
       </NuxtLink>
@@ -410,19 +418,19 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <span class="text-muted-foreground">›</span>
       <input
         v-model="titleDraft" :disabled="!edit" maxlength="80" :aria-label="ko.stories.title"
-        class="hover:border-input focus:border-input w-48 rounded border border-transparent bg-transparent px-1.5 py-0.5 font-semibold"
+        class="hover:border-input focus:border-input w-32 rounded sm:w-48 border border-transparent bg-transparent px-1.5 py-0.5 font-semibold"
         @input="saveTitle" @blur="saveTitle"
       >
       <span class="bg-muted rounded px-2 py-0.5 text-xs">{{ ko.stories.stages[stageOf(episode)] }}</span>
-      <span class="text-muted-foreground text-xs">{{ t.cost }} {{ krw(episode.costKrw) }}</span>
-      <nav class="mx-auto flex gap-1" role="tablist">
+      <span class="text-muted-foreground hidden text-xs sm:inline">{{ t.cost }} {{ krw(episode.costKrw) }}</span>
+      <nav class="mx-auto flex max-w-full gap-1 overflow-x-auto" role="tablist">
         <button
           v-for="st in STEPS" :key="st" role="tab" :aria-selected="step === st"
-          class="flex items-center gap-1 rounded-md px-3 py-1.5 text-sm" :class="step === st ? 'bg-primary text-primary-foreground font-semibold' : 'hover:bg-muted'"
+          class="flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-sm sm:px-3" :class="step === st ? 'bg-primary text-primary-foreground font-semibold' : 'hover:bg-muted'"
           :title="remaining(st, state) ? needText(st) : ''" @click="goStep(st)"
         >
           <Check v-if="remaining(st, state) === 0" class="size-3.5" />
-          {{ t.steps[st] }} <span class="text-xs opacity-70">{{ t.stepsKo[st] }}</span>
+          {{ t.steps[st] }} <span class="hidden text-xs opacity-70 sm:inline">{{ t.stepsKo[st] }}</span>
         </button>
       </nav>
       <span class="text-muted-foreground text-xs" aria-live="polite">
@@ -450,20 +458,29 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         </span>
         <span v-if="presence.others.value.length > 4" class="bg-muted ring-background flex size-7 items-center justify-center rounded-full text-xs ring-2">+{{ presence.others.value.length - 4 }}</span>
       </div>
-      <Button size="sm" variant="outline" :disabled="!cuts.length" @click="openPreview">
-        <Eye class="size-4" /> {{ t.preview }}
+      <Button size="sm" variant="outline" :disabled="!cuts.length" :aria-label="t.preview" @click="openPreview">
+        <Eye class="size-4" /> <span class="hidden sm:inline">{{ t.preview }}</span>
       </Button>
-      <Button size="sm" variant="outline" @click="snapOpen = true">
-        <History class="size-4" /> {{ t.snap.button }}
+      <Button size="sm" variant="outline" :aria-label="t.snap.button" @click="snapOpen = true">
+        <History class="size-4" /> <span class="hidden sm:inline">{{ t.snap.button }}</span>
       </Button>
     </div>
 
+    <nav v-if="!wide" class="flex border-b" role="tablist" :aria-label="t.mobile.label">
+      <button
+        v-for="pn in (['list', 'work', 'props'] as const)" :key="pn" role="tab" :aria-selected="pane === pn"
+        class="flex-1 border-b-2 py-2 text-sm" :class="pane === pn ? 'border-primary font-semibold' : 'text-muted-foreground border-transparent'"
+        @click="pane = pn"
+      >
+        {{ pn === 'list' ? (step === 'story' ? t.storyTitle : t.pagesTitle) : pn === 'work' ? t.mobile.work : t.props }}
+      </button>
+    </nav>
     <div class="flex min-h-0 flex-1">
       <!-- 왼쪽: 장·컷 목록 (Story 단계는 각색안 목록) -->
-      <aside v-if="leftOpen" class="relative flex shrink-0 flex-col border-r" :style="{ width: `${leftW}px` }">
+      <aside v-if="showLeft" class="relative flex shrink-0 flex-col border-r" :style="{ width: wide ? `${leftW}px` : '100%' }">
         <div class="flex items-center justify-between px-3 py-2">
           <span class="text-sm font-semibold">{{ step === 'story' ? t.storyTitle : t.pagesTitle }}</span>
-          <Button size="icon" variant="ghost" :aria-label="t.collapse" @click="leftOpen = false">
+          <Button v-if="wide" size="icon" variant="ghost" :aria-label="t.collapse" @click="leftOpen = false">
             <PanelLeftClose class="size-4" />
           </Button>
         </div>
@@ -534,14 +551,14 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <Plus class="size-4" /> {{ t.addPage }}
           </Button>
         </div>
-        <div class="hover:bg-primary/40 absolute top-0 -right-1 h-full w-2 cursor-col-resize" @pointerdown="resize($event, 'left')" />
+        <div v-if="wide" class="hover:bg-primary/40 absolute top-0 -right-1 h-full w-2 cursor-col-resize" @pointerdown="resize($event, 'left')" />
       </aside>
-      <Button v-else size="icon" variant="ghost" class="m-2" :aria-label="t.expand" @click="leftOpen = true">
+      <Button v-else-if="wide" size="icon" variant="ghost" class="m-2" :aria-label="t.expand" @click="leftOpen = true">
         <PanelLeftOpen class="size-4" />
       </Button>
 
       <!-- 가운데: 미리보기 -->
-      <section class="bg-muted/30 flex min-w-0 flex-1 flex-col items-center justify-center gap-3 p-6">
+      <section v-show="wide || pane === 'work'" class="bg-muted/30 flex min-w-0 flex-1 flex-col items-center justify-center gap-3 overflow-y-auto p-3 lg:p-6">
         <div v-if="step === 'story'" class="w-full flex-1 overflow-y-auto">
           <StudioStoryCompare v-if="storyVersion && compareVersion" :a="storyVersion" :b="compareVersion" @close="storyCompareId = ''" />
           <StudioStoryEditor
@@ -605,11 +622,11 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       </section>
 
       <!-- 오른쪽: 선택한 컷의 속성 -->
-      <aside v-if="rightOpen" class="relative flex shrink-0 flex-col gap-3 overflow-y-auto border-l p-3" :style="{ width: `${rightW}px` }">
-        <div class="hover:bg-primary/40 absolute top-0 -left-1 h-full w-2 cursor-col-resize" @pointerdown="resize($event, 'right')" />
+      <aside v-if="showRight" class="relative flex shrink-0 flex-col gap-3 overflow-y-auto border-l p-3" :style="{ width: wide ? `${rightW}px` : '100%' }">
+        <div v-if="wide" class="hover:bg-primary/40 absolute top-0 -left-1 h-full w-2 cursor-col-resize" @pointerdown="resize($event, 'right')" />
         <div class="flex items-center justify-between">
           <span class="text-sm font-semibold">{{ t.props }}<template v-if="selected"> · {{ t.cut(selected.number) }}</template></span>
-          <Button size="icon" variant="ghost" :aria-label="t.collapse" @click="rightOpen = false">
+          <Button v-if="wide" size="icon" variant="ghost" :aria-label="t.collapse" @click="rightOpen = false">
             <PanelRightClose class="size-4" />
           </Button>
         </div>
@@ -667,7 +684,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>
-      <Button v-else size="icon" variant="ghost" class="m-2" :aria-label="t.expand" @click="rightOpen = true">
+      <Button v-else-if="wide" size="icon" variant="ghost" class="m-2" :aria-label="t.expand" @click="rightOpen = true">
         <PanelRightOpen class="size-4" />
       </Button>
     </div>
