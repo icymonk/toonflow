@@ -61,7 +61,7 @@ export const ko = {
     star: '별표',
     linked: '연결된 에피소드',
     toEpisode: '에피소드 만들기',
-    summary: { title: 'AI 요약', run: 'AI 요약', again: '다시 요약', cost: (n: number) => `약 ₩${n.toLocaleString('ko-KR')}`, started: '요약을 만들고 있어요', genre: '추천 톤', score: '웹툰 거리 점수', hint: '긴 제보를 세 줄로 줄이고, 어울리는 톤과 웹툰 거리 점수를 매겨요. 개인정보를 가렸으면 가린 글로 요약해요' },
+    summary: { title: 'AI 요약', run: 'AI 요약', again: '다시 요약', cost: (n: number) => `약 ₩${n.toLocaleString('ko-KR')}`, started: '요약을 만들고 있어요', genre: '추천 톤', score: '웹툰 거리 점수', reference: 'AI 판단, 참고용', hint: '긴 제보를 세 줄로 줄이고, 어울리는 톤과 웹툰 거리 점수를 매겨요. 개인정보를 가렸으면 가린 글로 요약해요' },
     pii: {
       title: '개인정보 점검',
       none: '개인정보로 보이는 부분이 없어요',

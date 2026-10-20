@@ -385,7 +385,7 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
                 <ol class="list-decimal pl-4 text-xs">
                   <li v-for="(l, i) in current.aiSummary.summary" :key="i">{{ l }}</li>
                 </ol>
-                <p class="text-xs">{{ t.summary.genre }} <b>{{ ko.stories.tones[current.aiSummary.genre] }}</b> · {{ t.summary.score }} <b>{{ current.aiSummary.score }}</b>/100 <span class="text-muted-foreground">{{ current.aiSummary.reason }}</span></p>
+                <p class="text-xs">{{ t.summary.genre }} <b>{{ ko.stories.tones[current.aiSummary.genre] }}</b> · {{ t.summary.score }} <b>{{ current.aiSummary.score }}</b>/100 <span class="text-muted-foreground">({{ t.summary.reference }})</span> <span class="text-muted-foreground">{{ current.aiSummary.reason }}</span></p>
               </template>
               <p v-else class="text-muted-foreground text-xs">{{ t.summary.hint }}</p>
             </section>
