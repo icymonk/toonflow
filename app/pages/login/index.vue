@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { toast } from 'vue-sonner'
 import { errorMessage } from '~/lib/errors'
+import { safeRedirect } from '~/lib/paths'
 import { ko } from '~/locales/ko'
 
 definePageMeta({ layout: 'auth' })
 
 const auth = useAuthStore()
 const route = useRoute()
-const redirect = computed(() => typeof route.query.redirect === 'string' ? route.query.redirect : '/')
+const redirect = computed(() => safeRedirect(route.query.redirect))
 
 const email = ref('')
 const sentTo = ref('')

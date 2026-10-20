@@ -1,0 +1,43 @@
+name: Access
+
+# 운영 DB에 가입 허용 이메일 넣기·운영자 권한 주기 (Actions 탭 → Access → Run workflow)
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: 이메일
+        required: true
+      action:
+        description: "allow: 가입 허용 / admin: 운영자 권한(먼저 한 번 로그인) / remove-admin / remove: 가입 허용 해제"
+        type: choice
+        options: [allow, admin, remove-admin, remove]
+        default: allow
+
+jobs:
+  access:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v5
+        with:
+          version: 10
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile --filter functions
+      - uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - env:
+          EMAIL: ${{ inputs.email }}
+          ACTION: ${{ inputs.action }}
+        run: |
+          case "$ACTION" in
+            allow) node functions/scripts/allow-email.mjs "$EMAIL" ;;
+            remove) node functions/scripts/allow-email.mjs "$EMAIL" --remove ;;
+            admin) node functions/scripts/set-admin.mjs "$EMAIL" ;;
+            remove-admin) node functions/scripts/set-admin.mjs "$EMAIL" --remove ;;
+          esac
