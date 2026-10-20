@@ -73,6 +73,23 @@ test('대기 명단 신청 → 운영자 승인 → 가입, 초대 링크 → �
   await applicant.goto('/admin')
   await expect(applicant.getByRole('alert').getByText('접근 권한이 없어요')).toBeVisible()
 
+  // CMN-60~63 피드백: 사용자가 보내면 운영자가 /admin에서 답변하고, 사용자는 내 피드백에서 본다
+  await applicant.getByRole('button', { name: '피드백 보내기' }).click()
+  const fbDialog = applicant.getByRole('dialog', { name: '피드백 보내기' })
+  await pick(fbDialog.getByLabel('종류'), 'question')
+  await fbDialog.getByLabel('내용').fill('작품별 보기가 어디 있나요?')
+  await fbDialog.getByRole('button', { name: '보내기', exact: true }).click()
+  await expect(fbDialog).toBeHidden()
+  await page.goto('/admin')
+  await page.getByRole('button', { name: /작품별 보기가 어디 있나요/ }).click()
+  await page.getByLabel('답변', { exact: true }).fill('화면 위 선택에서 골라요')
+  await page.getByRole('button', { name: '답변 보내기' }).click()
+  await expect(page.getByText('화면 위 선택에서 골라요')).toBeVisible()
+  await applicant.goto('/feedback')
+  await expect(applicant.getByText('답변함')).toBeVisible()
+  await applicant.getByRole('button', { name: /작품별 보기가 어디 있나요/ }).click()
+  await expect(applicant.getByText('화면 위 선택에서 골라요')).toBeVisible()
+
   // 초대 링크 (허용 목록에 없는 사람도 참여)
   await page.goto('/settings')
   await pick(page.getByLabel('초대할 역할'), 'editor')

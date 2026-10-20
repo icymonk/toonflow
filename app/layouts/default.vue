@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ListTodo, LogOut, Menu, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
+import { ListTodo, LogOut, Menu, MessageSquare, MessageSquarePlus, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
 import { onKeyStroke, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
@@ -18,6 +18,7 @@ const collapsed = computed({ get: () => stored.value && !mobile.value, set: (v) 
 watch(() => route.fullPath, () => { drawer.value = false })
 
 const paletteOpen = ref(false)
+const feedbackOpen = ref(false)
 onKeyStroke(['k', 'K'], (e) => {
   if (!(e.metaKey || e.ctrlKey)) return
   e.preventDefault()
@@ -71,6 +72,10 @@ async function signOut() {
             <div class="h-full rounded-full" :class="level === 'ok' ? 'bg-sidebar-primary' : level === 'warn' ? 'bg-warning' : 'bg-destructive'" :style="{ width: `${Math.min(100, ratio * 100)}%` }" />
           </div>
         </div>
+        <NuxtLink to="/feedback" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm" :class="route.path.startsWith('/feedback') ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold' : 'hover:bg-sidebar-accent'">
+          <MessageSquare class="size-4 shrink-0" aria-hidden="true" />
+          <span v-if="!collapsed">Feedback <span class="text-xs opacity-70">피드백</span></span>
+        </NuxtLink>
         <NuxtLink to="/trash" class="flex items-center gap-3 rounded-md px-3 py-2 text-sm" :class="route.path.startsWith('/trash') ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold' : 'hover:bg-sidebar-accent'">
           <Trash2 class="size-4 shrink-0" aria-hidden="true" />
           <span v-if="!collapsed">Trash <span class="text-xs opacity-70">휴지통</span></span>
@@ -104,6 +109,9 @@ async function signOut() {
           <Button variant="ghost" size="icon" :aria-label="ko.nav.queue" disabled>
             <ListTodo class="size-4" />
           </Button>
+          <Button variant="ghost" size="icon" :aria-label="ko.feedback.send" :title="ko.feedback.send" @click="feedbackOpen = true">
+            <MessageSquarePlus class="size-4" />
+          </Button>
           <AppNotifications />
           <Button variant="ghost" size="icon" :aria-label="ko.theme[theme.theme.value]" :title="ko.theme[theme.theme.value]" @click="cycleTheme">
             <Sun v-if="theme.theme.value === 'light'" class="size-4" />
@@ -122,6 +130,7 @@ async function signOut() {
         <slot />
       </main>
       <AppCommandPalette v-if="paletteOpen" @close="paletteOpen = false" />
+      <AppFeedbackDialog v-model:open="feedbackOpen" />
     </div>
   </div>
 </template>

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import type { AdminOverview, AdminView, OverviewRow } from '#shared/activity'
+import type { Feedback, FeedbackStatus } from '#shared/feedback'
 import type { Plan } from '#shared/usage'
 import type { Report, ReportAction } from '#shared/reports'
 import type { WaitlistAction, WaitlistEntry } from '#shared/waitlist'
 import { collection, collectionGroup, doc, getDoc, getDocs, limit, orderBy, query, setDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { failRate } from '#shared/activity'
+import { FEEDBACK_STATUSES } from '#shared/feedback'
 import { PLANS } from '#shared/usage'
 import { DEFAULT_LIMITS, DEFAULT_MODELS, limitsConfig, modelsConfig, parseEmails } from '#shared/config'
 import { errorMessage } from '~/lib/errors'
@@ -29,6 +31,7 @@ onMounted(async () => {
   Object.assign(limits, { ...DEFAULT_LIMITS, ...lim!.data(), planLimitsKrw: { ...DEFAULT_LIMITS.planLimitsKrw, ...lim!.get('planLimitsKrw') } })
   modelsText.value = JSON.stringify({ ...DEFAULT_MODELS, ...models!.data() }, null, 2)
   await loadReports()
+  await loadFeedback()
   await loadWaitlist()
   await loadOverview()
 })
@@ -43,6 +46,15 @@ async function save(id: string, data: Record<string, unknown>) {
   }
 }
 
+// CMN-63 피드백
+const feedbacks = ref<Feedback[]>([])
+const fbFilter = ref<FeedbackStatus | ''>('open')
+const fbOpen = ref('')
+const shownFeedback = computed(() => feedbacks.value.filter(f => !fbFilter.value || f.status === fbFilter.value))
+async function loadFeedback() {
+  const snap = await getDocs(query(collection($firestore, 'feedback'), orderBy('createdAt', 'desc'), limit(200)))
+  feedbacks.value = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Feedback)
+}
 // CMN-40·53 신고 처리
 const reports = ref<Report[]>([])
 const notes = reactive<Record<string, string>>({})
@@ -277,6 +289,34 @@ function saveModels() {
               <Button size="sm" variant="ghost" @click="decide(w, 'reject')">
                 {{ t.waitAction.reject }}
               </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>{{ ko.feedback.adminTitle }}</CardTitle>
+          <CardDescription>{{ ko.feedback.adminHint }}</CardDescription>
+        </CardHeader>
+        <CardContent class="flex flex-col gap-2">
+          <AppSelect v-model="fbFilter" :aria-label="ko.feedback.filter" class="border-input bg-card h-8 w-36 rounded-md border px-2 text-xs">
+            <option value="">
+              {{ ko.feedback.all }} ({{ feedbacks.length }})
+            </option>
+            <option v-for="s in FEEDBACK_STATUSES" :key="s" :value="s">
+              {{ ko.feedback.status[s] }} ({{ feedbacks.filter(f => f.status === s).length }})
+            </option>
+          </AppSelect>
+          <p v-if="!shownFeedback.length" class="text-muted-foreground text-sm">
+            {{ ko.feedback.none }}
+          </p>
+          <div v-for="f in shownFeedback" :key="f.id" class="rounded-md border text-sm">
+            <button type="button" class="hover:bg-muted flex w-full flex-col gap-0.5 p-3 text-left" @click="fbOpen = fbOpen === f.id ? '' : f.id">
+              <span class="text-muted-foreground text-xs">{{ ko.feedback.status[f.status] }} · {{ ko.feedback.kinds[f.kind] }} · {{ f.name || f.email }} · {{ when(f.createdAt) }}</span>
+              <span class="line-clamp-2">{{ f.text }}</span>
+            </button>
+            <div v-if="fbOpen === f.id" class="border-t p-3">
+              <AppFeedbackThread :feedback="f" as="admin" @changed="loadFeedback" />
             </div>
           </div>
         </CardContent>
