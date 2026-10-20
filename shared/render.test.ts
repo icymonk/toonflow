@@ -34,6 +34,9 @@ describe('render', () => {
     expect(synced).toHaveLength(2)
     const issues = autoCheck([{ panel, number: 1 } as unknown as Cut]).map(i => i.kind)
     expect(issues).toEqual(['noImage', 'outside', 'noBubble'])
+    // 화면에는 저장 안 된 대사도 자동 자리에 그려지므로, 그려지는 말풍선 기준이면 noBubble이 아니다
+    const drawn = autoCheck([{ panel, number: 1 } as unknown as Cut], c => syncBubbles(c.panel, rect, 34)).map(i => i.kind)
+    expect(drawn).toEqual(['noImage', 'outside'])
   })
 })
 

@@ -245,6 +245,7 @@ export const ko = {
     close: '닫기',
     pagesTitle: '장·컷',
     storyTitle: '각색안',
+    mobile: { label: '제작실 화면', work: '작업' },
     addPage: '장 추가',
     addPanel: '이 장에 컷 추가',
     deletePanel: '컷 삭제',

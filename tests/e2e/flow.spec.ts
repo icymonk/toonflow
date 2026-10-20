@@ -81,6 +81,18 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   expect(readFileSync((await txt.path())!, 'utf8')).toMatch(/# 1장\n## 1컷/)
   await page.getByRole('button', { name: '컷', exact: true }).click()
 
+  // 좁은 화면: 장·컷 / 작업 / 속성 탭으로 하나씩 전체 폭
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByRole('tab', { name: '작업' })).toHaveAttribute('aria-selected', 'true')
+  await page.getByRole('tab', { name: '속성' }).click()
+  await expect(page.getByText(/^속성 · /)).toBeVisible()
+  await expect(page.getByRole('button', { name: '자동 콘티' })).toBeHidden()
+  await page.getByRole('tab', { name: '장·컷' }).click()
+  await expect(page.getByText(/^속성 · /)).toBeHidden()
+  await page.getByRole('tab', { name: '작업' }).click()
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await expect(page.getByRole('tab', { name: '작업' })).toBeHidden()
+
   // 그림
   await page.getByRole('tab', { name: /Illustrate/ }).click()
   await page.getByRole('button', { name: /빈 컷 모두 생성 \([1-9]\d*\)/ }).click()
@@ -92,6 +104,9 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // 말풍선·검수 완료 (REV-20)
   await page.getByRole('tab', { name: /Review/ }).click()
+  // 자동 배치 전에도 대사는 자동 자리에 그려지므로 "말풍선을 놓지 않은 대사"로 잡지 않는다
+  await expect(page.locator('svg text').first()).toBeVisible()
+  await expect(page.getByText(/말풍선을 놓지 않은 대사/)).toHaveCount(0)
   await page.getByRole('button', { name: '말풍선 자동 배치' }).click()
   await expect(page.locator('svg text').first()).toBeVisible()
   // 검수 단계 전체 미리보기에도 말풍선이 보인다 (STU-32)
