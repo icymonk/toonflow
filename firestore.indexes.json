@@ -1,13 +1,6 @@
 {
   "indexes": [
     {
-      "collectionGroup": "adminViews",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "at", "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "candidates",
       "queryScope": "COLLECTION_GROUP",
       "fields": [
@@ -32,5 +25,16 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [
+    {
+      "collectionGroup": "adminViews",
+      "fieldPath": "at",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    }
+  ]
 }
