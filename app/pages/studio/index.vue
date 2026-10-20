@@ -126,7 +126,7 @@ const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.pu
 const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
-const issues = computed(() => autoCheck(s.cuts.value))
+const issues = computed(() => autoCheck(s.cuts.value, review.bubblesOf))
 const tpl = useBubbleTemplates()
 // ILL-43·REV-13: 그림 있는 컷(일관성은 캐릭터가 있는 컷)을 앞에서부터 AI_CHECK_MAX개
 const checkCuts = (mode: AiCheckMode) => s.cuts.value.filter(c => c.panel.selectedCandidateId && (mode === 'quality' || c.panel.characterIds?.length)).slice(0, AI_CHECK_MAX)

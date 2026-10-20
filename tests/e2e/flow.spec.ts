@@ -104,6 +104,9 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // 말풍선·검수 완료 (REV-20)
   await page.getByRole('tab', { name: /Review/ }).click()
+  // 자동 배치 전에도 대사는 자동 자리에 그려지므로 "말풍선을 놓지 않은 대사"로 잡지 않는다
+  await expect(page.locator('svg text').first()).toBeVisible()
+  await expect(page.getByText(/말풍선을 놓지 않은 대사/)).toHaveCount(0)
   await page.getByRole('button', { name: '말풍선 자동 배치' }).click()
   await expect(page.locator('svg text').first()).toBeVisible()
   // 검수 단계 전체 미리보기에도 말풍선이 보인다 (STU-32)
