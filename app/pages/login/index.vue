@@ -92,7 +92,7 @@ async function sendLink() {
       <CardDescription>{{ ko.login.description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
-      <Button variant="outline" :disabled="pending !== null" @click="google">
+      <Button variant="outline" :disabled="pending !== null" :loading="pending === 'google'" @click="google">
         {{ ko.login.google }}
       </Button>
       <div class="text-muted-foreground flex items-center gap-3 text-xs">
@@ -117,7 +117,7 @@ async function sendLink() {
             required
             :placeholder="ko.login.passwordPlaceholder"
           />
-          <Button type="submit" :disabled="pending !== null || !email || !password">
+          <Button type="submit" :disabled="pending !== null || !email || !password" :loading="pending === 'password'">
             {{ signUp ? ko.login.signUp : ko.login.signIn }}
           </Button>
           <div class="flex justify-between text-xs">
@@ -132,7 +132,7 @@ async function sendLink() {
             {{ notice }}
           </p>
         </form>
-        <Button variant="outline" :disabled="pending !== null" @click="sendLink">
+        <Button variant="outline" :disabled="pending !== null" :loading="pending === 'email'" @click="sendLink">
           {{ ko.login.sendLink }}
         </Button>
       </template>

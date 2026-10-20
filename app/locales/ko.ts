@@ -1,5 +1,6 @@
 // 화면 문구는 여기 한곳에 모은다 (#15). 용어는 docs/planning/glossary.md를 따른다.
 export const ko = {
+  dialog: { ok: '확인', cancel: '취소', loading: '불러오는 중' },
   presence: { viewing: (n: number) => `${n}명이 같이 보고 있어요`, samePanel: (names: string) => `${names} 님도 이 컷을 보고 있어요. 동시에 고치면 한쪽 내용이 덮일 수 있어요` },
   theme: { light: '밝은 화면 (누르면 어둡게)', dark: '어두운 화면 (누르면 시스템 설정)', system: '시스템 설정 따름 (누르면 밝게)' },
   brand: {
@@ -8,6 +9,7 @@ export const ko = {
     message: '이야기를 넣으면, 웹툰이 완성된다.',
   },
   nav: {
+    menu: '메뉴',
     signOut: '로그아웃',
     collapse: '사이드바 접기',
     expand: '사이드바 펼치기',
@@ -165,6 +167,7 @@ export const ko = {
     stages: { story: '각색', storyboard: '콘티', illustrate: '작화', review: '검수', export: '출력', done: '완료', published: '발행됨' },
   },
   assetsPage: {
+    backToList: '← 목록',
     templates: (n: number) => `말풍선 템플릿 ${n}개 (검수 단계에서 만들고 써요)`,
     generated: '생성 이미지',
     refs: '참고 자료',
@@ -590,6 +593,7 @@ export const ko = {
     },
   },
   library: {
+    backToList: '← 목록',
     characters: 'Characters · 캐릭터',
     styles: 'Styles · 그림체',
     newCharacter: '새 캐릭터',

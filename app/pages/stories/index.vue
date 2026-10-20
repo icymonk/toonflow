@@ -97,14 +97,14 @@ const date = (e: Episode) => (e.updatedAt ? new Date(e.updatedAt.toMillis()).toL
 // EPI-12 상태 · EPI-16 삭제
 const setStage = (e: Episode, stage: EpisodeStage) => run(() => updateEpisode(e.id, stagePatch(stage)))
 const toggleArchive = (e: Episode) => run(() => updateEpisode(e.id, { archivedAt: e.archivedAt ? null : serverTimestamp() }))
-function remove(e: Episode) {
-  if (!window.confirm(t.confirmDelete(e.title))) return
-  if (e.status === 'published' && !window.confirm(t.confirmPublished)) return
+async function remove(e: Episode) {
+  if (!await confirmDialog(t.confirmDelete(e.title))) return
+  if (e.status === 'published' && !await confirmDialog(t.confirmPublished)) return
   return run(() => trash('episode', e.id), t.deleted)
 }
-function removeSeries(id: string) {
+async function removeSeries(id: string) {
   const s = series.value.find(x => x.id === id)
-  if (!s || !window.confirm(t.confirmDelete(s.name))) return
+  if (!s || !await confirmDialog(t.confirmDelete(s.name))) return
   return run(async () => {
     await trash('series', id)
     seriesFilter.value = ''
@@ -237,7 +237,8 @@ function removeSeries(id: string) {
       </CardContent>
     </Card>
 
-    <AppEmptyState v-if="!loading && series.length === 0" :icon="BookOpen" :title="ko.empty.stories.title" :body="ko.empty.stories.body" />
+    <AppListSkeleton v-if="loading" />
+    <AppEmptyState v-else-if="series.length === 0" :icon="BookOpen" :title="ko.empty.stories.title" :body="ko.empty.stories.body" />
 
     <template v-else>
       <div class="flex flex-wrap gap-3">

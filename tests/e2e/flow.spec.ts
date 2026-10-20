@@ -1,14 +1,18 @@
 import { readFileSync } from 'node:fs'
+import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { unzipSync } from 'fflate'
 import { E2E_EMAIL } from './global-setup'
+
+/** 앱 안 확인 창(confirm)이 뜨면 바로 "확인"을 누른다 */
+const acceptConfirms = (p: Page) => p.addLocatorHandler(p.getByRole('alertdialog'), d => d.getByRole('button', { name: '확인' }).click())
 
 const AUTH = 'http://127.0.0.1:9099/emulator/v1/projects/demo-toonflow'
 const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', 'base64')
 const STORY = '회사 엘리베이터에서 부장님 앞에서 방귀를 뀌었는데 부장님이 내 탓을 해 줬다. 알고 보니 부장님도 뀌었던 거였다.'
 
 test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async ({ page, browser }) => {
-  page.on('dialog', d => d.accept())
+  await acceptConfirms(page)
 
   // 이메일 링크 로그인 (Auth 에뮬레이터의 oobCode)
   await page.goto('/login')
@@ -160,7 +164,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(page.getByText('(E2E독자)')).toBeVisible()
 
   // INB-12: 확인 링크에서 동의 철회 → Inbox에 철회 표시
-  guest.on('dialog', d => d.accept())
+  await acceptConfirms(guest)
   await guest.goto((await guest.getByTestId('status-link').textContent())!)
   await expect(guest.getByText('작가가 읽어 보고 있어요.')).toBeVisible()
   await guest.getByRole('button', { name: '동의 철회' }).click()
@@ -180,11 +184,11 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
   await page.goto('/')
   const switcher = page.getByRole('button', { name: '워크스페이스 바꾸기' })
-  // 앞에서 confirm을 모두 수락하는 처리기를 걸어 두었으니, 이름을 넣는 prompt 하나는 따로 받는다
-  page.removeAllListeners('dialog')
-  page.once('dialog', d => d.accept('두 번째 작업실'))
   await switcher.click()
   await page.getByRole('menuitem', { name: /새 워크스페이스/ }).click()
+  const ask = page.getByRole('dialog')
+  await ask.getByRole('textbox').fill('두 번째 작업실')
+  await ask.getByRole('button', { name: '확인' }).click()
   await expect(switcher).toContainText('두 번째 작업실', { timeout: 30_000 })
   await switcher.click()
   await page.getByRole('menuitem').filter({ hasNotText: /두 번째 작업실|새 워크스페이스/ }).first().click()

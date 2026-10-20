@@ -21,8 +21,8 @@ watch(() => [props.selected, dialogue.value?.text] as const, () => (draft.value 
 const saveText = useDebounceFn(() => dialogue.value && draft.value !== dialogue.value.text && emit('text', dialogue.value.id, draft.value), 500)
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
 // REV-07
-function saveTpl() {
-  const n = window.prompt(t.tpl.namePrompt)?.trim()
+async function saveTpl() {
+  const n = (await promptDialog(t.tpl.namePrompt))?.trim()
   if (n && bubble.value) emit('saveTemplate', n, bubbleStyle(bubble.value))
 }
 function applyTpl(e: Event) {

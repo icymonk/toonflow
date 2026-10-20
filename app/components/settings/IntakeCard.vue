@@ -127,7 +127,7 @@ async function copy() {
         <p v-if="form.images" class="rounded-md bg-amber-100 px-2 py-1.5 text-xs text-amber-900">
           {{ t.imagesWarn }}
         </p>
-        <Button v-if="manage" type="submit" class="self-start" :disabled="saving">
+        <Button v-if="manage" type="submit" class="self-start" :loading="saving">
           {{ ko.settings.save }}
         </Button>
       </form>

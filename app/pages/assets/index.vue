@@ -66,7 +66,7 @@ async function download() {
   catch { toast.error(t.downloadFailed) }
 }
 async function cleanup() {
-  if (!window.confirm(t.cleanupConfirm(days.value))) return
+  if (!await confirmDialog(t.cleanupConfirm(days.value))) return
   try {
     const r = await a.cleanup(days.value)
     toast.success(t.cleaned(r.deleted))
@@ -79,7 +79,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
 
 <template>
   <div class="flex h-full min-h-0 gap-4 p-4">
-    <div class="flex min-w-0 flex-1 flex-col gap-3">
+    <div class="min-w-0 flex-1 flex-col gap-3" :class="fGen || fRef ? 'hidden lg:flex' : 'flex'">
       <div class="flex flex-wrap items-center gap-3 border-b">
         <button class="border-b-2 px-1 pb-2 text-sm" :class="tabClass(tab === 'generated')" @click="tab = 'generated'">{{ t.generated }} {{ a.generated.value.length }}</button>
         <button class="border-b-2 px-1 pb-2 text-sm" :class="tabClass(tab === 'refs')" @click="tab = 'refs'">{{ t.refs }} {{ a.assets.value.length }}</button>
@@ -99,7 +99,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
           <option value="">{{ t.allEpisodes }}</option>
           <option v-for="e in episodes" :key="e.id" :value="e.id">{{ e.title }}</option>
         </select>
-        <Input v-model="q" class="h-9 w-60" :placeholder="t.search" />
+        <Input v-model="q" class="h-9 w-full sm:w-60" :placeholder="t.search" />
         <Button size="sm" variant="outline" :disabled="!sel.size" @click="download">{{ t.download(sel.size) }}</Button>
         <template v-if="tab === 'refs'">
           <Input v-model="tagInput" class="h-9 w-48" :placeholder="t.tagsPh" />
@@ -113,7 +113,8 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </template>
       </div>
       <div class="min-h-0 flex-1 overflow-y-auto rounded-md" @dragover.prevent @drop.prevent="e => upload([...(e.dataTransfer?.files ?? [])])">
-        <p v-if="!items.length" class="text-muted-foreground p-6 text-center text-sm">{{ t.empty }}<br><span v-if="tab === 'refs'" class="text-xs">{{ t.drop }}</span></p>
+        <AppListSkeleton v-if="!(tab === 'generated' ? a.loaded.generated : a.loaded.assets)" />
+        <p v-else-if="!items.length" class="text-muted-foreground p-6 text-center text-sm">{{ t.empty }}<br><span v-if="tab === 'refs'" class="text-xs">{{ t.drop }}</span></p>
         <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
           <div v-for="i in items" :key="i.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': focus === i.id }">
             <button class="block w-full" @click="focus = i.id"><AppStorageImg :path="i.path" class="aspect-[4/5] w-full" /></button>
@@ -122,7 +123,10 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
         </div>
       </div>
     </div>
-    <aside v-if="fGen || fRef" class="flex w-72 shrink-0 flex-col gap-2 overflow-y-auto border-l pl-4 text-sm">
+    <aside v-if="fGen || fRef" class="flex w-full min-w-0 flex-col gap-2 overflow-y-auto text-sm lg:w-72 lg:shrink-0 lg:border-l lg:pl-4">
+      <Button variant="ghost" size="sm" class="self-start lg:hidden" @click="focus = null">
+        {{ t.backToList }}
+      </Button>
       <h3 class="font-semibold">{{ t.detail }}</h3>
       <AppStorageImg :path="fGen?.imagePath ?? fRef!.path" class="aspect-[4/5] w-full rounded-md border" />
       <template v-if="fGen">

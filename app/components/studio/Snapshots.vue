@@ -37,12 +37,12 @@ const save = () => act(async () => {
   await props.s.saveSnapshot(name.value || new Date().toLocaleString('ko-KR'))
   name.value = ''
 }, t.saved)
-function restore(x: Snapshot) {
-  if (!window.confirm(t.restoreConfirm(x.name))) return
+async function restore(x: Snapshot) {
+  if (!await confirmDialog(t.restoreConfirm(x.name))) return
   act(() => props.s.restoreSnapshot(x, t.backupName(new Date().toLocaleString('ko-KR'))), t.restored).then(() => emit('close'))
 }
-function remove(x: Snapshot) {
-  if (window.confirm(t.removeConfirm(x.name))) act(() => props.s.removeSnapshot(x.id), t.remove)
+async function remove(x: Snapshot) {
+  if (await confirmDialog(t.removeConfirm(x.name))) act(() => props.s.removeSnapshot(x.id), t.remove)
 }
 </script>
 
@@ -56,7 +56,7 @@ function remove(x: Snapshot) {
       <p class="text-muted-foreground text-xs">{{ t.hint }}</p>
       <form v-if="edit" class="flex gap-2" @submit.prevent="save">
         <Input v-model="name" maxlength="40" :placeholder="t.namePlaceholder" :aria-label="t.namePlaceholder" />
-        <Button type="submit" :disabled="busy">{{ t.save }}</Button>
+        <Button type="submit" :loading="busy">{{ t.save }}</Button>
       </form>
       <p v-if="!s.snapshots.value.length" class="text-muted-foreground py-4 text-center text-sm">{{ t.empty }}</p>
       <ul class="flex flex-col gap-2">
@@ -67,8 +67,8 @@ function remove(x: Snapshot) {
             <span class="ml-auto flex gap-1">
               <Button size="sm" variant="ghost" :aria-pressed="openId === x.id" @click="openId = openId === x.id ? null : x.id">{{ t.compare }}</Button>
               <template v-if="edit">
-                <Button size="sm" variant="outline" :disabled="busy" @click="restore(x)">{{ t.restore }}</Button>
-                <Button size="sm" variant="ghost" :disabled="busy" @click="remove(x)">{{ t.remove }}</Button>
+                <Button size="sm" variant="outline" :loading="busy" @click="restore(x)">{{ t.restore }}</Button>
+                <Button size="sm" variant="ghost" :loading="busy" @click="remove(x)">{{ t.remove }}</Button>
               </template>
             </span>
           </div>

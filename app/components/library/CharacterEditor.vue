@@ -98,7 +98,7 @@ async function loadAppearances() {
 
 const archive = () => lib.update('characters', props.character.id, { archivedAt: props.character.archivedAt ? null : new Date() }).catch(fail)
 async function remove() {
-  if (!window.confirm(t.removeConfirm)) return
+  if (!await confirmDialog(t.removeConfirm)) return
   await lib.remove('characters', props.character.id).then(() => emit('removed'), fail)
 }
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
@@ -207,10 +207,10 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
         <label class="hover:bg-muted shrink-0 cursor-pointer rounded-md border px-2 py-1 text-xs">{{ t.uploadVariant }}<input type="file" accept="image/*" class="hidden" @change="(e: Event) => { const f = (e.target as HTMLInputElement).files?.[0]; if (f) uploadVariant(f); (e.target as HTMLInputElement).value = '' }"></label>
       </div>
       <div v-if="edit" class="flex flex-wrap gap-1.5">
-        <Button size="sm" variant="outline" :disabled="busy" @click="generateMany('sheet')">
+        <Button size="sm" variant="outline" :loading="busy" @click="generateMany('sheet')">
           <Sparkles class="size-4" /> {{ t.sheet(lib.estimate(6)) }}
         </Button>
-        <Button size="sm" variant="outline" :disabled="busy" @click="generateMany('consistency')">
+        <Button size="sm" variant="outline" :loading="busy" @click="generateMany('consistency')">
           <Sparkles class="size-4" /> {{ t.consistency(lib.estimate(4)) }}
         </Button>
       </div>

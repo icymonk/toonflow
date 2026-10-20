@@ -50,7 +50,7 @@ async function accept() {
       <p v-else-if="!info" class="text-muted-foreground text-sm">
         {{ t.loading }}
       </p>
-      <Button v-if="info && !error" :disabled="pending" @click="accept">
+      <Button v-if="info && !error" :loading="pending" @click="accept">
         {{ t.accept }}
       </Button>
       <NuxtLink to="/" class="text-muted-foreground text-center text-xs underline">

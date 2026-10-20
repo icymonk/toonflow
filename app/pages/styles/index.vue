@@ -28,8 +28,8 @@ async function create() {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 gap-6 p-6">
-    <section class="flex min-w-0 flex-1 flex-col gap-4">
+  <div class="flex min-h-0 flex-1 gap-6 p-4 lg:p-6">
+    <section class="min-w-0 flex-1 flex-col gap-4" :class="current ? 'hidden lg:flex' : 'flex'">
       <div class="flex items-center justify-between gap-2">
         <h1 class="text-xl font-semibold">
           {{ t.styles }}
@@ -39,7 +39,8 @@ async function create() {
         </Button>
       </div>
       <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
-      <div v-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
+      <AppListSkeleton v-if="!lib.loaded.styles" />
+      <div v-else-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
         <p class="text-foreground font-medium">
           {{ ko.empty.styles.title }}
         </p>
@@ -47,7 +48,7 @@ async function create() {
           {{ ko.empty.styles.body }}
         </p>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] content-start gap-3 overflow-y-auto">
+      <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto">
         <button v-for="s in list" :key="s.id" class="bg-card flex flex-col overflow-hidden rounded-lg border text-left" :class="{ 'ring-primary ring-2': s.id === current?.id }" @click="select(s.id)">
           <AppStorageImg :path="s.samples?.[0] ?? s.refImages[0]" :alt="s.name" class="aspect-[4/5] w-full" />
           <span class="truncate px-2 pt-1.5 text-sm font-medium">{{ s.name }}</span>
@@ -71,7 +72,10 @@ async function create() {
         </div>
       </div>
     </section>
-    <aside v-if="current" class="w-[380px] shrink-0 overflow-y-auto border-l pl-6">
+    <aside v-if="current" class="flex w-full min-w-0 flex-col gap-3 overflow-y-auto lg:w-[380px] lg:shrink-0 lg:border-l lg:pl-6">
+      <Button variant="ghost" size="sm" class="self-start lg:hidden" @click="select()">
+        {{ t.backToList }}
+      </Button>
       <LibraryStyleEditor :key="current.id" :style="current" :edit="edit" @removed="select()" />
     </aside>
   </div>

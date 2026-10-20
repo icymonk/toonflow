@@ -19,11 +19,11 @@ watch(() => [props.version.id, props.rev], () => load(props.version), { immediat
 const others = computed(() => props.versions.filter(v => v.id !== props.version.id))
 // STO-13
 const field = reactive<Record<string, 'beats' | 'dialogues'>>({})
-function ask(s: (typeof draft.scenes)[number], mode: RewriteMode) {
+async function ask(s: (typeof draft.scenes)[number], mode: RewriteMode) {
   const f = field[s.id] ?? 'dialogues'
   const text = f === 'beats' ? s.beats : s.lines
   if (!text.trim()) return
-  const tone = mode === 'tone' ? window.prompt(t.tonePrompt)?.trim() : ''
+  const tone = mode === 'tone' ? (await promptDialog(t.tonePrompt))?.trim() : ''
   if (tone === undefined || (mode === 'tone' && !tone)) return
   emit('rewrite', s.id, f, text, mode, tone)
 }
