@@ -10,6 +10,13 @@ const byCode: Record<string, ErrorText> = {
   'auth/invalid-email': 'invalidEmail',
   'auth/invalid-action-code': 'linkExpired',
   'auth/expired-action-code': 'linkExpired',
+  'auth/invalid-credential': 'wrongPassword',
+  'auth/wrong-password': 'wrongPassword',
+  'auth/user-not-found': 'wrongPassword',
+  'auth/missing-password': 'missingPassword',
+  'auth/weak-password': 'weakPassword',
+  'auth/email-already-in-use': 'emailInUse',
+  'auth/too-many-requests': 'tooManyAttempts',
   'auth/network-request-failed': 'network',
   'functions/unavailable': 'network',
 }
@@ -35,6 +42,11 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.ownerCannotLeave': 'ownerCannotLeave',
   'error.tooMany': 'tooMany',
   'error.tokenNotFound': 'tokenNotFound',
+}
+
+/** 서버 오류 메시지는 SDK가 끝에 ` [403]` 같은 상태를 붙일 수 있어 앞부분으로 비교한다 */
+export function hasErrorKey(error: unknown, key: ErrorKey): boolean {
+  return ((error as { message?: string })?.message ?? '').startsWith(key)
 }
 
 /** Firebase·서버 오류를 화면 문구로. 사용자가 닫은 팝업 등은 null */

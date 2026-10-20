@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ko } from '../locales/ko'
-import { errorMessage } from './errors'
+import { errorMessage, hasErrorKey } from './errors'
 
 describe('errorMessage', () => {
   it('maps server error keys', () => {
@@ -14,5 +14,14 @@ describe('errorMessage', () => {
 
   it('falls back to a generic message', () => {
     expect(errorMessage(new Error('boom'))).toBe(ko.errors.unknown)
+  })
+})
+
+describe('hasErrorKey', () => {
+  it('matches keys with a status suffix', () => {
+    expect(hasErrorKey({ message: 'error.notAllowed [403]' }, 'error.notAllowed')).toBe(true)
+    expect(hasErrorKey({ message: 'error.notAllowed' }, 'error.notAllowed')).toBe(true)
+    expect(hasErrorKey({ message: 'error.forbidden' }, 'error.notAllowed')).toBe(false)
+    expect(hasErrorKey(null, 'error.notAllowed')).toBe(false)
   })
 })

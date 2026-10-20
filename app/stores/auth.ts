@@ -2,10 +2,14 @@ import type { User } from 'firebase/auth'
 import type { Role } from '#shared/roles'
 import type { WorkspaceDefaults, WorkspaceSettingsInput } from '#shared/workspace'
 import {
+  createUserWithEmailAndPassword,
   GoogleAuthProvider,
   isSignInWithEmailLink,
   onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail,
   sendSignInLinkToEmail,
+  signInWithEmailAndPassword,
   signInWithEmailLink,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -16,6 +20,7 @@ import { defineStore } from 'pinia'
 import { ERROR_KEYS } from '#shared/callables'
 import { withDefaults } from '#shared/workspace'
 import { userWorkspaceIds } from '#shared/workspaces'
+import { hasErrorKey } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
 
 const EMAIL_KEY = 'toonflow:emailForSignIn'
@@ -73,15 +78,25 @@ export const useAuthStore = defineStore('auth', () => {
     return readyPromise
   }
 
+  /** 비밀번호 가입자가 메일 인증을 마쳤으면 인증 여부가 담긴 토큰으로 바꾼다 */
+  async function refreshVerified() {
+    const u = $auth.currentUser
+    if (!u || u.emailVerified) return
+    await u.reload()
+    if (u.emailVerified) await u.getIdToken(true)
+    triggerRef(user)
+  }
+
   async function fetchAccount(uid: string) {
     let snap = await getDoc(doc($firestore, 'users', uid))
     if (!snap.exists() || !snap.get('workspaceId')) {
+      await refreshVerified()
       // ACC-10: 첫 로그인이면 서버가 허용 목록을 확인하고 내 워크스페이스를 만든다
       try {
         await callFn($functions, 'completeOnboarding', {})
       }
       catch (error) {
-        if ((error as { message?: string }).message === ERROR_KEYS.notAllowed) {
+        if (hasErrorKey(error, ERROR_KEYS.notAllowed)) {
           blocked.value = true
           return
         }
@@ -120,6 +135,26 @@ export const useAuthStore = defineStore('auth', () => {
 
   function signInWithGoogle() {
     return signInWithPopup($auth, new GoogleAuthProvider())
+  }
+
+  function signInWithPassword(email: string, password: string) {
+    return signInWithEmailAndPassword($auth, email, password)
+  }
+
+  /** 가입 허용 목록은 인증된 이메일만 보므로 가입하면 바로 인증 메일을 보낸다 */
+  async function signUpWithPassword(email: string, password: string) {
+    const cred = await createUserWithEmailAndPassword($auth, email, password)
+    await sendEmailVerification(cred.user, { url: new URL('/waiting', window.location.origin).toString() })
+  }
+
+  function resendVerification() {
+    const u = $auth.currentUser
+    return u ? sendEmailVerification(u, { url: new URL('/waiting', window.location.origin).toString() }) : Promise.resolve()
+  }
+
+  /** 이메일 링크로만 쓰던 계정도 이 메일로 비밀번호를 정할 수 있다 */
+  function sendPasswordReset(email: string) {
+    return sendPasswordResetEmail($auth, email, { url: new URL('/login', window.location.origin).toString() })
   }
 
   async function sendEmailLink(email: string, redirect?: string) {
@@ -203,6 +238,10 @@ export const useAuthStore = defineStore('auth', () => {
     loadAccount,
     retryAccount,
     signInWithGoogle,
+    signInWithPassword,
+    signUpWithPassword,
+    resendVerification,
+    sendPasswordReset,
     sendEmailLink,
     isEmailLink,
     storedEmail,

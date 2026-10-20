@@ -1,6 +1,7 @@
 const P = 'demo-toonflow'
 const FS = `http://127.0.0.1:8080/v1/projects/${P}/databases/(default)/documents`
 export const E2E_EMAIL = 'e2e@example.com'
+export const E2E_PW_EMAIL = 'e2e-pw@example.com'
 
 type V = string | number | boolean | null | V[] | { [k: string]: V }
 const val = (v: V): unknown =>
@@ -27,11 +28,22 @@ async function ready(port: number) {
   throw new Error(`emulator ${port} not ready`)
 }
 
+/** 5001 포트가 열려도 함수 정의는 늦게 올라온다 */
+async function functionsLoaded() {
+  for (let i = 0; i < 120; i++) {
+    const res = await fetch(`http://127.0.0.1:5001/${P}/asia-northeast3/completeOnboarding`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{"data":{}}' })
+    if (res.status !== 404) return
+    await new Promise(r => setTimeout(r, 1000))
+  }
+  throw new Error('functions not loaded')
+}
+
 export default async function () {
   for (const port of [9099, 8080, 5001, 9199, 9499]) await ready(port)
+  await functionsLoaded()
   await fetch(`http://127.0.0.1:8080/emulator/v1/projects/${P}/databases/(default)/documents`, { method: 'DELETE' })
   await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${P}/accounts`, { method: 'DELETE' })
-  await put('config/access', { allowedEmails: [E2E_EMAIL] })
+  await put('config/access', { allowedEmails: [E2E_EMAIL, E2E_PW_EMAIL] })
   await put('config/models', {
     models: [
       { id: 'fake-text', kind: 'text', provider: 'fake', label: 'Fake text', priceKrw: { perKTokensIn: 0, perKTokensOut: 0 }, enabled: true },
