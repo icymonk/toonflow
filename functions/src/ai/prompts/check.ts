@@ -15,7 +15,7 @@ export function checkLabel(n: number, crop?: Crop | null): string {
   return `그림 ${n}${part}`
 }
 
-/** ILL-43·REV-13: 그림마다 앞에 "그림 N" 표시를 붙여 한 묶음(AI_CHECK_BATCH장까지)씩 보낸다 */
+/** ILL-43·REV-13: 그림마다 앞에 "그림 N" 표시를 붙여 한 묶음(AI_CHECK_BATCH)씩 보낸다 */
 export function checkPrompt(p: AiCheckParams, crops: (Crop | null | undefined)[]): TextPrompt & { imageLabels: string[] } {
   const n = crops.length
   const imageLabels = crops.map((c, i) => checkLabel(i + 1, c))

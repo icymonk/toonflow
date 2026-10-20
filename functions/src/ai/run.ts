@@ -62,7 +62,8 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
     const p = aiCheckParams.safeParse(params)
     if (!p.success || !episodeId) throw new AiError('internal', 'bad check params')
     const all = await checkImages(wsId, episodeId, p.data.panelIds)
-    const batches = Array.from({ length: Math.ceil(all.length / AI_CHECK_BATCH) }, (_, b) => all.slice(b * AI_CHECK_BATCH, (b + 1) * AI_CHECK_BATCH))
+    const size = AI_CHECK_BATCH[p.data.mode]
+    const batches = Array.from({ length: Math.ceil(all.length / size) }, (_, b) => all.slice(b * size, (b + 1) * size))
     const outs = await Promise.all(batches.map(bt => textModel(model).generate({ ...checkPrompt(p.data, bt.map(x => x.crop)), images: bt.map(x => x.image) })))
     const items = mergeCheckBatches(outs.map((o) => {
       let r: ReturnType<typeof aiCheckSchema.safeParse>
@@ -70,7 +71,7 @@ async function callProvider(wsId: string, jobId: string, type: JobType, params: 
       catch { throw new AiError('invalid_output', 'bad check result') }
       if (!r.success) throw new AiError('invalid_output', 'bad check result')
       return r.data.items
-    }))
+    }), size)
     const usage = { inTokens: outs.reduce((a, o) => a + o.usage.inTokens, 0), outTokens: outs.reduce((a, o) => a + o.usage.outTokens, 0) }
     return { result: JSON.stringify({ items }), requestId: outs.map(o => o.requestId).join(','), usage }
   }

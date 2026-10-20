@@ -5,10 +5,10 @@ export const AI_CHECK_MODES = ['quality', 'consistency'] as const
 export type AiCheckMode = (typeof AI_CHECK_MODES)[number]
 /** 한 번에 넘기는 컷 수 상한 (요청 크기) */
 export const AI_CHECK_MAX = 12
-/** 모델에 한 번에 보여 주는 그림 수. 많이 넣으면 번호가 섞이고 작은 부분을 놓친다 */
-export const AI_CHECK_BATCH = 4
-/** 그림 한 장을 글자 수로 친 값 (비용 예상용, 고해상도로 보낸다) */
-export const IMAGE_CHARS = 1200
+/** 모델에 한 번에 보여 주는 그림 수. 많이 넣으면 번호가 섞이고 작은 부분을 놓친다. 품질은 1장씩, 일관성은 비교해야 해서 묶음으로 */
+export const AI_CHECK_BATCH: Record<AiCheckMode, number> = { quality: 1, consistency: 4 }
+/** 그림 한 장을 글자 수로 친 값 (비용 예상용, 고해상도 + 장마다 다시 보내는 지시문) */
+export const IMAGE_CHARS = 1500
 
 export const aiCheckParams = z.object({
   mode: z.enum(AI_CHECK_MODES),
@@ -36,6 +36,6 @@ export function mapCheckItems(panelIds: string[], items: AiCheckRaw[]): AiCheckI
 export const checkInputChars = (params: Record<string, unknown>) => (Array.isArray(params.panelIds) ? params.panelIds.length : 0) * IMAGE_CHARS
 
 /** 묶음별 결과(묶음 안 번호)를 전체 번호로 합친다 */
-export function mergeCheckBatches(batches: AiCheckRaw[][], size = AI_CHECK_BATCH): AiCheckRaw[] {
+export function mergeCheckBatches(batches: AiCheckRaw[][], size: number): AiCheckRaw[] {
   return batches.flatMap((items, b) => items.filter(i => i.index >= 1 && i.index <= size).map(i => ({ ...i, index: i.index + b * size })))
 }
