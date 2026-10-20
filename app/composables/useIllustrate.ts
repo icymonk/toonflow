@@ -4,7 +4,7 @@ import type { JobError, JobStatus } from '#shared/jobs'
 import type { Crop, Cut } from '#shared/studio'
 import type { Library } from '~/composables/useLibrary'
 import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
-import { panelPrompt, panelRefPaths } from '#shared/illustrate'
+import { cutSize, panelPrompt, panelRefPaths } from '#shared/illustrate'
 import { callFn } from '~/lib/functions'
 
 export interface PanelJob { id: string, status: JobStatus, error?: JobError, createdAt?: { toMillis: () => number } | null, target: { panelId?: string } }
@@ -63,6 +63,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   const charsOf = (cut: Cut) => lib.characters.value.filter(c => cut.panel.characterIds?.includes(c.id))
   const styleOf = (cut: Cut) => (cut.panel.styleId && lib.styles.value.find(x => x.id === cut.panel.styleId)) || style.value
   const promptOf = (cut: Cut, opts: { extra?: string, leaveRoom?: boolean }) => panelPrompt(cut.panel, charsOf(cut), styleOf(cut), opts)
+  const sizeOf = (cut: Cut) => cutSize(s.cuts.value, cut, s.episode.value?.settings.aspect)
 
   /** ILL-01·02·20 */
   async function generate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
@@ -73,7 +74,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
         workspaceId: ws(),
         type: 'panel.image',
         target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-        params: { prompt: promptOf(cut, opts), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), input },
+        params: { prompt: promptOf(cut, opts), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
         idempotencyKey: crypto.randomUUID(),
       })
     }))
@@ -89,7 +90,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
       workspaceId: ws(),
       type: 'panel.image',
       target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-      params: { prompt: `${hint}\n\n${promptOf(cut, {})}`.slice(0, 4000), n: 1, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [base.imagePath, ...(opts.maskPath ? [opts.maskPath] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), input },
+      params: { prompt: `${hint}\n\n${promptOf(cut, {})}`.slice(0, 4000), n: 1, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [base.imagePath, ...(opts.maskPath ? [opts.maskPath] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
       idempotencyKey: crypto.randomUUID(),
     })
   }

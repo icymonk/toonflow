@@ -56,6 +56,11 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('button', { name: '더 짧게' }).first().click()
   await expect(page.getByLabel(/^대사 \(한 줄에 하나/).first()).toHaveValue(/가짜 다시 쓰기/, { timeout: 60_000 })
 
+  // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
+  const epStyle = page.getByLabel('이번 화 그림체')
+  await epStyle.selectOption({ index: 1 })
+  await expect(epStyle).not.toHaveValue('')
+
   // 콘티
   await page.getByRole('tab', { name: /Storyboard/ }).click()
   await page.getByRole('button', { name: '자동 콘티' }).click()
@@ -80,6 +85,10 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('tab', { name: /Review/ }).click()
   await page.getByRole('button', { name: '말풍선 자동 배치' }).click()
   await expect(page.locator('svg text').first()).toBeVisible()
+  // 검수 단계 전체 미리보기에도 말풍선이 보인다 (STU-32)
+  await page.getByRole('button', { name: '전체 미리보기' }).click()
+  await expect(page.getByRole('dialog', { name: '전체 미리보기' }).locator('svg text').first()).toBeVisible()
+  await page.keyboard.press('Escape')
   for (const item of ['오탈자', '개인정보', '출처·크레딧']) await page.getByLabel(item, { exact: true }).selectOption('pass')
   await expect(page.getByText('모두 통과')).toBeVisible()
 
