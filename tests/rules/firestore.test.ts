@@ -308,6 +308,29 @@ describe('4단계 워크스페이스·계정 (ACC-03·06·12~14)', () => {
   })
 })
 
+describe('피드백 (CMN-60~63)', () => {
+  it('users create and read their own; operators read all, set status and reply', async () => {
+    const mine = { uid: 'editor', email: 'e@x', name: 'e', workspaceId: 'w1', kind: 'bug', text: '버그', path: '/studio', status: 'open', createdAt: serverTimestamp(), updatedAt: serverTimestamp() }
+    await assertSucceeds(setDoc(doc(db('editor'), 'feedback/f1'), mine))
+    await assertFails(setDoc(doc(db('editor'), 'feedback/f2'), { ...mine, uid: 'viewer' }))
+    await assertFails(setDoc(doc(db('editor'), 'feedback/f3'), { ...mine, status: 'answered' }))
+    await assertFails(setDoc(doc(db('editor'), 'feedback/f4'), { ...mine, kind: 'spam' }))
+    await assertSucceeds(getDoc(doc(db('editor'), 'feedback/f1')))
+    await assertFails(getDoc(doc(db('viewer'), 'feedback/f1')))
+    await assertSucceeds(getDoc(doc(db('ops', true), 'feedback/f1')))
+    await assertSucceeds(updateDoc(doc(db('ops', true), 'feedback/f1'), { status: 'answered', adminReplyAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(db('editor'), 'feedback/f1'), { status: 'closed' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), 'feedback/f1'), { status: 'open', userReplyAt: serverTimestamp() }))
+    await assertFails(updateDoc(doc(db('editor'), 'feedback/f1'), { text: '바꿈' }))
+    const r = { text: '답', createdAt: serverTimestamp() }
+    await assertSucceeds(addDoc(collection(db('ops', true), 'feedback/f1/replies'), { ...r, by: 'admin', uid: 'ops' }))
+    await assertSucceeds(addDoc(collection(db('editor'), 'feedback/f1/replies'), { ...r, by: 'user', uid: 'editor' }))
+    await assertFails(addDoc(collection(db('editor'), 'feedback/f1/replies'), { ...r, by: 'admin', uid: 'editor' }))
+    await assertFails(addDoc(collection(db('viewer'), 'feedback/f1/replies'), { ...r, by: 'user', uid: 'viewer' }))
+    await assertFails(getDoc(doc(db('viewer'), 'feedback/f1/replies/x')))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))

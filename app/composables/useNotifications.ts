@@ -13,7 +13,7 @@ export function useNotifications() {
   const withdrawals = ref<WithdrawNote[]>([])
   const seen = useLocalStorage('toonflow:notesSeen', 0)
   // CMN-11 받을 알림 종류 (이 브라우저에만 저장)
-  const prefs = useLocalStorage('toonflow:notePrefs', { done: true, failed: true, usage: true, withdrawn: true }, { mergeDefaults: true })
+  const prefs = useLocalStorage('toonflow:notePrefs', { done: true, failed: true, usage: true, withdrawn: true, feedback: true }, { mergeDefaults: true })
   let stops: (() => void)[] = []
   watch(() => auth.workspace?.id, (w) => {
     stops.forEach(f => f())

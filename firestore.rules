@@ -79,6 +79,37 @@ service cloud.firestore {
       allow read: if isAdmin();
     }
 
+    // CMN-60~63 피드백: 본인이 보내고 본인·운영자가 읽는다. 상태·답변 시각은 운영자, 본인은 댓글을 달면 다시 접수로
+    match /feedback/{id} {
+      function mine() {
+        return signedIn() && resource.data.uid == request.auth.uid;
+      }
+      allow read: if mine() || isAdmin();
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'workspaceId', 'kind', 'text', 'path', 'status', 'createdAt', 'updatedAt'])
+        && request.resource.data.kind in ['bug', 'idea', 'question', 'other']
+        && strLen(request.resource.data.text, 1, 2000) && strLen(request.resource.data.path, 0, 300)
+        && strLen(request.resource.data.email, 0, 200) && strLen(request.resource.data.name, 0, 60)
+        && (request.resource.data.workspaceId == null || request.resource.data.workspaceId is string)
+        && request.resource.data.status == 'open' && request.resource.data.createdAt == request.time;
+      allow update: if (isAdmin()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'adminReplyAt', 'updatedAt'])
+          && request.resource.data.status in ['open', 'answered', 'closed'])
+        || (mine()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'userReplyAt', 'updatedAt'])
+          && request.resource.data.status == 'open');
+      match /replies/{rid} {
+        function parentMine() {
+          return signedIn() && get(/databases/$(database)/documents/feedback/$(id)).data.uid == request.auth.uid;
+        }
+        allow read: if parentMine() || isAdmin();
+        allow create: if request.resource.data.keys().hasOnly(['by', 'uid', 'text', 'createdAt'])
+          && request.resource.data.uid == request.auth.uid
+          && ((request.resource.data.by == 'admin' && isAdmin()) || (request.resource.data.by == 'user' && parentMine()))
+          && strLen(request.resource.data.text, 1, 2000) && request.resource.data.createdAt == request.time;
+      }
+    }
+
     // INB-12 확인 링크 토큰 `intakeTokens/{sha256}`은 규칙이 없어 서버만 읽고 쓴다
     // INB-02~04: 공개 제보 링크. 누구나 읽고, 그 워크스페이스 소유자·관리자만 쓴다. 제출은 서버(submitIntake)
     match /intake/{slug} {
