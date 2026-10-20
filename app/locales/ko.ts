@@ -21,12 +21,11 @@ export const ko = {
   empty: {
     inbox: { title: '아직 제보가 없어요', body: '받은 썰을 붙여 넣어 직접 등록할 수 있어요.' },
     stories: { title: '아직 작품이 없어요', body: '작품을 만들고 첫 에피소드를 시작해 보세요.' },
-    studio: { title: '열린 에피소드가 없어요', body: 'Stories에서 에피소드를 고르면 제작실이 열려요.' },
+    studio: { title: '아직 에피소드가 없어요', body: 'Stories에서 작품과 에피소드를 만들면 제작실에서 이어서 작업할 수 있어요.' },
     characters: { title: '아직 캐릭터가 없어요', body: '외형과 참조 이미지를 등록하면 컷마다 같은 모습으로 그려요.' },
     styles: { title: '아직 그림체가 없어요', body: '그림체를 만들어 두면 모든 컷에 같은 화풍을 써요.' },
     assets: { title: '에셋 보관함은 2단계에 열려요', body: '지금은 제작실 안에서 후보 이미지를 볼 수 있어요.' },
     publish: { title: '아직 발행 기록이 없어요', body: '에피소드를 내보내고 게시하면 여기에 남아요.' },
-    soon: '곧 만들어요',
   },
   inbox: {
     add: '제보 등록',
@@ -198,6 +197,7 @@ export const ko = {
   },
   studio: {
     open: '제작실 열기',
+    picker: { pick: '이어서 작업할 에피소드를 고르세요', create: '에피소드 만들기', all: 'Stories에서 전체 보기', untitled: '제목 없음', number: (n: number) => `${n}화`, switch: '다른 에피소드' },
     keys: { title: '단축키', list: { '1~5': '단계 이동', 'J / →': '다음 컷', 'K / ←': '이전 컷', 'G': '그림 단계에서 선택 컷 생성', 'Ctrl+Z': '실행 취소 (Shift: 다시 실행)', 'Ctrl+K': '검색·명령 팔레트', '?': '단축키 목록' } as Record<string, string> },
     snap: {
       button: '스냅숏',
