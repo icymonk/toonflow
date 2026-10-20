@@ -9,7 +9,7 @@
 | UI | shadcn-vue + Tailwind v4, 아이콘 lucide | 토큰은 [design/ui-system.md](../design/ui-system.md) 2-3절을 Tailwind 테마 변수로 |
 | 글꼴 | 화면: Pretendard·Inter (자체 호스팅). 말풍선: 상업 이용 가능한 무료 글꼴 2~3개 (REV-04, 개발 전 라이선스 확인) | 출력 렌더링에 쓰므로 웹폰트 파일을 직접 둔다 |
 | 문구 | `app/locales/ko.ts` 타입 있는 객체 | D6. 다른 언어는 같은 키로 추가 |
-| 인증 | Firebase Auth: Google, 이메일 링크 | ACC-01, #13 |
+| 인증 | Firebase Auth: Google, 이메일+비밀번호(인증 메일), 이메일 링크 | ACC-01, #13 |
 | DB | Cloud Firestore (서울) | R2 |
 | 파일 | Cloud Storage (서울) | 원본·미리보기 이미지, 참조 이미지 |
 | 서버 | Cloud Functions 2nd gen, Node 22, TypeScript, esbuild 번들 | callable + 작업 대기열(R3) + 예약 실행 |
