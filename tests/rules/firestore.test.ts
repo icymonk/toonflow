@@ -121,6 +121,10 @@ describe('2단계 경로', () => {
     await assertFails(setDoc(doc(db('viewer'), `${W}/assets/a5`), { ...a, createdBy: 'viewer' }))
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { tags: ['x'] }))
     await assertFails(updateDoc(doc(db('editor'), `${W}/assets/a1`), { path: `${W}/refs/assets/c.png` }))
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/assets/a6`), { ...a, seriesId: 's1' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/assets/a7`), { ...a, seriesId: 3 }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { seriesId: 's1' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { seriesId: null }))
   })
   it('candidates: editors import from aiJobs path and flag favorite/hidden only', async () => {
     const imp = { imagePath: `${W}/aiJobs/j1/0.png`, width: 1080, height: 1350, source: 'import', jobId: '', input: null, hidden: false, favorite: false, workspaceId: 'w1', episodeId: 'e1', panelId: 'p1', createdAt: new Date() }

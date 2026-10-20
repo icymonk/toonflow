@@ -14,7 +14,7 @@ provide('lib', lib)
 const route = useRoute()
 const router = useRouter()
 const q = ref('')
-const seriesFilter = ref('')
+const seriesFilter = useSeriesFilter(lib.series)
 const archived = ref(false)
 const seriesOf = (id: string) => lib.series.value.filter(s => s.mainCharacterIds?.includes(id))
 const list = computed(() => lib.characters.value.filter(c => !!c.archivedAt === archived.value
@@ -23,7 +23,11 @@ const list = computed(() => lib.characters.value.filter(c => !!c.archivedAt === 
 const current = computed(() => lib.characters.value.find(c => c.id === route.query.id) ?? null)
 const select = (id?: string) => router.replace({ query: id ? { id } : {} })
 async function create() {
-  try { select((await lib.createCharacter({ name: t.newCharacter })).id) }
+  try {
+    const id = (await lib.createCharacter({ name: t.newCharacter })).id
+    if (seriesFilter.value) await lib.setMain(seriesFilter.value, id, true)
+    select(id)
+  }
   catch (e) { toast.error(errorMessage(e) ?? ko.errors.unknown) }
 }
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'

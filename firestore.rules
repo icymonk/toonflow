@@ -181,11 +181,14 @@ service cloud.firestore {
       // CHR-01~11: 편집자가 직접 만들고 고친다. 삭제는 deletedAt (휴지통)
       // AST-03 참고 자료
       match /assets/{id} {
+        function assetSeriesOk() {
+          return request.resource.data.get('seriesId', null) == null || request.resource.data.seriesId is string;
+        }
         allow read: if canView(ws);
-        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['path', 'name', 'size', 'tags', 'createdBy', 'createdAt'])
+        allow create: if canEdit(ws) && request.resource.data.keys().hasOnly(['path', 'name', 'size', 'tags', 'seriesId', 'createdBy', 'createdAt'])
           && request.resource.data.path.matches('workspaces/' + ws + '/refs/assets/.*') && request.resource.data.createdBy == request.auth.uid
-          && request.resource.data.tags is list && request.resource.data.tags.size() <= 10;
-        allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tags']) && request.resource.data.tags.size() <= 10;
+          && request.resource.data.tags is list && request.resource.data.tags.size() <= 10 && assetSeriesOk();
+        allow update: if canEdit(ws) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tags', 'seriesId']) && request.resource.data.tags.size() <= 10 && assetSeriesOk();
         allow delete: if canEdit(ws);
       }
       match /characters/{id} {
