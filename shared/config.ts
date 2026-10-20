@@ -5,9 +5,11 @@ export const limitsConfig = z.object({
   monthlyLimitKrw: z.number().int().min(0),
   confirmOverKrw: z.number().int().min(0),
   maxConcurrentJobs: z.number().int().min(1).max(20),
+  /** AIU-24: 요금제별 월 한도 상한. 무료는 monthlyLimitKrw */
+  planLimitsKrw: z.object({ basic: z.number().int().min(0), pro: z.number().int().min(0) }),
 })
 export type LimitsConfig = z.infer<typeof limitsConfig>
-export const DEFAULT_LIMITS: LimitsConfig = { monthlyLimitKrw: 50000, confirmOverKrw: 3000, maxConcurrentJobs: 4 }
+export const DEFAULT_LIMITS: LimitsConfig = { monthlyLimitKrw: 50000, confirmOverKrw: 3000, maxConcurrentJobs: 4, planLimitsKrw: { basic: 150000, pro: 500000 } }
 
 /** config/models (AIU-30, CMN-50). 가격은 원 단위 */
 export const modelEntry = z.object({

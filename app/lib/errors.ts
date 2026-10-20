@@ -42,6 +42,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.ownerCannotLeave': 'ownerCannotLeave',
   'error.tooMany': 'tooMany',
   'error.tokenNotFound': 'tokenNotFound',
+  'error.overPlan': 'overPlan',
 }
 
 /** 서버 오류 메시지는 SDK가 끝에 ` [403]` 같은 상태를 붙일 수 있어 앞부분으로 비교한다 */

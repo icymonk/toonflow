@@ -283,6 +283,7 @@ describe('4단계 워크스페이스·계정 (ACC-03·06·12~14)', () => {
   it('managers rename only; deletion, ownership and workspace lists are server-only', async () => {
     await assertSucceeds(updateDoc(doc(db('admin'), W), { name: '새 이름' }))
     await assertFails(updateDoc(doc(db('owner'), W), { deleteAt: new Date() }))
+    await assertFails(updateDoc(doc(db('owner'), W), { plan: 'pro' }))
     await assertFails(updateDoc(doc(db('owner'), W), { ownerId: 'editor' }))
     await assertFails(updateDoc(doc(db('editor'), W), { name: 'x' }))
     await assertFails(setDoc(doc(db('editor'), 'workspaces/w3'), { name: 'w3', ownerId: 'editor', defaults: {} }))

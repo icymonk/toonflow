@@ -9,7 +9,7 @@ import type { DecideWaitlistInput, JoinWaitlistInput } from './waitlist'
 import type { CreateWorkspaceInput, DeleteAccountInput, TransferOwnershipInput, WorkspaceRefInput } from './workspaces'
 import type { AdminOverview, AdminOverviewInput, LogAdminViewInput } from './activity'
 import type { CreateInviteInput, InviteInfo, InviteTokenInput, MemberRefInput, RevokeInviteInput, SetMemberLimitInput, SetMemberRoleInput } from './members'
-import type { SetWorkspaceLimitInput } from './usage'
+import type { GrantPlanInput, SetWorkspaceLimitInput } from './usage'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
 export const ERROR_KEYS = {
@@ -32,6 +32,7 @@ export const ERROR_KEYS = {
   tooManyWorkspaces: 'error.tooManyWorkspaces',
   notAdminTarget: 'error.notAdminTarget',
   ownerCannotLeave: 'error.ownerCannotLeave',
+  overPlan: 'error.overPlan',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -73,5 +74,6 @@ export interface Callables {
   setMemberLimit: { input: SetMemberLimitInput, output: { ok: true } }
   adminOverview: { input: AdminOverviewInput, output: AdminOverview }
   logAdminView: { input: LogAdminViewInput, output: { episodes: number, submissions: number, members: number } }
+  grantPlan: { input: GrantPlanInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
 }
