@@ -560,7 +560,7 @@ export const ko = {
       make: '각색안 만들기',
       seriesMemo: '작품 참고 (연재 메모)',
       seriesMemoPh: '세계관·설정·고정 문구. 이 작품 모든 회차 각색에 함께 넘겨요',
-      contextNote: '작품 메모와 주요 캐릭터의 성격·말투도 함께 넘겨요',
+      contextNote: '작품 메모, 직전 화 줄거리, 주요 캐릭터의 성격·말투·기본 의상도 함께 넘겨요',
       rewrite: '부분 다시 쓰기',
       rewriteField: '고칠 부분',
       fields: { dialogues: '대사', beats: '내용' },

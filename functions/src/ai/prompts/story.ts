@@ -110,5 +110,5 @@ function buildPrompt(type: JobType, params: Record<string, unknown>): TextPrompt
   if (!p.success) throw new AiError('internal', `bad params for ${type}`)
   const out = build(p.data)
   // STO-03
-  return p.data.context ? { ...out, prompt: `${out.prompt}\n\n[작품 참고 — 설정·캐릭터 말투]\n${p.data.context}` } : out
+  return p.data.context ? { ...out, prompt: `${out.prompt}\n\n[작품 참고 — 설정·지난 화·캐릭터 말투]\n${p.data.context}` } : out
 }

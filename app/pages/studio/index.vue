@@ -30,10 +30,10 @@ const edit = computed(() => canEdit(auth.role))
 const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
-// STO-03: 작품 메모 + 주요·이번 화 캐릭터의 성격·말투·기본 의상
+// STO-03: 작품 메모 + 직전 화 줄거리 + 주요·이번 화 캐릭터의 성격·말투·기본 의상
 const storyCtx = computed(() => {
   const ids = new Set([...(s.series.value?.mainCharacterIds ?? []), ...(episode.value?.settings.characterIds ?? [])])
-  return storyContext(s.series.value?.memo, lib.characters.value.filter(c => ids.has(c.id)))
+  return storyContext(s.series.value?.memo, lib.characters.value.filter(c => ids.has(c.id)), s.prevSummary.value)
 })
 const story = useStory(episode, computed(() => cuts.value.length > 0), storyCtx)
 const lib = useLibrary()

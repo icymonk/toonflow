@@ -3,9 +3,11 @@ import type { Episode, Step } from '#shared/episodes'
 import type { JobStatus, JobType, StartAiJobInput } from '#shared/jobs'
 import type { Page, PageLayout, Panel } from '#shared/studio'
 import type { Snapshot } from '#shared/snapshot'
-import { addDoc, collection, deleteDoc, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where, writeBatch } from 'firebase/firestore'
 import { restorePlan, SNAPSHOT_MAX_PANELS, SNAPSHOT_NAME_MAX, takeSnapshot } from '#shared/snapshot'
 import { ACTIVE_STATUSES } from '#shared/jobs'
+import type { StoryVersion } from '#shared/story'
+import { prevEpisodeSummary, previousEpisode } from '#shared/story'
 import { createHistory, emptyPanel, LAYOUT_BY_COUNT, movedPanelIds, movePage, movePanelTo, orderCuts } from '#shared/studio'
 
 interface ActiveJob { id: string, type: JobType, status: JobStatus, target: StartAiJobInput['target'] }
@@ -19,6 +21,8 @@ export function useStudio(episodeId: Ref<string>) {
   const seriesName = ref('')
   const seriesReviewItems = ref<string[]>([])
   const series = ref<Series | null>(null)
+  /** STO-03: 같은 작품 직전 화 줄거리 (각색할 때 함께 넘김) */
+  const prevSummary = ref('')
   const pages = ref<Page[]>([])
   const panels = ref<Panel[]>([])
   const jobs = ref<ActiveJob[]>([])
@@ -109,6 +113,16 @@ export function useStudio(episodeId: Ref<string>) {
     sync()
     return c
   }
+
+  watch(() => [auth.workspace?.id, episode.value?.id, episode.value?.seriesId, episode.value?.number] as const, async ([ws, id, seriesId, number]) => {
+    prevSummary.value = ''
+    if (!ws || !id || !seriesId || !number || number < 2) return
+    const eps = await getDocs(query(collection($firestore, ...wsPath(), 'episodes'), where('seriesId', '==', seriesId)))
+    const prev = previousEpisode(eps.docs.map(d => ({ id: d.id, ...d.data() }) as Episode), { id, number })
+    if (!prev) return
+    const v = await getDoc(doc($firestore, ...wsPath(), 'episodes', prev.id, 'storyVersions', prev.activeStoryVersionId!))
+    if (v.exists() && episode.value?.id === id) prevSummary.value = prevEpisodeSummary(prev, v.data() as StoryVersion)
+  }, { immediate: true })
 
   const touch = () => ({ updatedAt: serverTimestamp() })
   const updateEpisode = (patch: Record<string, unknown>) => track(() => updateDoc(epRef(), { ...patch, ...touch() }))
@@ -297,7 +311,7 @@ export function useStudio(episodeId: Ref<string>) {
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
 
   return {
-    episode, missing, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
+    episode, missing, prevSummary, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
     snapshots, currentSnapshot, saveSnapshot, removeSnapshot, restoreSnapshot,
