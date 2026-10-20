@@ -821,6 +821,11 @@ export const ko = {
     views: '운영자 열람 기록',
     viewsHint: '운영자가 이 워크스페이스를 열어 본 기록이에요 (개인정보처리방침에 안내).',
   },
+  forbidden: {
+    title: '접근 권한이 없어요',
+    body: '이 화면은 운영자만 볼 수 있어요. 권한이 필요하면 운영자에게 요청해 주세요.',
+    home: '홈으로',
+  },
   join: {
     title: '워크스페이스 초대',
     desc: (ws: string, role: string) => `"${ws}"에 ${role} 역할로 초대받았어요.`,
@@ -914,7 +919,6 @@ export const ko = {
     save: '저장',
     saved: '저장했어요.',
     invalid: '형식이 맞지 않아요.',
-    notAdmin: '운영자만 볼 수 있어요.',
     reports: '신고',
     reportsHint: '최근 50건. 페이지를 막으면 그 제보 링크로 제출할 수 없어요. 처리할 때마다 기록이 남아요.',
     noReports: '신고가 없어요.',

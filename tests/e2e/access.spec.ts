@@ -1,0 +1,91 @@
+import type { Browser, Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
+
+// 4-H: 대기 명단 → 운영자 승인 → 가입 (CMN-41·52), 초대 링크 → 참여 (ACC-20)
+const P = 'demo-toonflow'
+const AUTH = `http://127.0.0.1:9099/emulator/v1/projects/${P}`
+const IDT = 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1'
+const OPS = 'e2e-ops@example.com'
+const APPLICANT = 'e2e-wait@example.com'
+const INVITEE = 'e2e-invitee@example.com'
+const PW = 'toonflow-e2e'
+
+const fresh = async (b: Browser) => (await b.newContext({ baseURL: 'http://localhost:3000' })).newPage()
+
+/** 이메일 링크 로그인 (Auth 에뮬레이터의 oobCode). redirect를 주면 로그인 뒤 그 주소로 */
+async function emailLink(page: Page, email: string) {
+  await page.getByLabel('이메일').fill(email)
+  await page.getByRole('button', { name: '로그인 링크 받기' }).click()
+  await expect(page.getByText(`${email}로 로그인 링크를 보냈어요`)).toBeVisible()
+  const { oobCodes } = await (await fetch(`${AUTH}/oobCodes`)).json() as { oobCodes: { email: string, oobCode: string, oobLink: string }[] }
+  const link = new URL(oobCodes.filter(c => c.email === email).at(-1)!.oobLink)
+  await page.goto(new URL(link.searchParams.get('continueUrl')!).pathname + new URL(link.searchParams.get('continueUrl')!).search
+    + `&mode=signIn&oobCode=${link.searchParams.get('oobCode')}&apiKey=fake-api-key&lang=ko`)
+}
+
+/** 운영자 계정: 에뮬레이터에 미리 만들고 admin 권한·메일 인증을 붙인다 */
+async function createOperator() {
+  const res = await fetch(`${IDT}/accounts:signUp?key=fake-api-key`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: OPS, password: PW }) })
+  const { localId } = await res.json() as { localId: string }
+  await fetch(`${IDT}/projects/${P}/accounts:update`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'Authorization': 'Bearer owner' },
+    body: JSON.stringify({ localId, emailVerified: true, customAttributes: JSON.stringify({ admin: true }) }),
+  })
+}
+
+test('대기 명단 신청 → 운영자 승인 → 가입, 초대 링크 → 참여', async ({ page, browser }) => {
+  page.on('dialog', d => d.accept())
+  await createOperator()
+
+  // 신청 (로그인 전 랜딩)
+  const applicant = await fresh(browser)
+  await applicant.goto('/')
+  await applicant.waitForURL(/\/welcome/)
+  await applicant.getByLabel('이름 또는 작가명').fill('대기자')
+  await applicant.getByLabel('이메일 (로그인에 쓸 주소)').fill(APPLICANT)
+  await applicant.getByRole('checkbox').check()
+  await applicant.getByRole('button', { name: '신청하기' }).click()
+  await expect(applicant.getByText(/신청했어요/)).toBeVisible()
+
+  // 승인 전에는 대기 화면
+  await applicant.goto('/login')
+  await emailLink(applicant, APPLICANT)
+  await expect(applicant.getByText('승인 대기 중')).toBeVisible()
+
+  // 운영자 승인
+  await page.goto('/login')
+  await page.getByLabel('이메일').fill(OPS)
+  await page.getByLabel('비밀번호').fill(PW)
+  await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page.getByText('처음 사용 안내')).toBeVisible()
+  await page.goto('/admin')
+  const row = page.locator('div', { hasText: APPLICANT }).filter({ has: page.getByRole('button', { name: '승인' }) }).last()
+  await row.getByRole('button', { name: '승인' }).click()
+  await expect(page.getByText(APPLICANT)).toBeHidden()
+
+  // 승인 뒤 "다시 확인"으로 가입
+  await applicant.getByRole('button', { name: '다시 확인' }).click()
+  await expect(applicant.getByText('처음 사용 안내')).toBeVisible()
+
+  // 운영자가 아니면 /admin은 403
+  await applicant.goto('/admin')
+  await expect(applicant.getByRole('alert').getByText('접근 권한이 없어요')).toBeVisible()
+
+  // 초대 링크 (허용 목록에 없는 사람도 참여)
+  await page.goto('/settings')
+  await page.getByLabel('초대할 역할').selectOption('editor')
+  await page.getByRole('button', { name: '초대 링크 만들기' }).click()
+  const link = await page.getByLabel('초대 링크').inputValue()
+  const invitee = await fresh(browser)
+  await invitee.goto(new URL(link).pathname)
+  await invitee.waitForURL(/\/login/)
+  await emailLink(invitee, INVITEE)
+  await invitee.waitForURL(/\/join\//)
+  await expect(invitee.getByText(/편집자 역할로 초대받았어요/)).toBeVisible()
+  await invitee.getByRole('button', { name: '참여하기' }).click()
+  await invitee.waitForURL(url => !url.pathname.startsWith('/join'))
+  await expect(invitee.getByText('승인 대기 중')).toBeHidden()
+  await page.reload()
+  await expect(page.getByText(INVITEE, { exact: true })).toBeVisible()
+})

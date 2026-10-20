@@ -123,14 +123,12 @@ function saveModels() {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-2xl flex-col gap-6 p-8">
+  <AppForbidden v-if="isAdmin === false" />
+  <div v-else class="mx-auto flex max-w-2xl flex-col gap-6 p-8">
     <h1 class="text-2xl font-bold">
       {{ t.title }}
     </h1>
-    <p v-if="isAdmin === false" class="text-muted-foreground">
-      {{ t.notAdmin }}
-    </p>
-    <template v-else-if="isAdmin">
+    <template v-if="isAdmin">
       <Card>
         <CardHeader>
           <CardTitle>{{ t.access }}</CardTitle>

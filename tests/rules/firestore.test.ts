@@ -279,6 +279,30 @@ describe('4단계 같이 보는 사람 (STU-24)', () => {
   })
 })
 
+describe('4단계 워크스페이스·계정 (ACC-03·06·12~14)', () => {
+  it('managers rename only; deletion, ownership and workspace lists are server-only', async () => {
+    await assertSucceeds(updateDoc(doc(db('admin'), W), { name: '새 이름' }))
+    await assertFails(updateDoc(doc(db('owner'), W), { deleteAt: new Date() }))
+    await assertFails(updateDoc(doc(db('owner'), W), { ownerId: 'editor' }))
+    await assertFails(updateDoc(doc(db('editor'), W), { name: 'x' }))
+    await assertFails(setDoc(doc(db('editor'), 'workspaces/w3'), { name: 'w3', ownerId: 'editor', defaults: {} }))
+    await assertFails(deleteDoc(doc(db('owner'), W)))
+    await assertSucceeds(updateDoc(doc(db('editor'), 'users/editor'), { displayName: '편집자' }))
+    await assertFails(updateDoc(doc(db('editor'), 'users/editor'), { workspaceIds: ['w2'] }))
+    await assertFails(updateDoc(doc(db('editor'), 'users/editor'), { workspaceId: 'w2' }))
+    await assertFails(updateDoc(doc(db('editor'), 'users/editor'), { deletedAt: null }))
+    await assertFails(getDoc(doc(db('owner'), 'users/editor')))
+    await assertFails(setDoc(doc(db('owner'), `${W}/members/newbie`), { role: 'editor' }))
+  })
+  it('the sign-up allow list is operator only', async () => {
+    await env.withSecurityRulesDisabled(c => setDoc(doc(c.firestore(), 'config/access'), { allowedEmails: ['a@x'] }))
+    await assertFails(getDoc(doc(db('owner'), 'config/access')))
+    await assertFails(setDoc(doc(db('owner'), 'config/access'), { allowedEmails: ['me@x'] }))
+    await assertSucceeds(getDoc(doc(db('ops', true), 'config/access')))
+    await assertSucceeds(getDoc(doc(db('owner'), 'config/models')))
+  })
+})
+
 describe('operator', () => {
   it('reads any workspace but cannot write', async () => {
     await assertSucceeds(getDoc(doc(db('op', true), `${W}/submissions/s1`)))
