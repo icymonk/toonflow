@@ -5,7 +5,7 @@ import { onClickOutside } from '@vueuse/core'
 import { ko } from '~/locales/ko'
 
 const t = ko.notifications
-const { shown: jobs, prefs, unread, markSeen } = useNotifications()
+const { shown: jobs, withdrawals, prefs, unread, markSeen } = useNotifications()
 const showPrefs = ref(false)
 const usageLevel = computed(() => (prefs.value.usage ? level.value : 'ok'))
 const { level } = useUsage()
@@ -31,12 +31,16 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1))
         <button class="text-muted-foreground text-xs hover:underline" @click="showPrefs = !showPrefs">{{ t.prefs.title }}</button>
       </div>
       <div v-if="showPrefs" class="bg-muted/50 mb-1 flex flex-col gap-1 rounded px-2 py-1.5 text-xs">
-        <label v-for="k in (['done', 'failed', 'usage'] as const)" :key="k" class="flex items-center gap-1.5"><input v-model="prefs[k]" type="checkbox"> {{ t.prefs[k] }}</label>
+        <label v-for="k in (['done', 'failed', 'usage', 'withdrawn'] as const)" :key="k" class="flex items-center gap-1.5"><input v-model="prefs[k]" type="checkbox"> {{ t.prefs[k] }}</label>
       </div>
       <p v-if="usageLevel !== 'ok'" class="rounded px-2 py-1.5 text-xs" :class="level === 'warn' ? 'bg-amber-100 text-amber-900' : 'bg-destructive/10 text-destructive'">
         {{ level === 'warn' ? t.usageWarn : t.usageOver }}
       </p>
-      <p v-if="!jobs.length" class="text-muted-foreground px-2 py-3 text-xs">{{ t.empty }}</p>
+      <NuxtLink v-for="w in withdrawals" :key="w.id" :to="{ path: '/inbox', query: { id: w.id } }" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
+        <span class="text-destructive">{{ w.published ? t.withdrawnAfter : t.withdrawnBefore }}</span>
+        <span class="text-muted-foreground text-xs">{{ new Date(w.at.toMillis()).toLocaleString('ko-KR') }}</span>
+      </NuxtLink>
+      <p v-if="!jobs.length && !withdrawals.length" class="text-muted-foreground px-2 py-3 text-xs">{{ t.empty }}</p>
       <NuxtLink v-for="j in jobs" :key="j.id" :to="link(j)" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
         <span :class="j.status === 'failed' ? 'text-destructive' : ''">{{ t.types[j.type] ?? j.type }} · {{ j.status === 'failed' ? t.failed : t.done }}</span>
         <span class="text-muted-foreground text-xs">{{ j.finishedAt!.toMillis() > 0 ? new Date(j.finishedAt!.toMillis()).toLocaleString('ko-KR') : '' }}</span>
