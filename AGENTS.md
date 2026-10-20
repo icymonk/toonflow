@@ -35,4 +35,4 @@ AI 인스타툰 제작 SaaS **TOONFLOW**. 기획·기능명세 **확정** v1.0 (
 ## Environment notes (memorize와 같음)
 - `typescript`는 `^6`으로 고정. TS 7은 JS API가 없어 Vue 도구와 shadcn-vue CLI가 깨진다.
 - shadcn-vue CLI가 Nuxt 5를 인식하지 못해 루트 `tsconfig.json`의 `compilerOptions.paths`(`@/*`)로 `add`가 동작한다. 지우지 않는다.
-- 운영자 권한: `GOOGLE_APPLICATION_CREDENTIALS=<서비스계정.json> node functions/scripts/set-admin.mjs <email>` 후 다시 로그인. 운영자 설정 화면은 `/admin`.
+- 가입 허용·운영자 권한: GitHub Actions → **Access** → Run workflow (`allow` / `admin` — admin은 그 이메일로 한 번 로그인한 뒤, 적용은 다시 로그인). 로컬에서는 `GOOGLE_APPLICATION_CREDENTIALS=<서비스계정.json> node functions/scripts/{allow-email,set-admin}.mjs <email>`. 운영자 설정 화면은 `/admin`.
