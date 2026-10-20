@@ -188,6 +188,10 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.reload()
   await page.locator('li', { hasText: '제보 링크 ·' }).first().click()
   await expect(page.getByText(/제보자가 동의를 철회했어요/)).toBeVisible()
+  // CMN-12: 동의 철회는 알림 종에도 뜨고, 누르면 그 제보로 간다
+  await page.getByRole('button', { name: '알림' }).click()
+  await page.getByRole('link', { name: /제보자가 동의를 철회했어요/ }).click()
+  await expect(page).toHaveURL(/\/inbox\?id=/)
 
   // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
   await page.goto('/')
