@@ -28,23 +28,23 @@ async function act(fn: () => Promise<unknown>, msg: string) {
     toast.error(errorMessage(error) ?? ko.errors.unknown)
   }
 }
-function transfer() {
+async function transfer() {
   const a = admins.value.find(x => x.id === target.value)
-  if (!a || !window.confirm(t.transferConfirm(a.name))) return
+  if (!a || !await confirmDialog(t.transferConfirm(a.name))) return
   return act(async () => {
     await callFn($functions, 'transferOwnership', { workspaceId: auth.workspace!.id, toUid: a.id })
     window.location.assign('/settings')
   }, t.transferred)
 }
-function remove() {
-  if (!window.confirm(t.removeConfirm(auth.workspace!.name))) return
+async function remove() {
+  if (!await confirmDialog(t.removeConfirm(auth.workspace!.name))) return
   return act(async () => {
     await callFn($functions, 'deleteWorkspace', { workspaceId: auth.workspace!.id })
     window.location.assign('/')
   }, t.removed)
 }
-function deleteAccount() {
-  if (!window.confirm(t.accountConfirm)) return
+async function deleteAccount() {
+  if (!await confirmDialog(t.accountConfirm)) return
   return act(async () => {
     await callFn($functions, 'deleteAccount', {})
     await auth.signOut()

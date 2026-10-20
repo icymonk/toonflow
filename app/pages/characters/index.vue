@@ -52,7 +52,8 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
         </select>
         <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
       </div>
-      <div v-if="!lib.characters.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
+      <AppListSkeleton v-if="!lib.loaded.characters" />
+      <div v-else-if="!lib.characters.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
         <p class="text-foreground font-medium">
           {{ ko.empty.characters.title }}
         </p>

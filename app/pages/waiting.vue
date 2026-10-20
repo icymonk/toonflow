@@ -46,7 +46,7 @@ async function other() {
       <CardDescription>{{ (unverified ? ko.waiting.verify : ko.waiting.description)(auth.user?.email ?? '') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-2">
-      <Button :disabled="pending" @click="retry">
+      <Button :loading="pending" @click="retry">
         {{ ko.waiting.retry }}
       </Button>
       <Button v-if="unverified" variant="outline" @click="resend">

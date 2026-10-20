@@ -73,7 +73,7 @@ const saveMemo = useDebounceFn(() => emit('seriesMemo', memo.value.slice(0, 1000
       <h3 class="text-sm font-semibold">
         {{ t.titles }}
       </h3>
-      <Button v-if="edit" size="sm" variant="ghost" :disabled="titling" @click="emit('titles')">
+      <Button v-if="edit" size="sm" variant="ghost" :loading="titling" @click="emit('titles')">
         <Loader2 v-if="titling" class="size-3.5 animate-spin" /> {{ t.makeTitles }}
       </Button>
     </div>

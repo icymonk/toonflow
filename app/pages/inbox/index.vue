@@ -231,7 +231,8 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
       </CardContent>
     </Card>
 
-    <AppEmptyState v-if="!loading && counts.all === 0" :icon="Inbox" :title="ko.empty.inbox.title" :body="ko.empty.inbox.body" />
+    <AppListSkeleton v-if="loading" />
+    <AppEmptyState v-else-if="counts.all === 0" :icon="Inbox" :title="ko.empty.inbox.title" :body="ko.empty.inbox.body" />
 
     <template v-else>
       <div class="flex flex-wrap gap-1" role="tablist">

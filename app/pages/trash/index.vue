@@ -13,8 +13,10 @@ const auth = useAuthStore()
 interface Item { kind: TrashKind, id: string, name: string, deletedMs: number }
 const byKind = reactive<Record<string, Item[]>>({})
 const stops: (() => void)[] = []
+const loadedKinds = ref(new Set<TrashKind>())
 watch(() => auth.workspace?.id, (w) => {
   stops.splice(0).forEach(f => f())
+  loadedKinds.value = new Set()
   if (!w) return
   for (const kind of TRASH_KINDS) {
     stops.push(onSnapshot(query(collection($firestore, 'workspaces', w, TRASH_COLLECTION[kind]), where('deletedAt', '!=', null)), (snap) => {
@@ -22,14 +24,15 @@ watch(() => auth.workspace?.id, (w) => {
         const x = d.data()
         return { kind, id: d.id, name: String(x.title ?? x.name ?? ''), deletedMs: x.deletedAt?.toMillis?.() ?? Date.now() }
       })
-    }, () => {}))
+      loadedKinds.value = new Set(loadedKinds.value).add(kind)
+    }, () => (loadedKinds.value = new Set(loadedKinds.value).add(kind))))
   }
 }, { immediate: true })
 onScopeDispose(() => stops.forEach(f => f()))
 const items = computed(() => Object.values(byKind).flat().sort((a, b) => b.deletedMs - a.deletedMs))
 const busy = ref<string | null>(null)
 async function act(it: Item, purge: boolean) {
-  if (purge && !window.confirm(t.purgeConfirm(it.name))) return
+  if (purge && !await confirmDialog(t.purgeConfirm(it.name))) return
   busy.value = it.id
   try {
     await callFn($functions, purge ? 'purgeFromTrash' : 'restoreFromTrash', { workspaceId: auth.workspace!.id, kind: it.kind, id: it.id })
@@ -46,13 +49,14 @@ async function act(it: Item, purge: boolean) {
       <h1 class="text-xl font-bold">{{ t.title }}</h1>
       <p class="text-muted-foreground text-sm">{{ t.note }}</p>
     </div>
-    <p v-if="!items.length" class="text-muted-foreground text-sm">{{ t.empty }}</p>
+    <AppListSkeleton v-if="loadedKinds.size < TRASH_KINDS.length" />
+    <p v-else-if="!items.length" class="text-muted-foreground text-sm">{{ t.empty }}</p>
     <div v-for="it in items" :key="`${it.kind}/${it.id}`" class="bg-card flex items-center gap-3 rounded-lg border px-4 py-3">
       <span class="bg-muted rounded px-1.5 py-0.5 text-xs">{{ t.kinds[it.kind] }}</span>
       <span class="flex-1 truncate text-sm">{{ it.name }}</span>
       <span class="text-muted-foreground text-xs">{{ t.daysLeft(daysLeft(it.deletedMs, Date.now())) }}</span>
-      <Button size="sm" variant="outline" :disabled="busy === it.id" @click="act(it, false)">{{ t.restore }}</Button>
-      <Button size="sm" variant="ghost" class="text-destructive" :disabled="busy === it.id" @click="act(it, true)">{{ t.purge }}</Button>
+      <Button size="sm" variant="outline" :loading="busy === it.id" @click="act(it, false)">{{ t.restore }}</Button>
+      <Button size="sm" variant="ghost" class="text-destructive" :loading="busy === it.id" @click="act(it, true)">{{ t.purge }}</Button>
     </div>
   </div>
 </template>

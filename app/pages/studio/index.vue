@@ -93,7 +93,7 @@ const pickList = computed(() => [
 // ILL-21·22
 async function illVariant(id: string) {
   const c = ill.candidates.value.find(x => x.id === id)
-  const change = window.prompt(t.illustrate.variantPrompt)
+  const change = await promptDialog(t.illustrate.variantPrompt)
   if (!c || change === null || !selected.value) return
   await run(() => ill.edit(selected.value!, c, 'variant', { change }), t.illustrate.started(1))
 }
@@ -115,9 +115,9 @@ const publishedInfo = computed(() => {
   const p = episode.value?.published
   return p ? { at: p.at ? new Date(p.at.toMillis()).toLocaleDateString('ko-KR') : '', url: p.url } : null
 })
-function guardExport(fn: () => unknown) {
-  if (left.value && !window.confirm(t.review.notPassed(left.value))) return
-  if (withdrawnSources.value.length && !window.confirm(t.publish.withdrawnConfirm(withdrawnSources.value.length))) return
+async function guardExport(fn: () => unknown) {
+  if (left.value && !await confirmDialog(t.review.notPassed(left.value))) return
+  if (withdrawnSources.value.length && !await confirmDialog(t.publish.withdrawnConfirm(withdrawnSources.value.length))) return
   return fn()
 }
 const expPage = ref(0)
@@ -147,7 +147,7 @@ function onBubble(panelId: string, dialogueId: string | null) {
   bubbleSel.value = dialogueId ? { panelId, dialogueId } : null
 }
 async function placeAll(force: boolean) {
-  if (force && !window.confirm(t.review.replaceAllConfirm)) return
+  if (force && !await confirmDialog(t.review.replaceAllConfirm)) return
   await run(() => review.place(s.cuts.value, force), t.review.placed)
 }
 async function illGenerate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
@@ -156,12 +156,12 @@ async function illGenerate(list: Cut[], n: number, opts: { extra?: string, leave
 // ILL-02 한꺼번에
 async function bulk(mode: 'empty' | 'stale') {
   const list = bulkTargets(cuts.value, mode, s.busyPanels.value)
-  if (!list.length || !window.confirm(t.illustrate.bulkConfirm(list.length, illN.value, lib.estimate(list.length * illN.value)))) return
+  if (!list.length || !await confirmDialog(t.illustrate.bulkConfirm(list.length, illN.value, lib.estimate(list.length * illN.value)))) return
   await illGenerate(list, illN.value, { leaveRoom: true })
 }
 // ILL-06
 async function illCancel(job: PanelJob) {
-  if (job.status === 'running' && !window.confirm(t.illustrate.cancelRunning)) return
+  if (job.status === 'running' && !await confirmDialog(t.illustrate.cancelRunning)) return
   await run(() => ill.cancel(job.id), t.illustrate.canceled)
 }
 // SBD-12: 인물 이름을 고치면 캐릭터 연결도 다시
@@ -298,7 +298,7 @@ async function autoSplit() {
   if (!v) return toast.warning(t.board.needStory)
   if (cuts.value.length) {
     const drawn = cuts.value.filter(c => c.panel.selectedCandidateId).length
-    if (!window.confirm(t.board.resplitConfirm(drawn))) return
+    if (!await confirmDialog(t.board.resplitConfirm(drawn))) return
   }
   await run(() => story.split(v), t.story.started)
 }
