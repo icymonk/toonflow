@@ -5,7 +5,7 @@ import { serverTimestamp } from 'firebase/firestore'
 import type { Step } from '#shared/episodes'
 import type { Cut, Panel, StaleFrom } from '#shared/studio'
 import type { PanelJob } from '~/composables/useIllustrate'
-import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronLeft, ChevronRight, Clapperboard, Eye, History, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
+import { ArrowDown, ArrowUp, Check, Copy, GripVertical, Sparkles, ChevronDown, ChevronLeft, ChevronRight, Clapperboard, Eye, History, Loader2, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Plus, Redo2, Trash2, Undo2, X } from '@lucide/vue'
 import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
@@ -320,6 +320,13 @@ function saveNow(panel: Panel, field: keyof Panel, value: unknown) {
 
 // SBD-01·02·03 자동 콘티 · 다시 나누기 · 빈 콘티
 const view = useLocalStorage<'cut' | 'board' | 'script'>('toonflow:studio:view', 'cut')
+// 콘티·그림 단계 그림체·캐릭터: 비어 있으면 펼쳐서 보여 줘요
+const lookCast = computed(() => new Set([...(s.series.value?.mainCharacterIds ?? []), ...(s.episode.value?.settings.characterIds ?? [])]))
+const lookCount = computed(() => lib.characters.value.filter(c => lookCast.value.has(c.id)).length)
+const lookStyleId = computed(() => s.episode.value?.settings.styleId ?? s.series.value?.styleId ?? null)
+const lookStyleName = computed(() => lib.styles.value.find(st => st.id === lookStyleId.value)?.name ?? '')
+const lookOpen = ref(false)
+watch([step, () => s.episode.value?.id], () => (lookOpen.value = step.value === 'illustrate' ? !lookStyleName.value || !lookCount.value : !lookCount.value), { immediate: true })
 const lastOpened = useLocalStorage<Record<string, string>>('toonflow:studio:last', {})
 watch(() => episode.value?.id, (id) => {
   const ws = auth.workspace?.id
@@ -511,6 +518,20 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <p v-if="!cuts.length" class="text-muted-foreground px-1 text-sm">
             {{ t.noCuts }}
           </p>
+          <div v-if="step === 'storyboard' || step === 'illustrate'" class="mx-1 mt-1 mb-2 flex flex-col gap-2 rounded-md border p-2">
+            <button type="button" class="flex items-center justify-between gap-2 text-left text-xs" :aria-expanded="lookOpen" @click="lookOpen = !lookOpen">
+              <span class="min-w-0">
+                <span class="font-semibold">{{ step === 'illustrate' ? t.look.title : t.look.characters }}</span>
+                <span class="text-muted-foreground block truncate">{{ step === 'illustrate' ? t.look.summary(lookStyleName, lookCount) : t.look.castSummary(lookCount) }}</span>
+              </span>
+              <ChevronDown class="size-3.5 shrink-0 transition-transform" :class="lookOpen ? 'rotate-180' : ''" />
+            </button>
+            <StudioLookPanel
+              v-if="lookOpen" :episode="episode" :edit="edit" :styles="lib.styles.value" :characters="lib.characters.value" :series-style-id="s.series.value?.styleId ?? null" :series-main-ids="s.series.value?.mainCharacterIds ?? []"
+              :show-style="step === 'illustrate'" :hint="step === 'illustrate' ? t.look.illHint : t.look.boardHint"
+              @settings="patch => run(() => story.updateSettings(patch))" @series-style="id => run(() => lib.setSeriesStyle(episode!.seriesId, id))" @series-main="(id, on) => run(() => lib.setMain(episode!.seriesId, id, on))"
+            />
+          </div>
           <div v-if="edit && step === 'storyboard'" class="flex flex-col gap-1.5 px-1 pt-1">
             <p v-if="running('storyboard.split')" class="text-muted-foreground flex items-center gap-1.5 text-xs">
               <Loader2 class="size-3.5 animate-spin" /> {{ t.board.splitting }}
