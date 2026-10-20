@@ -18,14 +18,14 @@ env:
   # 서비스 계정 시크릿을 등록하기 전에는 배포 단계를 건너뛴다
   HAS_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
   ONLY: ${{ inputs.only || vars.FIREBASE_DEPLOY_ONLY || 'hosting,firestore,functions,storage' }}
-  # Firebase 웹 설정은 공개값(앱 번들에 그대로 들어감). 비면 앱이 데모 프로젝트·에뮬레이터(127.0.0.1)에 붙으므로 기본값을 둔다
-  NUXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NUXT_PUBLIC_FIREBASE_API_KEY || 'AIzaSyANpbM08WuxjefshQApbgXjDvdNdYfpTas' }}
+  # Firebase 웹 설정(Actions 변수). 비면 앱이 데모 프로젝트·에뮬레이터(127.0.0.1)에 붙으므로 빌드 전에 확인한다
+  NUXT_PUBLIC_FIREBASE_API_KEY: ${{ vars.NUXT_PUBLIC_FIREBASE_API_KEY }}
   # 운영은 앱과 같은 사이트에서 로그인 처리(서드파티 저장소 차단 대응). PR 미리보기는 기본 authDomain 사용
-  NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ github.event_name != 'pull_request' && (vars.FIREBASE_PROD_AUTH_DOMAIN || 'toonflow-studio.web.app') || vars.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN || 'toonflow-351ed.firebaseapp.com' }}
-  NUXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_PROJECT_ID || 'toonflow-351ed' }}
-  NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET || 'toonflow-351ed.firebasestorage.app' }}
-  NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '862210136843' }}
-  NUXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_APP_ID || '1:862210136843:web:57e1b1a224b7723be9e00e' }}
+  NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN: ${{ github.event_name != 'pull_request' && (vars.FIREBASE_PROD_AUTH_DOMAIN || 'toonflow-studio.web.app') || vars.NUXT_PUBLIC_FIREBASE_AUTH_DOMAIN }}
+  NUXT_PUBLIC_FIREBASE_PROJECT_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_PROJECT_ID }}
+  NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.NUXT_PUBLIC_FIREBASE_STORAGE_BUCKET }}
+  NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
+  NUXT_PUBLIC_FIREBASE_APP_ID: ${{ vars.NUXT_PUBLIC_FIREBASE_APP_ID }}
 
 jobs:
   deploy:
@@ -47,6 +47,13 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      - name: Firebase 웹 설정 확인
+        run: |
+          missing=""
+          for k in API_KEY AUTH_DOMAIN PROJECT_ID STORAGE_BUCKET MESSAGING_SENDER_ID APP_ID; do
+            v="NUXT_PUBLIC_FIREBASE_$k"; [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then echo "::error::Actions 변수가 비어 있어요:$missing (Settings → Secrets and variables → Actions → Variables)"; exit 1; fi
       - run: pnpm generate
 
       # PR: 미리보기 채널(7일)에 앱만 올리고 PR에 주소를 댓글로 남긴다
