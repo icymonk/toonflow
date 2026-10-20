@@ -145,6 +145,7 @@ export const ko = {
     storyText: '바로 입력 (제보함에 "내 경험"으로 남아요)',
     needMaterial: '제보를 고르거나 썰을 입력해 주세요',
     needSeries: '작품을 먼저 만들어 주세요',
+    setup: { title: (name: string) => `${name} 준비`, body: '이 순서로 정해 두면 에피소드마다 같은 그림체·캐릭터로 그려져요. 건너뛰어도 돼요.', style: '그림체', noStyle: '고르지 않음', newStyle: '그림체 만들기', characters: '주요 캐릭터', noCharacters: '아직 없어요', pickCharacters: '캐릭터 고르기·만들기', episode: '첫 에피소드', firstEpisode: '에피소드 만들기', hide: '숨기기' },
     showArchived: '보관한 것도 보기',
     archive: '보관',
     unarchive: '보관 해제',
@@ -684,6 +685,7 @@ export const ko = {
     makeOnce: '이번 화만',
     created: '캐릭터를 만들었어요',
   },
+  seriesScope: { label: '작업할 작품', all: '모든 작품', only: (name: string) => `${name}만 보는 중` },
   home: {
     start: '새 에피소드 만들기',
     addStory: '썰 등록',
@@ -693,6 +695,7 @@ export const ko = {
     steps: { story: 'Story · 각색', storyboard: 'Storyboard · 콘티', illustrate: 'Illustrate · 그림', review: 'Review · 검수', export: 'Export · 내보내기' } as Record<string, string>,
     today: { title: '오늘 할 일', newSubs: (n: number) => `새 제보 ${n}개 살펴보기`, review: (n: number) => `검수·내보내기 남은 에피소드 ${n}개`, illustrate: (n: number) => `그림 고르는 중인 에피소드 ${n}개`, failed: (n: number) => `최근 실패한 AI 작업 ${n}개`, none: '오늘은 밀린 일이 없어요', planned: (d: string, title: string) => `${d} 게시 예정 · ${title}` },
     month: { title: '이번 달 현황', created: '만든 에피소드', published: '발행', avgCost: '발행 1편 평균 비용', avgHours: '발행까지 평균', hours: (h: number) => `${h}시간`, spent: 'AI 사용' },
+    quick: { title: '썰로 바로 만들어 보기', body: '썰만 붙여 넣으면 작품과 에피소드를 만들고, 기본 그림체로 각색을 바로 시작해요. 그림체·캐릭터는 나중에 정해도 돼요.', placeholder: '예: 오늘 회사 엘리베이터에서 생긴 일…', start: '바로 만들기', starting: '만드는 중…', seriesName: '빠른 시작' },
     guide: { title: '처음 사용 안내', hide: '숨기기', style: '그림체 만들기', character: '캐릭터 만들기', episode: '첫 에피소드 만들기' },
   },
   palette: {

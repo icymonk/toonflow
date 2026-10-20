@@ -1,6 +1,6 @@
 import { useLocalStorage } from '@vueuse/core'
 
-/** 캐릭터·그림체·에셋 화면이 같이 쓰는 작품 선택 (마지막 선택 기억, 없는 작품이면 전체) */
+/** EPI-05 지금 작업 중인 작품: 사이드바·Stories·제작실·캐릭터·그림체·에셋·Home이 같이 써요 (마지막 선택 기억, 없는 작품이면 전체) */
 export function useSeriesFilter(series: Ref<{ id: string }[]>) {
   const stored = useLocalStorage('toonflow:library:series', '')
   return computed({

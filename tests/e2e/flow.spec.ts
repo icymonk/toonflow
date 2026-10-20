@@ -240,6 +240,18 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByRole('link', { name: /제보자가 동의를 철회했어요/ }).click()
   await expect(page).toHaveURL(/\/inbox\?id=/)
 
+  // CMN-04 빠른 시작: 썰만 넣으면 작품·에피소드를 만들고 각색이 바로 시작된다. EPI-05 그 작품이 지금 작품이 된다
+  await page.goto('/')
+  await page.getByLabel('썰로 바로 만들어 보기').fill(`빠른 시작 썰\n${STORY}`)
+  await page.getByRole('button', { name: '바로 만들기' }).click()
+  await page.waitForURL(/\/studio\?episode=/)
+  await expect(page.getByText('사용 중').first()).toBeVisible({ timeout: 90_000 })
+  await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('빠른 시작 썰')
+  await page.goto('/characters')
+  await expect(page.getByText('빠른 시작 썰만 보는 중')).toBeVisible()
+  await page.getByRole('button', { name: '모든 작품' }).click()
+  await expect(page.getByRole('combobox', { name: '작업할 작품' })).toContainText('모든 작품')
+
   // ACC-12: 새 워크스페이스를 만들면 그쪽이 열리고, 메뉴에서 원래 워크스페이스로 돌아온다
   await page.goto('/')
   const switcher = page.getByRole('button', { name: '워크스페이스 바꾸기' })
