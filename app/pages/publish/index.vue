@@ -19,10 +19,10 @@ const krw = (n: number) => `₩${(n ?? 0).toLocaleString('ko-KR')}`
       <h1 class="text-2xl font-bold">
         Publish <span class="text-muted-foreground text-base font-normal">· 발행</span>
       </h1>
-      <select v-model="filter" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.series">
+      <AppSelect v-model="filter" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.series">
         <option value="">{{ t.allSeries }}</option>
         <option v-for="s in series" :key="s.id" :value="s.id">{{ s.name }}</option>
-      </select>
+      </AppSelect>
     </div>
     <p v-if="!rows.length" class="text-muted-foreground text-sm">{{ t.empty }}</p>
     <table v-else class="w-full text-sm">

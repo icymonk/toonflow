@@ -41,7 +41,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf))
       <Button size="icon" variant="outline" class="size-8" :aria-label="playing ? t.pause : t.play" :disabled="!total" @click="toggle">
         <Pause v-if="playing" class="size-4" /><Play v-else class="size-4" />
       </Button>
-      <input v-model.number="time" type="range" min="0" :max="total" step="33" class="flex-1" :aria-label="t.seek">
+      <AppSlider v-model="time" min="0" :max="total" step="33" class="flex-1" :aria-label="t.seek" />
       <span class="text-muted-foreground w-24 text-right tabular-nums">{{ fmtSec(time) }} / {{ fmtSec(total) }}</span>
     </div>
   </div>

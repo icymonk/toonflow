@@ -186,15 +186,15 @@ function again() {
           {{ t.age }}
         </p>
         <label class="flex items-start gap-2 text-sm">
-          <input v-model="form.consent" type="checkbox" class="mt-1" :aria-label="t.consent" required>
+          <AppCheck v-model="form.consent" class="mt-1" :aria-label="t.consent" required />
           <span><b>{{ t.consent }}</b> {{ page.consentText || CONSENT_TEXT }}</span>
         </label>
         <label class="flex items-start gap-2 text-sm">
-          <input v-model="form.credit" type="checkbox" class="mt-1" :aria-label="t.credit" :disabled="!form.nickname.trim()">
+          <AppCheck v-model="form.credit" class="mt-1" :aria-label="t.credit" :disabled="!form.nickname.trim()" />
           <span>{{ t.credit }}</span>
         </label>
         <label class="flex items-start gap-2 text-sm">
-          <input v-model="form.notify" type="checkbox" class="mt-1" :aria-label="t.notify" :disabled="!form.email.trim()">
+          <AppCheck v-model="form.notify" class="mt-1" :aria-label="t.notify" :disabled="!form.email.trim()" />
           <span>{{ t.notify }}</span>
         </label>
         <p v-if="error" class="text-destructive text-sm" role="alert">
@@ -209,11 +209,11 @@ function again() {
           {{ t.report.open }}
         </summary>
         <form class="mt-2 flex flex-col gap-2" @submit.prevent="sendReport">
-          <select v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="t.report.reason">
+          <AppSelect v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="t.report.reason">
             <option v-for="r in REPORT_REASONS" :key="r" :value="r">
               {{ ko.report.reasons[r] }}
             </option>
-          </select>
+          </AppSelect>
           <Textarea v-model="report.detail" rows="2" maxlength="500" :aria-label="t.report.detail" :placeholder="t.report.detail" />
           <Button size="sm" variant="outline" type="submit" class="self-start" :loading="reporting">
             {{ t.report.send }}

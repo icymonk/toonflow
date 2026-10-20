@@ -144,11 +144,11 @@ async function removeSeries(id: string) {
           </div>
           <div class="flex flex-col gap-1.5">
             <Label for="s-tone">{{ t.tone }}</Label>
-            <select id="s-tone" v-model="seriesForm.tone" :class="selectClass">
+            <AppSelect id="s-tone" v-model="seriesForm.tone" :class="selectClass">
               <option v-for="tone in TONES" :key="tone" :value="tone">
                 {{ t.tones[tone] }}
               </option>
-            </select>
+            </AppSelect>
           </div>
           <div class="flex flex-col gap-1.5">
             <Label for="s-pages">{{ t.pageCount }}</Label>
@@ -178,11 +178,11 @@ async function removeSeries(id: string) {
           <div class="grid gap-3 sm:grid-cols-5">
             <div class="flex flex-col gap-1.5 sm:col-span-2">
               <Label for="e-series">{{ t.series }}</Label>
-              <select id="e-series" v-model="epForm.seriesId" :class="selectClass" required>
+              <AppSelect id="e-series" v-model="epForm.seriesId" :class="selectClass" required>
                 <option v-for="s in series" :key="s.id" :value="s.id">
                   {{ s.name }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-1.5 sm:col-span-3">
               <Label for="e-title">{{ t.title }}</Label>
@@ -190,11 +190,11 @@ async function removeSeries(id: string) {
             </div>
             <div class="flex flex-col gap-1.5">
               <Label for="e-tone">{{ t.tone }}</Label>
-              <select id="e-tone" v-model="epForm.tone" :class="selectClass">
+              <AppSelect id="e-tone" v-model="epForm.tone" :class="selectClass">
                 <option v-for="tone in TONES" :key="tone" :value="tone">
                   {{ t.tones[tone] }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-1.5">
               <Label for="e-pages">{{ t.pageCount }}</Label>
@@ -202,11 +202,11 @@ async function removeSeries(id: string) {
             </div>
             <div class="flex flex-col gap-1.5 sm:col-span-3">
               <Label for="e-narrator">{{ t.narrator }}</Label>
-              <select id="e-narrator" v-model="epForm.narrator" :class="selectClass">
+              <AppSelect id="e-narrator" v-model="epForm.narrator" :class="selectClass">
                 <option v-for="n in ['first', 'third'] as const" :key="n" :value="n">
                   {{ t.narrators[n] }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
           </div>
           <fieldset class="flex flex-col gap-1.5">
@@ -217,7 +217,7 @@ async function removeSeries(id: string) {
               {{ t.noAccepted }}
             </p>
             <label v-for="s in usable" :key="s.id" class="flex items-start gap-2 text-sm">
-              <input v-model="epForm.submissionIds" type="checkbox" :value="s.id" class="mt-1">
+              <AppCheck v-model="epForm.submissionIds" :value="s.id" class="mt-1" />
               <span><span class="font-medium">{{ s.title }}</span> <span class="text-muted-foreground line-clamp-1">{{ s.body }}</span></span>
             </label>
           </fieldset>
@@ -273,7 +273,7 @@ async function removeSeries(id: string) {
       </div>
 
       <div class="flex items-center gap-2 text-sm">
-        <label class="flex items-center gap-1.5"><input v-model="showArchived" type="checkbox"> {{ t.showArchived }}</label>
+        <label class="flex items-center gap-1.5"><AppCheck v-model="showArchived" /> {{ t.showArchived }}</label>
       </div>
 
       <div class="overflow-x-auto rounded-lg border">
@@ -303,24 +303,24 @@ async function removeSeries(id: string) {
               </td>
               <td class="px-3 py-2">{{ seriesName(e.seriesId) }}</td>
               <td class="px-3 py-2">
-                <select
+                <AppSelect
                   :value="stageOf(e)" :class="selectClass" :disabled="!edit" :aria-label="t.col.stage"
-                  @change="setStage(e, ($event.target as HTMLSelectElement).value as EpisodeStage)"
+                  @change="setStage(e, $event as EpisodeStage)"
                 >
                   <option v-for="st in EPISODE_STAGES" :key="st" :value="st">
                     {{ t.stages[st] }}
                   </option>
-                </select>
+                </AppSelect>
               </td>
               <td class="px-3 py-2">{{ t.pages(e.settings.pageCount) }}</td>
               <td class="px-3 py-2">{{ krw(e.costKrw) }}</td>
               <td class="text-muted-foreground px-3 py-2">{{ date(e) }}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <template v-if="edit">
-                  <select :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" value="" @change="dup(e, ($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''">
+                  <AppSelect :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" model-value="" @change="dup(e, $event)">
                     <option value="" disabled>{{ t.duplicate }}</option>
                     <option v-for="m in (['structure', 'full'] as const)" :key="m" :value="m">{{ t.duplicateModes[m] }}</option>
-                  </select>
+                  </AppSelect>
                   <Button size="sm" variant="ghost" @click="toggleArchive(e)">
                     {{ e.archivedAt ? t.unarchive : t.archive }}
                   </Button>

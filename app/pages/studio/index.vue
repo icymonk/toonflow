@@ -612,9 +612,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <Button size="icon" variant="outline" :disabled="selectedIndex <= 0" :aria-label="t.prev" @click="step1(-1)">
               <ChevronLeft class="size-4" />
             </Button>
-            <select :value="selected.pageIndex" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.jump" @change="jumpPage(Number(($event.target as HTMLSelectElement).value))">
+            <AppSelect :value="selected.pageIndex" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.jump" @change="jumpPage(Number($event))">
               <option v-for="i in pageCount" :key="i" :value="i - 1">{{ t.page(i) }}</option>
-            </select>
+            </AppSelect>
             <Button size="icon" variant="outline" :disabled="selectedIndex >= cuts.length - 1" :aria-label="t.next" @click="step1(1)">
               <ChevronRight class="size-4" />
             </Button>

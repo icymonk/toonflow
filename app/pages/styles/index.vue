@@ -38,7 +38,7 @@ async function create() {
           <Plus class="size-4" /> {{ t.newStyle }}
         </Button>
       </div>
-      <label class="flex items-center gap-1.5 text-sm"><input v-model="archived" type="checkbox"> {{ t.archived }}</label>
+      <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="archived" /> {{ t.archived }}</label>
       <AppListSkeleton v-if="!lib.loaded.styles" />
       <div v-else-if="!lib.styles.value.length" class="text-muted-foreground flex flex-col gap-1 py-12 text-center">
         <p class="text-foreground font-medium">
@@ -57,10 +57,10 @@ async function create() {
       </div>
       <div v-if="current && lib.styles.value.length > 1" class="flex flex-col gap-2 border-t pt-3">
         <label class="flex items-center gap-2 text-sm">{{ t.compareWith }}
-          <select v-model="compareId" class="border-input bg-card h-8 rounded-md border px-2 text-sm">
+          <AppSelect v-model="compareId" class="border-input bg-card h-8 rounded-md border px-2 text-sm">
             <option value="">-</option>
             <option v-for="s in lib.styles.value.filter(x => x.id !== current!.id)" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
+          </AppSelect>
         </label>
         <div v-if="compareWith" class="grid grid-cols-2 gap-3">
           <div v-for="s in [current, compareWith]" :key="s.id" class="flex flex-col gap-1">

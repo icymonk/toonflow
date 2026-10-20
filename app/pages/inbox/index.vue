@@ -204,11 +204,11 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
           <div class="grid gap-3 sm:grid-cols-3">
             <div class="flex flex-col gap-1.5">
               <Label for="sub-source">{{ t.sourceLabel }}</Label>
-              <select id="sub-source" v-model="form.source" :class="selectClass">
+              <AppSelect id="sub-source" v-model="form.source" :class="selectClass">
                 <option v-for="s in MANUAL_SOURCES" :key="s" :value="s">
                   {{ t.source[s] }}
                 </option>
-              </select>
+              </AppSelect>
             </div>
             <div class="flex flex-col gap-1.5">
               <Label for="sub-note">{{ t.sourceNoteLabel }}</Label>
@@ -246,31 +246,31 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <Input v-model="filter.q" :placeholder="t.search" class="w-60" />
-        <select v-model="filter.source" :class="selectClass" :aria-label="t.sourceLabel">
+        <AppSelect v-model="filter.source" :class="selectClass" :aria-label="t.sourceLabel">
           <option value="all">
             {{ t.anySource }}
           </option>
           <option v-for="s in SUBMISSION_SOURCES" :key="s" :value="s">
             {{ t.source[s] }}
           </option>
-        </select>
-        <select v-model="filter.tag" :class="selectClass" :aria-label="t.tagsLabel">
+        </AppSelect>
+        <AppSelect v-model="filter.tag" :class="selectClass" :aria-label="t.tagsLabel">
           <option value="">
             {{ t.anyTag }}
           </option>
           <option v-for="tag in allTags" :key="tag" :value="tag">
             #{{ tag }}
           </option>
-        </select>
-        <select v-model.number="filter.days" :class="selectClass">
+        </AppSelect>
+        <AppSelect v-model.number="filter.days" :class="selectClass">
           <option :value="0">
             {{ t.anyTime }}
           </option>
           <option v-for="d in [7, 30, 90]" :key="d" :value="d">
             {{ t.days(d) }}
           </option>
-        </select>
-        <label class="flex items-center gap-1.5 text-sm"><input v-model="filter.starred" type="checkbox"> {{ t.starredOnly }}</label>
+        </AppSelect>
+        <label class="flex items-center gap-1.5 text-sm"><AppCheck v-model="filter.starred" /> {{ t.starredOnly }}</label>
         <span class="text-muted-foreground ml-auto text-xs">{{ t.keys }}</span>
       </div>
 
@@ -279,14 +279,14 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
         <Button v-if="acceptedChecked.length" as-child size="sm" variant="outline">
           <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: acceptedChecked.join(',') } }">{{ t.toEpisode }} ({{ acceptedChecked.length }})</NuxtLink>
         </Button>
-        <select v-model="bulkStatus" :class="selectClass" :aria-label="t.setStatus" @change="bulkStatus && applyStatus(checked, bulkStatus); bulkStatus = ''">
+        <AppSelect v-model="bulkStatus" :class="selectClass" :aria-label="t.setStatus" @change="bulkStatus && applyStatus(checked, bulkStatus); bulkStatus = ''">
           <option value="">
             {{ t.setStatus }}
           </option>
           <option v-for="st in MANUAL_STATUSES" :key="st" :value="st">
             {{ t.status[st] }}
           </option>
-        </select>
+        </AppSelect>
       </div>
 
       <div class="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
@@ -299,7 +299,7 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             class="flex cursor-pointer items-start gap-2 rounded-md border p-3" :class="s.id === currentId ? 'border-primary bg-card' : 'bg-card/60 hover:bg-card'"
             @click="open(s)"
           >
-            <input v-if="edit" v-model="checked" type="checkbox" :value="s.id" class="mt-1" :aria-label="s.title" @click.stop>
+            <AppCheck v-if="edit" v-model="checked" :value="s.id" class="mt-1" :aria-label="s.title" @click.stop />
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <span class="rounded px-1.5 py-0.5 text-xs" :class="STATUS_CLASS[s.status]">{{ t.status[s.status] }}</span>
@@ -331,11 +331,11 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
                 {{ t.report }}
               </summary>
               <form class="mt-2 flex flex-col gap-2" @submit.prevent="sendReport">
-                <select v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="ko.intake.report.reason">
+                <AppSelect v-model="report.reason" class="border-input bg-card h-8 rounded-md border px-2 text-sm" :aria-label="ko.intake.report.reason">
                   <option v-for="r in REPORT_REASONS" :key="r" :value="r">
                     {{ ko.report.reasons[r] }}
                   </option>
-                </select>
+                </AppSelect>
                 <Textarea v-model="report.detail" rows="2" maxlength="500" :aria-label="ko.intake.report.detail" :placeholder="ko.intake.report.detail" />
                 <Button size="sm" variant="outline" type="submit" class="self-start">
                   {{ ko.intake.report.send }}
@@ -407,14 +407,14 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
               </div>
             </section>
             <div class="flex items-center gap-2">
-              <select
+              <AppSelect
                 :value="current.status" :class="selectClass" :aria-label="t.setStatus" :disabled="!edit || !isManual(current)"
-                @change="applyStatus([current.id], ($event.target as HTMLSelectElement).value as SubmissionStatus)"
+                @change="applyStatus([current.id], $event as SubmissionStatus)"
               >
                 <option v-for="st in isManual(current) ? MANUAL_STATUSES : [current.status]" :key="st" :value="st">
                   {{ t.status[st] }}
                 </option>
-              </select>
+              </AppSelect>
               <span v-if="!edit" class="text-muted-foreground text-xs">{{ t.readOnly }}</span>
             </div>
             <form class="flex flex-col gap-2" @submit.prevent="saveDetail">

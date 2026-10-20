@@ -58,10 +58,10 @@ const save = useDebounceFn(() => emit('save', {
       </h2>
       <span v-if="active" class="bg-primary text-primary-foreground rounded px-1.5 text-xs">{{ t.active }}</span>
       <div class="ml-auto flex gap-2">
-        <select v-if="others.length" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :aria-label="t.compareWith" @change="emit('compare', ($event.target as HTMLSelectElement).value); ($event.target as HTMLSelectElement).value = ''">
+        <AppSelect v-if="others.length" model-value="" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :aria-label="t.compareWith" @change="emit('compare', $event)">
           <option value="">{{ t.compare }}</option>
           <option v-for="o in others" :key="o.id" :value="o.id">{{ o.label }}</option>
-        </select>
+        </AppSelect>
       </div>
       <div v-if="edit" class="flex gap-2">
         <Button size="sm" variant="outline" @click="emit('remake')">
@@ -89,10 +89,10 @@ const save = useDebounceFn(() => emit('save', {
         <Textarea v-model="s.lines" :disabled="!edit" rows="3" :aria-label="t.dialogues" :placeholder="t.dialogues" class="font-mono text-xs" />
         <div v-if="edit" class="flex flex-wrap items-center gap-1 text-xs">
           <span class="text-muted-foreground">{{ t.rewrite }}</span>
-          <select v-model="field[s.id]" class="border-input bg-card h-7 rounded-md border px-1 text-xs" :aria-label="t.rewriteField">
+          <AppSelect v-model="field[s.id]" class="border-input bg-card h-7 rounded-md border px-1 text-xs" :aria-label="t.rewriteField">
             <option :value="undefined">{{ t.fields.dialogues }}</option>
             <option value="beats">{{ t.fields.beats }}</option>
-          </select>
+          </AppSelect>
           <button v-for="m in REWRITE_MODES.filter(x => x !== 'refine')" :key="m" class="hover:bg-muted rounded border px-1.5 py-0.5 disabled:opacity-50" :disabled="rewriting" @click="ask(s, m)">{{ t.modes[m] }}</button>
           <span v-if="rewriting" class="text-muted-foreground">{{ t.rewriting }}</span>
         </div>

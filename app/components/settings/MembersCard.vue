@@ -94,9 +94,9 @@ const revoke = (id: string) => act(() => callFn($functions, 'revokeInvite', { wo
               <span v-if="m.email && m.displayName" class="text-muted-foreground block">{{ m.email }}</span>
             </td>
             <td>
-              <select v-if="editable(m)" :value="m.role" :class="sel" :aria-label="t.roleOf(name(m))" @change="setRole(m, ($event.target as HTMLSelectElement).value)">
+              <AppSelect v-if="editable(m)" :value="m.role" :class="sel" :aria-label="t.roleOf(name(m))" @change="setRole(m, $event)">
                 <option v-for="r in assignable(actorRole)" :key="r" :value="r">{{ t.roles[r] }}</option>
-              </select>
+              </AppSelect>
               <span v-else>{{ t.roles[m.role] }}</span>
             </td>
             <td>{{ when(m.lastActiveAt) }}</td>
@@ -119,12 +119,12 @@ const revoke = (id: string) => act(() => callFn($functions, 'revokeInvite', { wo
         <span class="font-medium">{{ t.invite }}</span>
         <p class="text-muted-foreground text-xs">{{ t.inviteHint }}</p>
         <div class="flex flex-wrap items-center gap-2">
-          <select v-model="newRole" :class="sel" :aria-label="t.inviteRole">
+          <AppSelect v-model="newRole" :class="sel" :aria-label="t.inviteRole">
             <option v-for="r in assignable(actorRole)" :key="r" :value="r">{{ t.roles[r] }}</option>
-          </select>
-          <select v-model.number="newDays" :class="sel" :aria-label="t.inviteDays">
+          </AppSelect>
+          <AppSelect v-model.number="newDays" :class="sel" :aria-label="t.inviteDays">
             <option v-for="d in INVITE_DAYS" :key="d" :value="d">{{ t.days(d) }}</option>
-          </select>
+          </AppSelect>
           <Button size="sm" @click="createInvite">{{ t.createInvite }}</Button>
         </div>
         <template v-if="link">
