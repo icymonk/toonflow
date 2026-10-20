@@ -143,12 +143,12 @@ export const versionToText = (v: Pick<StoryVersion, 'logline' | 'scenes' | 'punc
   [v.logline, ...v.scenes.map((s, i) => `#${i + 1} ${s.heading}\n${s.beats}\n${dialoguesToText(s.dialogues)}`), v.punchline].filter(Boolean).join('\n\n')
 
 /** STO-03: 각색 때 함께 넘기는 작품 참고 글 */
-export function storyContext(memo: string | undefined, chars: { name: string, personality?: string, speech?: string[] }[]): string {
+export function storyContext(memo: string | undefined, chars: { name: string, personality?: string, speech?: string[], appearance?: { outfit?: string } }[]): string {
   const lines: string[] = []
   if (memo?.trim()) lines.push(`작품 메모: ${memo.trim()}`)
   for (const c of chars) {
     const speech = (c.speech ?? []).map(x => x.trim()).filter(Boolean)
-    const parts = [c.personality?.trim() && `성격 ${c.personality.trim()}`, speech.length && `말투 예: ${speech.map(x => `"${x}"`).join(' ')}`].filter(Boolean)
+    const parts = [c.personality?.trim() && `성격 ${c.personality.trim()}`, speech.length && `말투 예: ${speech.map(x => `"${x}"`).join(' ')}`, c.appearance?.outfit?.trim() && `기본 의상 ${c.appearance.outfit.trim()}`].filter(Boolean)
     if (parts.length) lines.push(`${c.name}: ${parts.join(' / ')}`)
   }
   return lines.join('\n').slice(0, 4000)
