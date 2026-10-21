@@ -10,10 +10,17 @@ const emit = defineEmits<{ plan: [count?: number], split: [parts: { title: strin
 const t = ko.studio.split
 const count = ref(0)
 const parts = ref<{ title: string, text: string, hook: string }[]>([])
+const mainTitle = ref('')
+watch(() => props.episode.id, () => (mainTitle.value = props.episode.title.trim()), { immediate: true })
+// 메인 제목은 모든 화가 같고, 화마다 "N화"와 부제목만 다르다
+const fullTitle = (i: number) => {
+  const sub = parts.value[i]?.title.trim()
+  return [`${mainTitle.value.trim()} ${t.n(i + 1)}`.trim(), sub].filter(Boolean).join(' · ').slice(0, 80)
+}
 watch(() => props.episode.episodePlan?.jobId, () => (parts.value = (props.episode.episodePlan?.parts ?? []).map(p => ({ ...p }))), { immediate: true })
 const sel = 'border-input bg-card h-8 rounded-lg border px-2 text-sm disabled:opacity-50'
 async function confirm() {
-  const list = parts.value.filter(p => p.text.trim()).map(p => ({ title: p.title.trim().slice(0, 80), text: p.text.trim() }))
+  const list = parts.value.map((p, i) => ({ title: fullTitle(i), text: p.text.trim() })).filter(p => p.text)
   if (list.length < 2) return
   if (await confirmDialog(t.confirm(list.length))) emit('split', list)
 }
@@ -36,9 +43,11 @@ async function confirm() {
       </Button>
     </div>
     <template v-if="parts.length && !episode.materialPart">
+      <span class="text-xs font-medium">{{ t.mainTitle }}</span>
+      <Input v-model="mainTitle" class="h-8 text-sm" maxlength="60" :placeholder="t.mainTitle" :aria-label="t.mainTitle" :disabled="!edit" />
       <div v-for="(p, i) in parts" :key="i" class="flex flex-col gap-1 rounded-md border p-2">
-        <span class="text-xs font-medium">{{ t.n(i + 1) }}</span>
-        <Input v-model="p.title" class="h-8 text-xs" :placeholder="t.partTitle" :aria-label="t.partTitle" :disabled="!edit" />
+        <span class="truncate text-xs font-medium">{{ fullTitle(i) }}</span>
+        <Input v-model="p.title" class="h-8 text-xs" :placeholder="t.partTitle" :aria-label="`${t.n(i + 1)} ${t.partTitle}`" :disabled="!edit" />
         <Textarea v-model="p.text" rows="4" class="text-xs" :aria-label="t.partText" :disabled="!edit" />
         <p v-if="p.hook" class="text-muted-foreground text-xs">{{ t.hook }} {{ p.hook }}</p>
       </div>
