@@ -10,6 +10,7 @@ import type { CreateWorkspaceInput, DeleteAccountInput, TransferOwnershipInput, 
 import type { AdminOverview, AdminOverviewInput, LogAdminViewInput } from './activity'
 import type { CreateInviteInput, InviteInfo, InviteTokenInput, MemberRefInput, RevokeInviteInput, SetMemberLimitInput, SetMemberRoleInput } from './members'
 import type { GrantPlanInput, SetWorkspaceLimitInput } from './usage'
+import type { ConnectInstagramInput, InstagramWorkspaceInput, PublishInstagramInput } from './instagram'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
 export const ERROR_KEYS = {
@@ -33,6 +34,9 @@ export const ERROR_KEYS = {
   notAdminTarget: 'error.notAdminTarget',
   ownerCannotLeave: 'error.ownerCannotLeave',
   overPlan: 'error.overPlan',
+  instagramNotConfigured: 'error.instagramNotConfigured',
+  instagramNotConnected: 'error.instagramNotConnected',
+  instagramFailed: 'error.instagramFailed',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -76,4 +80,8 @@ export interface Callables {
   logAdminView: { input: LogAdminViewInput, output: { episodes: number, submissions: number, members: number } }
   grantPlan: { input: GrantPlanInput, output: { ok: true } }
   storageUsage: { input: UsageInput, output: { ai: number, refs: number, total: number } }
+  instagramAuthUrl: { input: InstagramWorkspaceInput, output: { url: string } }
+  connectInstagram: { input: ConnectInstagramInput, output: { username: string } }
+  disconnectInstagram: { input: InstagramWorkspaceInput, output: { ok: true } }
+  publishInstagram: { input: PublishInstagramInput, output: { url: string } }
 }

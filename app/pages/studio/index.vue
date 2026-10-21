@@ -16,6 +16,7 @@ import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
 import { composeCaption } from '#shared/publish'
+import { IG_CAPTION_MAX, IG_MAX_ITEMS } from '#shared/instagram'
 import { storyContext } from '#shared/story'
 import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
@@ -126,6 +127,21 @@ async function guardExport(fn: () => unknown) {
 const expPage = ref(0)
 watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIndex, i => (expPage.value = i ?? 0), { immediate: true })
 const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.publish.failed))
+// PUB-24
+const igUser = computed(() => auth.workspace?.instagram?.username ?? null)
+async function postInstagram() {
+  const n = exportPages.value.length
+  if (n > IG_MAX_ITEMS) return toast.error(t.publish.igTooMany(IG_MAX_ITEMS))
+  if (fullCaption.value.length > IG_CAPTION_MAX) return toast.error(t.publish.igCaptionLong(IG_CAPTION_MAX))
+  if (!igUser.value || !await confirmDialog(t.publish.igConfirm(n, igUser.value))) return
+  try {
+    await exp.instagram(fullCaption.value)
+    toast.success(t.publish.igPosted)
+  }
+  catch (error) {
+    toast.error(errorMessage(error) ?? ko.errors.instagramFailed)
+  }
+}
 const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
@@ -689,10 +705,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :withdrawn="withdrawnSources.length"
+            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
-            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish"
+            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @instagram="guardExport(postInstagram)"
             @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
           />
           <StudioVideoAside
