@@ -4,13 +4,19 @@ import { STEPS } from './episodes'
 
 type Ts = { toMillis: () => number }
 
-export const PAGE_LAYOUTS = ['1', '2v', '2h', '3', '4'] as const
+/** SBD-23: '3-2-1'은 줄마다 컷 수(위 3칸·가운데 2칸·아래 1칸) */
+export const PAGE_LAYOUTS = ['1', '2v', '2h', '3', '4', '1-2', '2-1', '1-2-1', '3-1', '1-3', '2-1-2', '3-2', '2-3', '2-2-1', '3-2-1', '2-2-2', '3-3', '1-2-3', '3-1-3', '2-3-2', '3-3-1', '2-2-2-1', '2-2-2-2', '3-2-3', '3-3-2'] as const
 export type PageLayout = (typeof PAGE_LAYOUTS)[number]
+/** 한 장에 넣을 수 있는 컷 수 (한 장툰은 4~8컷) */
+export const MAX_PANELS_PER_PAGE = 8
+/** SBD-25 장 맨 위 제목 띠 글자 수 */
+export const PAGE_TITLE_MAX = 40
 
 export interface Page {
   id: string
   layout: PageLayout
   panelIds: string[]
+  title?: string
   deletedAt?: Ts | null
 }
 
@@ -24,9 +30,26 @@ export const DIALOGUE_WARN_CHARS = 40
 /** SBD-10 구도 */
 export const SHOTS = ['closeup', 'bust', 'full', 'wide', 'pov'] as const
 
-export const LAYOUT_BY_COUNT: Record<number, PageLayout> = { 0: '1', 1: '1', 2: '2v', 3: '3', 4: '4' }
-/** SBD-23: 컷 수에 맞는 배치. 2컷만 세로/가로를 고른다 */
-export const layoutOptions = (count: number): PageLayout[] => (count === 2 ? ['2v', '2h'] : [LAYOUT_BY_COUNT[count] ?? '1'])
+const LAYOUTS_BY_COUNT: Record<number, PageLayout[]> = {
+  1: ['1'],
+  2: ['2v', '2h'],
+  3: ['3', '1-2', '2-1'],
+  4: ['4', '1-2-1', '3-1', '1-3'],
+  5: ['2-1-2', '3-2', '2-3', '2-2-1'],
+  6: ['3-2-1', '2-2-2', '3-3', '1-2-3'],
+  7: ['3-1-3', '2-3-2', '3-3-1', '2-2-2-1'],
+  8: ['2-2-2-2', '3-2-3', '3-3-2'],
+}
+/** 컷 수가 바뀌면 그 수의 첫 배치로 */
+export const LAYOUT_BY_COUNT: Record<number, PageLayout> = { 0: '1', ...Object.fromEntries(Object.entries(LAYOUTS_BY_COUNT).map(([n, ls]) => [n, ls[0]!])) }
+/** SBD-23: 컷 수에 맞는 배치 */
+export const layoutOptions = (count: number): PageLayout[] => [...(LAYOUTS_BY_COUNT[count] ?? ['1'])]
+/** 줄 배치('3-2-1')면 줄마다 컷 수. 컷 수가 맞지 않으면 null */
+export function rowsOf(layout: string, count: number): number[] | null {
+  if (!/^\d(-\d)+$/.test(layout)) return null
+  const rows = layout.split('-').map(Number)
+  return rows.reduce((a, b) => a + b, 0) === count ? rows : null
+}
 
 /** STU-12: 앞 단계가 바뀌어 다시 볼 필요가 있는 결과 */
 /** ILL-23 컷 틀 안에서 보일 영역 (0~1 비율) */
@@ -129,7 +152,7 @@ export function movedPanelIds(cuts: Cut[], panelId: string, dir: -1 | 1): Record
   return { [cur.page.id]: from, [neighbor.page.id]: to }
 }
 
-/** SBD-21: 컷을 다른 위치(장 + 순번)로. 대상 장이 4컷이면 null */
+/** SBD-21: 컷을 다른 위치(장 + 순번)로. 대상 장이 가득 찼으면 null */
 export function movePanelTo(pages: Page[], panelId: string, toPageId: string, toIndex: number): Record<string, string[]> | null {
   const from = pages.find(p => p.panelIds.includes(panelId))
   const to = pages.find(p => p.id === toPageId)
@@ -139,7 +162,7 @@ export function movePanelTo(pages: Page[], panelId: string, toPageId: string, to
     ids.splice(Math.min(toIndex, ids.length), 0, panelId)
     return { [from.id]: ids }
   }
-  if (to.panelIds.length >= 4) return null
+  if (to.panelIds.length >= MAX_PANELS_PER_PAGE) return null
   const ids = [...to.panelIds]
   ids.splice(Math.min(toIndex, ids.length), 0, panelId)
   return { [from.id]: from.panelIds.filter(id => id !== panelId), [to.id]: ids }

@@ -10,7 +10,7 @@ import { onKeyStroke, useDebounceFn, useIntervalFn, useLocalStorage, useMediaQue
 import { toast } from 'vue-sonner'
 import { stageOf, STEPS } from '#shared/episodes'
 import { bulkTargets, sameSceneCuts } from '#shared/illustrate'
-import { AI_LABEL, autoCheck } from '#shared/render'
+import { AI_LABEL, autoCheck, cutBoxes, pageSize } from '#shared/render'
 import { creditLine } from '#shared/intake'
 import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
@@ -25,7 +25,7 @@ import type { SocialPlatform } from '#shared/social'
 import { socialRatio } from '#shared/social'
 import { storyContext } from '#shared/story'
 import { checklist, reviewLeft } from '#shared/review'
-import { firstUnmetBefore, remaining } from '#shared/studio'
+import { firstUnmetBefore, MAX_PANELS_PER_PAGE, remaining } from '#shared/studio'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
 
@@ -504,7 +504,7 @@ onKeyStroke('Escape', () => (keysOpen.value = false))
 
 const aspect = computed(() => (episode.value?.settings.aspect ?? '4:5').replace(':', ' / '))
 const krw = (n: number) => `₩${(n ?? 0).toLocaleString('ko-KR')}`
-const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', '2h': 'grid-cols-2', '3': 'grid-rows-3', '4': 'grid-cols-2 grid-rows-2' }
+const previewBoxes = computed(() => { const z = pageSize(episode.value?.settings.aspect); return cutBoxes(previewCuts.value, z.w, z.h) })
 </script>
 
 <template>
@@ -660,7 +660,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
               <span v-if="edit" class="flex gap-0.5">
                 <button :aria-label="t.board.pageUp" :title="t.board.pageUp" :disabled="c.pageIndex === 0" @click="run(() => s.shiftPage(c.page.id, -1))"><ArrowUp class="size-3.5" /></button>
                 <button :aria-label="t.board.pageDown" :title="t.board.pageDown" :disabled="c.pageIndex === pageCount - 1" @click="run(() => s.shiftPage(c.page.id, 1))"><ArrowDown class="size-3.5" /></button>
-                <button v-if="c.page.panelIds.length < 4" :aria-label="t.addPanel" :title="t.addPanel" @click="addPanel(c.page.id)"><Plus class="size-3.5" /></button>
+                <button v-if="c.page.panelIds.length < MAX_PANELS_PER_PAGE" :aria-label="t.addPanel" :title="t.addPanel" @click="addPanel(c.page.id)"><Plus class="size-3.5" /></button>
               </span>
             </div>
             <div
@@ -821,7 +821,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             {{ t.stale[selected.panel.staleFrom] }}
             <button v-if="edit" class="underline" @click="run(() => s.updatePanel(selected!.panel.id, { staleFrom: null }))">{{ t.keep }}</button>
           </div>
-          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :styles="lib.styles.value" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :scene-outfit-diff="sceneOutfitTargets.length" @outfit-scene="run(applySceneOutfit, t.board.outfitSceneDone)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" />
+          <StudioPanelProps :panel="selected.panel" :page="selected.page" :edit="edit" :styles="lib.styles.value" :refining="story.rewriting.value?.panelId === selected.panel.id" @refine="run(() => story.refine(selected!.panel.id, selected!.panel.scene))" @split="run(() => s.splitPanel(selected!.panel.id), t.board.splitDone)" @merge="run(() => s.mergeNext(selected!.panel.id), t.board.mergeDone)" @ref-upload="f => run(async () => s.updatePanel(selected!.panel.id, { refImage: await lib.upload('panels', selected!.panel.id, f) }))" @ref-remove="run(() => s.updatePanel(selected!.panel.id, { refImage: null }))" @edit="(f, v) => editPanel(selected!.panel, f, v)" :scene-outfit-diff="sceneOutfitTargets.length" @outfit-scene="run(applySceneOutfit, t.board.outfitSceneDone)" :characters="lib.characters.value" @create="(n, once) => makeCharacter(selected!.panel, n, once)" @layout="l => run(() => s.setLayout(selected!.page.id, l))" @page-title="v => run(() => s.setPageTitle(selected!.page.id, v))" />
         </template>
         <p v-else class="text-muted-foreground text-sm">{{ t.noSelection }}</p>
       </aside>
@@ -841,8 +841,9 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
       <button class="text-white disabled:opacity-30" :disabled="previewPage === 0" :aria-label="t.prev" @click="previewPage--"><ChevronLeft class="size-8" /></button>
       <div class="flex h-[85dvh] flex-col items-center gap-2">
         <PageRender v-if="(step === 'review' || step === 'export') && episode" class="h-full w-auto bg-white" :style="{ aspectRatio: aspect }" :cuts="previewCuts" :aspect="episode.settings.aspect" :typeset="review.typeset.value" />
-        <div v-else class="grid h-full gap-1 bg-white p-1" :class="gridClass[previewCuts[0]?.page.layout ?? '1']" :style="{ aspectRatio: aspect }">
-          <div v-for="c in previewCuts" :key="c.panel.id" class="relative flex items-center justify-center overflow-hidden bg-neutral-100 p-3 text-center text-xs text-neutral-600">
+        <div v-else class="relative h-full bg-white" :style="{ aspectRatio: aspect }">
+          <div v-if="previewBoxes.title" class="absolute flex items-center justify-center truncate text-xl font-bold text-neutral-900" :style="previewBoxes.title">{{ previewCuts[0]?.page.title }}</div>
+          <div v-for="(c, i) in previewCuts" :key="c.panel.id" class="absolute flex items-center justify-center overflow-hidden bg-neutral-100 p-3 text-center text-xs text-neutral-600" :style="previewBoxes.cuts[i]">
             <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" :adjust="c.panel.adjust" class="absolute inset-0" />
             <template v-else>{{ c.panel.scene || t.noScene }}</template>
           </div>

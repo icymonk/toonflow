@@ -56,7 +56,11 @@ const titles = (p: StoryParams): TextPrompt => ({
 
 const split = (p: StoryParams): TextPrompt => ({
   format: 'split',
-  system: `너는 인스타툰 콘티 작가야. 각색안을 ${p.pageCount}장짜리 인스타툰 콘티로 나눠. pages는 정확히 ${p.pageCount}개, 장마다 panels 1~4개(기본 1컷, 대사가 많거나 빠른 전개면 2컷). 마지막 장은 펀치라인 1컷. `
+  system: (p.pageCount === 1
+    // SBD-26 한 장툰: 한 장에 여러 컷 + 맨 위 상황 제목
+    ? '너는 인스타툰 콘티 작가야. 각색안을 한 장짜리 인스타툰(한 장에 여러 컷)으로 나눠. pages는 정확히 1개, panels는 4~8개(기본 6컷). 앞 컷은 짧고 빠르게 쌓고 마지막 컷은 펀치라인(반응·표정)으로. '
+      + 'title은 장 맨 위에 크게 넣을 상황 제목(예: "POV : 여친이 배부르다고 할 때", 25자 이내). 시간이 건너뛰면 그 컷 대사에 내레이션("<라면 끓여온 뒤>")을 넣어. '
+    : `너는 인스타툰 콘티 작가야. 각색안을 ${p.pageCount}장짜리 인스타툰 콘티로 나눠. pages는 정확히 ${p.pageCount}개, 장마다 panels 1~4개(기본 1컷, 대사가 많거나 빠른 전개면 2컷). 마지막 장은 펀치라인 1컷. title은 빈 문자열. `)
     + 'scene은 그림 AI가 그릴 장면 설명(누가, 어디서, 무엇을. 글자·말풍선은 넣지 않는다), place는 장소·시간, characters는 등장인물 이름, '
     + 'shot은 closeup|bust|full|wide|pov 중 하나, expression·action은 주인공의 표정·동작, outfit은 그 컷 등장인물의 의상(여럿이면 "이름: 의상, 이름: 의상"), mood는 분위기·효과(집중선, 땀방울 등). '
     + '같은 장소·시간이 이어지는 컷은 place와 outfit을 글자까지 똑같이 적어. 의상은 장소나 시간이 바뀌어 갈아입을 이유가 있을 때만 바꿔. 작품 참고에 기본 의상이 있으면 그걸 기준으로 해. '
