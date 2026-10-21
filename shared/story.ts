@@ -96,6 +96,8 @@ export const storyParams = z.object({
   part: z.object({ index: z.number().int().min(1), total: z.number().int().min(2) }).optional(),
   versionId: z.string().optional(),
   draft: z.string().max(20000).optional(),
+  /** STO-25: draft가 각색하지 않은 원문 */
+  verbatim: z.boolean().optional(),
   /** STO-03: 작품 메모·캐릭터 성격·말투 */
   context: z.string().max(4000).optional(),
   /** STO-13: 부분 다시 쓰기 */
@@ -113,7 +115,7 @@ export interface StoryVersion {
   scenes: StoryScene[]
   punchline: string
   titleCandidates: string[]
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', extraRequest: string, direction?: DraftDirection | null }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', extraRequest: string, direction?: DraftDirection | null, verbatim?: boolean }
   jobId: string | null
   basedOn: string | null
   editedAt?: Ts | null
@@ -154,6 +156,13 @@ export function textToDialogues(text: string): StoryLine[] {
 }
 
 /** 제목 후보·Storyboard 입력용 평문 */
+/** STO-25: 원문을 문단마다 장면으로 (AI 없이). 20장면이 넘으면 나머지는 마지막 장면에 합친다 */
+export function materialToScenes(text: string): StoryScene[] {
+  const paras = text.split(/\n\s*\n/).map(s => s.trim()).filter(s => s && s !== '---')
+  const all = paras.length > 20 ? [...paras.slice(0, 19), paras.slice(19).join('\n\n')] : paras
+  return all.map((beats, i) => ({ id: `s${i + 1}`, heading: `장면 ${i + 1}`, beats, dialogues: [] }))
+}
+
 export const versionToText = (v: Pick<StoryVersion, 'logline' | 'scenes' | 'punchline'>) =>
   [v.logline, ...v.scenes.map((s, i) => `#${i + 1} ${s.heading}\n${s.beats}\n${dialoguesToText(s.dialogues)}`), v.punchline].filter(Boolean).join('\n\n')
 

@@ -608,6 +608,7 @@ const previewBoxes = computed(() => { const z = pageSize(episode.value?.settings
         <StudioStoryList
           v-if="step === 'story'" :versions="story.versions.value" :active-id="episode.activeStoryVersionId ?? null" :selected-id="storySel" :edit="edit"
           :running="running('story.draft')" :has-material="!!story.material.value" @select="selectVersion" @make="(n, req) => run(() => story.draft(n, req), t.story.started)"
+          @verbatim="run(async () => selectVersion(await story.verbatim()), t.story.verbatimDone)"
         />
         <div v-else class="flex-1 overflow-y-auto px-2 pb-2">
           <p v-if="!cuts.length" class="text-muted-foreground px-1 text-sm">

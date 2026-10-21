@@ -1,9 +1,9 @@
 import type { Episode } from '#shared/episodes'
 import type { JobType } from '#shared/jobs'
 import type { RewriteMode, StoryParams, StoryVersion, SuggestField } from '#shared/story'
-import { collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
-import { DRAFT_DIRECTIONS, parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
+import { DRAFT_DIRECTIONS, materialToScenes, parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
 import { ko } from '~/locales/ko'
 import { callFn } from '~/lib/functions'
 
@@ -61,7 +61,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       ...(basedOn ? { basedOn: basedOn.id } : {}),
     })))
   /** SBD-01·02 자동 콘티 / 다시 나누기 */
-  const split = (v: StoryVersion, pageCount?: number) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(pageCount ? { pageCount } : {}) })
+  const split = (v: StoryVersion, pageCount?: number) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(v.settings.verbatim ? { verbatim: true } : {}), ...(pageCount ? { pageCount } : {}) })
   const titles = (v: StoryVersion) => start('story.titles', { versionId: v.id, draft: versionToText(v) })
   /** STO-13: 장면 본문이나 대사만 다시 쓰고, 끝나면 그 자리에 넣는다 */
   const rewriting = ref<{ jobId: string, versionId?: string, sceneId?: string, field?: 'beats' | 'dialogues', panelId?: string } | null>(null)
@@ -131,6 +131,26 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateVersion = (id: string, patch: Partial<Pick<StoryVersion, 'logline' | 'scenes' | 'punchline'>>) =>
     updateDoc(doc(epRef(), 'storyVersions', id), { ...patch, editedAt: serverTimestamp() })
 
+  /** STO-25: 각색 없이 원문 그대로인 안을 만들고 사용 중으로 */
+  async function verbatim() {
+    const e = episode.value!
+    const ref = await addDoc(collection(epRef(), 'storyVersions'), {
+      label: ko.studio.story.verbatimLabel,
+      source: 'manual',
+      logline: '',
+      scenes: materialToScenes(material.value),
+      punchline: '',
+      titleCandidates: [],
+      settings: { tone: e.settings.tone, pageCount: e.settings.pageCount, narrator: e.settings.narrator, extraRequest: '', direction: null, verbatim: true },
+      jobId: null,
+      basedOn: null,
+      editedAt: null,
+      createdAt: serverTimestamp(),
+    })
+    await setActive(ref.id)
+    return ref.id
+  }
+
   /** STO-22: 콘티가 이미 있으면 Storyboard에 영향 받음 */
   const setActive = (id: string) =>
     updateDoc(epRef(), { activeStoryVersionId: id, ...(hasCuts.value ? { staleFrom: 'story' } : {}), updatedAt: serverTimestamp() })
@@ -139,5 +159,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, planEpisodes, splitEpisodes, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, keepStale, updateSettings }
+  return { versions, sources, material, active, analyze, planEpisodes, splitEpisodes, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, verbatim, keepStale, updateSettings }
 }
