@@ -66,7 +66,7 @@ export const disconnectThreads = authedCallable(threadsWorkspaceInput, async ({ 
   return { ok: true as const }
 })
 
-/** 브라우저가 그려 올린 장 JPG로 게시를 접수만 한다. 실제 게시는 postThreads 트리거가 한다
+/** 브라우저가 그려 올린 장 JPG로 게시를 접수만 한다. 실제 게시는 postSocial 트리거가 한다
  * (Hosting `/fn` 경유 호출은 60초에 끊겨서, 캐러셀 처리를 기다리면 화면에는 실패로 보인다) */
 export const publishThreads = authedCallable(publishThreadsInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
@@ -80,7 +80,7 @@ export const publishThreads = authedCallable(publishThreadsInput, async ({ uid, 
     if (!ep.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
     if (igPostingActive(ep.get('threadsPost'), Date.now())) throw new HttpsError('failed-precondition', ERROR_KEYS.threadsBusy)
     tx.update(epRef, { threadsPost: { status: 'posting', at: FieldValue.serverTimestamp(), by: uid } })
-    tx.create(db.collection('threadsPosts').doc(), { workspaceId: data.workspaceId, episodeId: data.episodeId, paths: data.paths, caption: data.caption, by: uid, createdAt: FieldValue.serverTimestamp() })
+    tx.create(db.collection(`workspaces/${data.workspaceId}/socialPosts`).doc(), { platform: 'threads', episodeId: data.episodeId, paths: data.paths, caption: data.caption, by: uid, status: 'queued', createdAt: FieldValue.serverTimestamp() })
   })
   return { ok: true as const }
 })

@@ -45,9 +45,11 @@ export async function me(accessToken: string, f: Fetch = fetch): Promise<{ userI
 }
 
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+/** 단계별 진행 (대기열 패널 진행 막대) */
+export type Progress = (step: 'prepare' | 'process' | 'publish', done: number, total: number) => unknown
 
 /** 1장은 IMAGE, 2장 이상은 CAROUSEL. 컨테이너가 FINISHED가 될 때까지 기다린 뒤 게시하고 링크를 돌려준다 */
-export async function publishImages(accessToken: string, userId: string, imageUrls: string[], text: string, f: Fetch = fetch, wait = sleep): Promise<{ mediaId: string, permalink: string }> {
+export async function publishImages(accessToken: string, userId: string, imageUrls: string[], text: string, f: Fetch = fetch, wait = sleep, progress: Progress = () => {}): Promise<{ mediaId: string, permalink: string }> {
   const post = async (path: string, params: Record<string, string>) =>
     json<{ id: string }>(await f(`${GRAPH}/${VERSION}/${path}`, { method: 'POST', body: new URLSearchParams({ ...params, access_token: accessToken }) }))
   const get = async <T>(path: string, fields: string) => json<T>(await f(`${GRAPH}/${VERSION}/${path}?${new URLSearchParams({ fields, access_token: accessToken })}`))
@@ -66,11 +68,19 @@ export async function publishImages(accessToken: string, userId: string, imageUr
   }
   else {
     const children: string[] = []
-    for (const url of imageUrls) children.push((await post(`${userId}/threads`, { media_type: 'IMAGE', image_url: url, is_carousel_item: 'true' })).id)
-    for (const id of children) await ready(id)
+    for (const url of imageUrls) {
+      await progress('prepare', children.length, imageUrls.length)
+      children.push((await post(`${userId}/threads`, { media_type: 'IMAGE', image_url: url, is_carousel_item: 'true' })).id)
+    }
+    for (const [k, id] of children.entries()) {
+      await progress('process', k, children.length)
+      await ready(id)
+    }
     creation = (await post(`${userId}/threads`, { media_type: 'CAROUSEL', children: children.join(','), text })).id
   }
+  await progress('process', imageUrls.length, imageUrls.length)
   await ready(creation)
+  await progress('publish', 0, 1)
   const mediaId = (await post(`${userId}/threads_publish`, { creation_id: creation })).id
   const p = await get<{ permalink?: string }>(mediaId, 'permalink')
   return { mediaId, permalink: p.permalink ?? '' }
