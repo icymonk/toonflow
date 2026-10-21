@@ -28,7 +28,8 @@ retryAiJob: failed일 때만. 예상 비용을 다시 예약 → attempts 0, ret
 - 비용은 `costKrw`(지금까지 청구한 실제 비용)를 기준으로 차액만 더해서, 받아 둔 결과로 다시 시도해도 두 번 청구하지 않는다.
 - `startAiJob`은 작업 종류에 맞는 켜진 모델이 없으면 `error.modelUnavailable`로 거절한다.
 - 이미지 결과는 `workspaces/{ws}/aiJobs/{jobId}/{i}.png`(Storage)에 저장하고 `providerResult`에 경로 배열을 둔다. 멤버·운영자만 읽고 쓰기는 서버만 한다(storage.rules).
-- 남은 일: 실행 중에 함수가 시간 초과로 죽으면 `running`으로 남는다. 오래된 running 작업을 failed로 정리하는 예약 함수를 1-B 이후에 붙인다.
+- 제공사 한 번 호출은 `CALL_TIMEOUT_MS`(글 120초·그림 150초)에서 끊어 `provider_error`로 다시 시도한다. 함수가 죽어 `running`으로 남은 작업은 `failStalledJobs`(10분마다)가 `STALL_MS`(15분) 지나면 `failed`로 돌리고 예약을 푼다.
+- 취소(`cancelAiJob`)는 `queued`·`running` 모두. `running`이면 예약만 풀고, 뒤에 온 결과는 `runAiJob`이 반영하지 않고 실제 비용만 정산한다(`chargeCanceled`).
 - 브라우저를 닫아도 4 이후는 서버에서 계속된다 (AIU-02).
 - 큰 요청 확인(AIU-11)은 앱이 `startAiJob` 전에 예상 비용으로 판단한다. 서버는 한도만 강제한다.
 

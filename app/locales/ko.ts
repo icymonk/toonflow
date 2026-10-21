@@ -32,6 +32,8 @@ export const ko = {
     startedAt: (d: string) => `${d} 시작`,
     endedAt: (d: string) => `${d} 끝남`,
     elapsed: (s: number) => (s >= 60 ? `${Math.floor(s / 60)}분 ${s % 60}초` : `${s}초`),
+    attempt: (n: number) => `${n}번째 시도 중 (응답이 없어 다시 보냈어요)`,
+    slow: '평소보다 오래 걸려요. 더 기다리거나 취소하세요. 취소해도 이미 AI가 만든 만큼은 비용이 들어요',
     instagram: 'Instagram 게시',
     threads: 'Threads 게시',
     status: { queued: '대기', running: '진행 중', succeeded: '완료', failed: '실패', canceled: '취소됨' } as Record<string, string>,

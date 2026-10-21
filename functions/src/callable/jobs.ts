@@ -61,7 +61,7 @@ export const startAiJob = authedCallable(startAiJobInput, async ({ uid, data }) 
   return { jobId }
 })
 
-/** AIU-03: 대기 중인 작업만 취소하고 예약을 푼다. 실행 중·끝난 작업은 그대로 둔다 */
+/** AIU-03: 대기·진행 중인 작업을 취소하고 예약을 푼다. 진행 중이면 나중에 온 결과는 반영하지 않고 쓴 만큼만 정산 (runAiJob) */
 export const cancelAiJob = authedCallable(jobRefInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
   const db = getFirestore()
@@ -69,7 +69,7 @@ export const cancelAiJob = authedCallable(jobRefInput, async ({ uid, data }) => 
   await db.runTransaction(async (tx) => {
     const job = await tx.get(ref)
     if (!job.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
-    if (job.get('status') !== 'queued') return
+    if (job.get('status') !== 'queued' && job.get('status') !== 'running') return
     settle(tx, data.workspaceId, job.get('month'), job.get('estimateKrw') ?? 0, 0)
     tx.update(ref, { status: 'canceled', finishedAt: FieldValue.serverTimestamp() })
   })
