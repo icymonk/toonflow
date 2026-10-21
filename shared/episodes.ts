@@ -87,6 +87,9 @@ export interface Episode {
   published?: { at?: Ts, url: string } | null
   /** PUB-24: 서버가 Instagram에 게시하는 중·실패 (끝나면 지운다) */
   instagramPost?: { status: 'posting' | 'failed', error?: string, at?: Ts } | null
+  /** PUB-25: Threads 게시 중·실패, 게시한 링크 */
+  threadsPost?: { status: 'posting' | 'failed', error?: string, at?: Ts } | null
+  threadsPublished?: { at?: Ts, url: string } | null
   costKrw: number
   updatedAt?: Ts
   deletedAt?: Ts | null

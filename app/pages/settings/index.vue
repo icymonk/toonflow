@@ -136,6 +136,7 @@ function saveWorkspace() {
     </Card>
 
     <SettingsInstagramCard />
+    <SettingsThreadsCard />
     <SettingsIntakeCard />
     <SettingsMembersCard />
     <SettingsActivityCard />
