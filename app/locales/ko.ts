@@ -3,6 +3,7 @@ export const ko = {
   dialog: { ok: '확인', cancel: '취소', loading: '불러오는 중' },
   presence: { viewing: (n: number) => `${n}명이 같이 보고 있어요`, samePanel: (names: string) => `${names} 님도 이 컷을 보고 있어요. 동시에 고치면 한쪽 내용이 덮일 수 있어요` },
   theme: { light: '밝은 화면 (누르면 어둡게)', dark: '어두운 화면 (누르면 시스템 설정)', system: '시스템 설정 따름 (누르면 밝게)' },
+  legal: { terms: '이용약관', privacy: '개인정보처리방침', deletion: '데이터 삭제 안내' },
   brand: {
     name: 'TOONFLOW',
     slogan: 'Stories in. Comics out.',

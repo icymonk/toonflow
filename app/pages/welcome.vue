@@ -100,8 +100,10 @@ async function join() {
       </div>
     </section>
 
-    <footer class="text-muted-foreground mx-auto max-w-5xl px-6 py-8 text-xs">
-      © TOONFLOW
+    <footer class="text-muted-foreground mx-auto flex max-w-5xl flex-wrap gap-4 px-6 py-8 text-xs">
+      <span>© TOONFLOW</span>
+      <NuxtLink to="/terms" class="underline">{{ ko.legal.terms }}</NuxtLink>
+      <NuxtLink to="/privacy" class="underline">{{ ko.legal.privacy }}</NuxtLink>
     </footer>
   </div>
 </template>
