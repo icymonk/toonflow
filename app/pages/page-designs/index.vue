@@ -70,7 +70,7 @@ async function create() {
           {{ t.emptyBody }}
         </p>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto">
+      <div class="-m-1 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto p-1">
         <button v-for="d in list" :key="d.id" class="bg-card flex flex-col overflow-hidden rounded-lg border text-left" :class="{ 'ring-primary ring-2': d.id === current?.id }" @click="select(d.id)">
           <PageRenderDesignRender :design="d" :info="infoOf(d)" :typeset="DEFAULT_TYPESET" class="w-full border-b" />
           <span class="truncate px-2 pt-1.5 text-sm font-medium">{{ d.name }}</span>

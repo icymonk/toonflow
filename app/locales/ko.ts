@@ -1003,6 +1003,7 @@ export const ko = {
   },
   settings: {
     title: '설정',
+    sections: '설정 항목',
     profile: '프로필',
     displayName: '이름',
     workspace: '워크스페이스',

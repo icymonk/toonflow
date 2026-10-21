@@ -120,7 +120,7 @@ const tabClass = (on: boolean) => (on ? 'border-primary font-medium' : 'border-t
       <div class="min-h-0 flex-1 overflow-y-auto rounded-md" @dragover.prevent @drop.prevent="e => upload([...(e.dataTransfer?.files ?? [])])">
         <AppListSkeleton v-if="!(tab === 'generated' ? a.loaded.generated : a.loaded.assets)" />
         <p v-else-if="!items.length" class="text-muted-foreground p-6 text-center text-sm">{{ t.empty }}<br><span v-if="tab === 'refs'" class="text-xs">{{ t.drop }}</span></p>
-        <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2">
+        <div class="grid grid-cols-[repeat(auto-fill,minmax(140px,1fr))] gap-2 p-1">
           <div v-for="i in items" :key="i.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': focus === i.id }">
             <button class="block w-full" @click="focus = i.id"><AppStorageImg :path="i.path" class="aspect-[4/5] w-full" /></button>
             <AppCheck class="absolute top-1.5 left-1.5 size-4" :model-value="sel.has(i.id)" :aria-label="t.select" @change="toggle(i.id)" />
