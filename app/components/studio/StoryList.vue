@@ -17,7 +17,7 @@ function make() {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pb-2">
+  <div class="flex flex-1 flex-col gap-2 overflow-y-auto px-2 pt-1 pb-2">
     <p v-if="!versions.length && !running" class="text-muted-foreground px-1 text-sm">
       {{ t.empty }}
     </p>
