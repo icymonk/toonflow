@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v3.5 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v3.6 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -45,6 +45,8 @@
 | `settings` | `{ tone, pageCount, narrator, aspect, styleId, characterIds[], extraRequest }` (STO-02) |
 | `submissionIds[]` | 재료 썰 여러 개 (#21) |
 | `activeStoryVersionId` | 사용 중 각색안 (STO-22). 첫 AI 안이 생기면 서버가 채운다 |
+| `materialPart` | STO-16 여러 화로 나눴을 때 `{ index, total, text }`. 각색 재료는 `text`만 쓴다. 서버(`splitEpisodes`)만 쓴다 |
+| `episodePlan` | STO-16 AI 화 나누기 제안 `{ parts: [{ title, text, hook }], jobId }`. 서버(`story.episodes` 결과)만 쓴다 |
 | `analysis` | 서버만: `{ summary[], characters: { name, role }[], points[], sensitive: { text, reason }[], jobId }` (STO-10) |
 | `storyVersionCount` | 서버만: 각색안 번호("N안") 매기기 |
 | `storyboardJobId` | 서버만: 마지막으로 반영한 자동 콘티 작업 (같은 작업을 두 번 반영하지 않음, SBD-01·02) |
@@ -127,3 +129,4 @@
 - v3.3: PUB-25 Threads — Instagram과 같은 구조로 `workspaces/{ws}.threads`, `threadsTokens/{ws}`·`threadsStates/{state}`·`threadsPosts/{id}`(서버만), 에피소드 `threadsPost`·`threadsPublished { at, url, mediaId }`(발행 기록 `published`가 없을 때만 Threads 링크로 채움). callable `threadsAuthUrl`·`connectThreads`·`disconnectThreads`·`publishThreads`, 트리거 `postThreads`, 매일 `refreshThreadsTokens`. 시크릿 `THREADS_APP_ID`·`THREADS_APP_SECRET`
 - v3.4: SNS 게시 작업을 `workspaces/{ws}/socialPosts/{id}` `{ platform: 'instagram'|'threads', episodeId, paths, caption, by, status: queued|running|succeeded|failed, progress: { step: prepare|process|publish, done, total }, url, error, createdAt, startedAt, finishedAt }`로 옮김(멤버가 읽고 서버만 씀, 남겨 둠). 트리거 `postInstagram`·`postThreads`를 `postSocial` 하나로 합침. `instagramPosts`·`threadsPosts`는 쓰지 않는다. AIU-01 대기열 패널이 `aiJobs`(40개)와 `socialPosts`(20개)를 함께 보여 준다
 - v3.5: PUB-15~17 — `pageDesigns/{id}`, `series.coverDesignId`·`outroDesignId`(작품 기본), 에피소드 `settings.coverDesignId`·`outroDesignId`(없으면 작품 기본, 빈 값이면 끔)
+- v3.6: `episodes.materialPart`·`episodePlan`(STO-16), `storyVersions.settings.direction`(STO-11)
