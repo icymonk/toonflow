@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import type { StoryVersion } from '#shared/story'
-import { Loader2, Sparkles } from '@lucide/vue'
+import { FileText, Loader2, Sparkles } from '@lucide/vue'
 import { ko } from '~/locales/ko'
 
 // STO-11·12·21: 왼쪽 각색안 목록 + 만들기
 defineProps<{ versions: StoryVersion[], activeId: string | null, selectedId: string, edit: boolean, running: number, hasMaterial: boolean }>()
-const emit = defineEmits<{ select: [id: string], make: [n: number, request: string] }>()
+const emit = defineEmits<{ select: [id: string], make: [n: number, request: string], verbatim: [] }>()
 const t = ko.studio.story
 const n = ref(1)
 const request = ref('')
@@ -27,7 +27,7 @@ function make() {
     >
       <span class="flex items-center gap-1.5 font-medium">
         {{ v.label }}
-        <span class="bg-muted rounded px-1 text-[10px]">{{ v.editedAt ? t.edited : v.source === 'ai' ? t.ai : t.edited }}</span>
+        <span class="bg-muted rounded px-1 text-[10px]">{{ v.settings.verbatim ? t.original : v.editedAt ? t.edited : v.source === 'ai' ? t.ai : t.edited }}</span>
         <span v-if="v.id === activeId" class="bg-primary text-primary-foreground rounded px-1 text-[10px]">{{ t.active }}</span>
       </span>
       <span class="text-muted-foreground line-clamp-1 text-xs">{{ v.logline }}</span>
@@ -48,6 +48,10 @@ function make() {
           <Sparkles class="size-4" /> {{ t.make }}
         </Button>
       </div>
+      <Button variant="outline" :disabled="!hasMaterial" :title="hasMaterial ? t.verbatimHint : t.noMaterial" @click="emit('verbatim')">
+        <FileText class="size-4" /> {{ t.verbatim }}
+      </Button>
+      <p class="text-muted-foreground px-1 text-[11px]">{{ t.verbatimHint }}</p>
     </div>
   </div>
 </template>

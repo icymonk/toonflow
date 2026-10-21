@@ -81,19 +81,24 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(snapName).toHaveValue(/^각색 확정 전 · /)
   await snapDialog.getByRole('button', { name: '닫기' }).click()
 
+  // STO-25: 각색 없이 원문 그대로인 안
+  await page.getByRole('button', { name: '원문 그대로 쓰기' }).click()
+  await expect(page.getByRole('button', { name: /원문 그대로.*사용 중/ })).toBeVisible({ timeout: 30_000 })
+
   // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
   const epStyle = page.getByLabel('이번 화 그림체')
   await pick(epStyle, { index: 1 })
   await expect(epStyle).not.toHaveAttribute('data-value', '')
 
   // 에피소드 없이 제작실에 오면 마지막에 연 에피소드가 열리고, "다른 에피소드"는 목록을 보여 준다
-  const epUrl = page.url()
+  const epId = new URL(page.url()).searchParams.get('episode')
+  const isEp = (u: URL) => u.pathname === '/studio' && u.searchParams.get('episode') === epId
   await page.goto('/studio')
-  await page.waitForURL(epUrl)
+  await page.waitForURL(isEp)
   await page.getByRole('link', { name: /다른 에피소드/ }).click()
   await expect(page.getByText('이어서 작업할 에피소드를 고르세요')).toBeVisible()
   await page.getByRole('listitem').getByRole('link').first().click()
-  await page.waitForURL(epUrl)
+  await page.waitForURL(isEp)
 
   // 콘티
   await page.getByRole('tab', { name: /Storyboard/ }).click()
@@ -217,6 +222,9 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // 공개 제보 링크 (INB-02~05): 설정 → 로그인 없는 브라우저에서 제출 → Inbox
   await page.goto('/settings')
+  // AIU-21: 사용 내역에 이 달 작업이 종류별로 보인다
+  await expect(page.getByTestId('usage-detail')).toContainText('각색안')
+  await expect(page.getByTestId('usage-detail').getByRole('table')).toContainText('자동 콘티')
   await page.getByLabel('제보 받기').check()
   await page.getByLabel('작가 소개').fill('회사 썰 그리는 작가예요')
   await page.getByLabel(/질문 칸/).fill('언제 있었던 일이에요?')
