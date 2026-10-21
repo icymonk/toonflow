@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v3.4 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v3.5 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -32,6 +32,7 @@
 | `episodes/{id}` | 아래 표 | EPI, STU |
 | `characters/{id}` | `name`, `aliases[]`(역할 이름), `intro`, `appearance: { age, gender, build, hair, eyes, marks, outfit }`, `appearanceText`(그림 생성용, 항목에서 자동 작성 후 수정), `episodeId`(이번 에피소드만이면 id), `refImages[]`(Storage 경로, 최대 5), `coverPath`, `archivedAt`, `deletedAt` | CHR-01~04·07·11 |
 | `styles/{id}` | `name`, `description`, `line: thin\|bold\|none`, `coloring: flat\|watercolor\|cel`, `palette: pastel\|vivid\|mono\|custom`, `paletteColors`, `background: plain\|simple\|detailed`, `negative`, `rightsConfirmed`, `refImages[]`, `samples[]`·`sampleJobId`(서버만), `version`, `archivedAt`, `deletedAt` | STL-01~04·08·09 |
+| `pageDesigns/{id}` | `name`, `kind: 'cover'\|'outro'`(만들 때만), `bgColor`, `textColor`, `align: top\|center\|bottom`, `showSeries`, `showNumber`, `showTitle`, `text`(300자), `titleSize`, `textSize`, `boxed`, `imagePath`(Storage `refs/pageDesigns/{id}/…`), `seriesId`, `archivedAt`, `deletedAt` | PUB-15~17 |
 | `aiJobs/{jobId}` | [ai-jobs.md](./ai-jobs.md) 2절 — 서버만 씀 | AIU |
 | `notifications/{id}` | `uid`, `kind`, `targetPath`, `readAt`, `createdAt` | CMN-10 |
 
@@ -125,3 +126,4 @@
 - v3.2: PUB-24 게시를 비동기로 — `publishInstagram`은 에피소드 `instagramPost` `{ status: 'posting', at, by }`와 `instagramPosts/{id}` `{ workspaceId, episodeId, paths, caption, by, createdAt }`(서버만)를 만들고 바로 끝난다. 트리거 `postInstagram`(문서 생성, 300초, 재시도 없음)이 게시한 뒤 `published`를 쓰고 `instagramPost`를 지우거나 `{ status: 'failed', error }`로. 게시 중 표시가 10분 지나면 다시 게시할 수 있다. Hosting `/fn` 경유 callable은 60초에 끊겨서 캐러셀을 기다리면 화면에 실패로 보였다
 - v3.3: PUB-25 Threads — Instagram과 같은 구조로 `workspaces/{ws}.threads`, `threadsTokens/{ws}`·`threadsStates/{state}`·`threadsPosts/{id}`(서버만), 에피소드 `threadsPost`·`threadsPublished { at, url, mediaId }`(발행 기록 `published`가 없을 때만 Threads 링크로 채움). callable `threadsAuthUrl`·`connectThreads`·`disconnectThreads`·`publishThreads`, 트리거 `postThreads`, 매일 `refreshThreadsTokens`. 시크릿 `THREADS_APP_ID`·`THREADS_APP_SECRET`
 - v3.4: SNS 게시 작업을 `workspaces/{ws}/socialPosts/{id}` `{ platform: 'instagram'|'threads', episodeId, paths, caption, by, status: queued|running|succeeded|failed, progress: { step: prepare|process|publish, done, total }, url, error, createdAt, startedAt, finishedAt }`로 옮김(멤버가 읽고 서버만 씀, 남겨 둠). 트리거 `postInstagram`·`postThreads`를 `postSocial` 하나로 합침. `instagramPosts`·`threadsPosts`는 쓰지 않는다. AIU-01 대기열 패널이 `aiJobs`(40개)와 `socialPosts`(20개)를 함께 보여 준다
+- v3.5: PUB-15~17 — `pageDesigns/{id}`, `series.coverDesignId`·`outroDesignId`(작품 기본), 에피소드 `settings.coverDesignId`·`outroDesignId`(없으면 작품 기본, 빈 값이면 끔)

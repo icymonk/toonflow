@@ -1,3 +1,4 @@
+import type { LaidDesign, PageDesign } from '#shared/pagedesign'
 import type { LaidCut, Typeset } from '#shared/render'
 import type { Firestore } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
@@ -27,7 +28,7 @@ export async function loadFonts(ts: Typeset) {
 }
 
 /** 장 하나를 ctx에 그린다. 영상 프레임(app/lib/video.ts)도 이걸 쓴다 */
-export function paintPage(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D, laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null) {
+export function paintPage(ctx: Ctx, laid: LaidCut[], W: number, H: number, ts: Typeset, imgs: Map<string, ImageBitmap>, label: string | null, watermark: string | null) {
   const font = fontCss(ts.font)
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, W, H)
@@ -105,6 +106,12 @@ export function paintPage(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderi
     ctx.strokeStyle = INK
     ctx.strokeRect(r.x, r.y, r.w, r.h)
   }
+  paintFooter(ctx, W, H, label, watermark)
+}
+
+type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+
+function paintFooter(ctx: Ctx, W: number, H: number, label: string | null, watermark: string | null) {
   if (watermark) {
     ctx.font = '500 18px Pretendard Variable, sans-serif'
     ctx.textAlign = 'left'
@@ -119,6 +126,51 @@ export function paintPage(ctx: CanvasRenderingContext2D | OffscreenCanvasRenderi
     ctx.fillStyle = '#71717A'
     ctx.fillText(label, W - 24, H - 4)
   }
+}
+
+/** PUB-15·16 표지·끝장 (components/page-render/DesignRender.vue와 같은 배치) */
+export function paintDesign(ctx: Ctx, laid: LaidDesign, d: PageDesign, W: number, H: number, ts: Typeset, img: ImageBitmap | null, label: string | null, watermark: string | null) {
+  ctx.fillStyle = d.bgColor
+  ctx.fillRect(0, 0, W, H)
+  if (img) {
+    const sc = Math.max(W / img.width, H / img.height)
+    ctx.drawImage(img, (W - img.width * sc) / 2, (H - img.height * sc) / 2, img.width * sc, img.height * sc)
+  }
+  if (laid.box) {
+    ctx.globalAlpha = 0.85
+    ctx.fillStyle = d.bgColor
+    ctx.beginPath()
+    ctx.roundRect(laid.box.x, laid.box.y, laid.box.w, laid.box.h, 24)
+    ctx.fill()
+    ctx.globalAlpha = 1
+  }
+  const font = fontCss(ts.font)
+  ctx.fillStyle = d.textColor
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  for (const l of laid.lines) {
+    ctx.font = `${l.bold ? 700 : 500} ${l.size}px ${font}`
+    ctx.fillText(l.text, W / 2, l.y)
+  }
+  paintFooter(ctx, W, H, label, watermark)
+}
+
+export async function drawDesignPage(laid: LaidDesign, d: PageDesign, W: number, H: number, ts: Typeset, img: ImageBitmap | null, label: string | null, watermark: string | null, type: 'image/jpeg' | 'image/png', scale = 1): Promise<Blob> {
+  await loadFonts(ts)
+  const cv = document.createElement('canvas')
+  cv.width = W * scale
+  cv.height = H * scale
+  const ctx = cv.getContext('2d')!
+  ctx.scale(scale, scale)
+  paintDesign(ctx, laid, d, W, H, ts, img, label, watermark)
+  return new Promise((res, rej) => cv.toBlob(b => (b ? res(b) : rej(new Error('toBlob failed'))), type, 0.92))
+}
+
+/** Storage 경로의 이미지들 (표지·끝장 배경) */
+export async function loadPaths(storage: FirebaseStorage, paths: string[]) {
+  const out = new Map<string, ImageBitmap>()
+  await Promise.all([...new Set(paths)].map(async p => out.set(p, await createImageBitmap(await getBlob(storageRef(storage, p))))))
+  return out
 }
 
 export function download(blob: Blob, name: string) {

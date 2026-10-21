@@ -8,7 +8,7 @@ import { TONES } from '#shared/episodes'
 import { ko } from '~/locales/ko'
 
 // STO-02 설정 · STO-10 분석 · STO-14 제목 후보 · STO-24 원문
-const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string, coverText: string, outroText: string, styles: Style[], characters: Character[], seriesStyleId: string | null, seriesMainIds: string[] }>()
+const props = defineProps<{ episode: Episode, version: StoryVersion | null, sources: { id: string, title: string, body: string }[], edit: boolean, analyzing: boolean, titling: boolean, seriesMemo: string, coverText: string, outroText: string, styles: Style[], characters: Character[], seriesStyleId: string | null, seriesMainIds: string[], extraPages?: number }>()
 const emit = defineEmits<{ settings: [patch: Partial<Episode['settings']>], analyze: [], titles: [], applyTitle: [title: string], seriesMemo: [memo: string], seriesFixed: [patch: { coverText?: string, outroText?: string }], seriesStyle: [id: string | null], seriesMain: [id: string, on: boolean] }>()
 const t = ko.studio.story
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
@@ -43,7 +43,8 @@ const lk = ko.studio.look
           {{ ko.stories.tones[tone] }}
         </option>
       </AppSelect>
-      <Input :model-value="episode.settings.pageCount" type="number" min="1" max="20" :disabled="!edit" :aria-label="ko.stories.pageCount" @change="emit('settings', { pageCount: Number(($event.target as HTMLInputElement).value) })" />
+      <Input :model-value="episode.settings.pageCount" type="number" min="1" :max="20 - (extraPages ?? 0)" :disabled="!edit" :aria-label="ko.stories.pageCount" @change="emit('settings', { pageCount: Number(($event.target as HTMLInputElement).value) })" />
+      <p v-if="extraPages" class="text-muted-foreground col-span-2 text-xs">{{ t.extraPages(extraPages, episode.settings.pageCount + extraPages) }}</p>
       <AppSelect :value="episode.settings.narrator" :class="[selectClass, 'col-span-2']" :disabled="!edit" :aria-label="ko.stories.narrator" @change="emit('settings', { narrator: $event as 'first' | 'third' })">
         <option v-for="n in ['first', 'third'] as const" :key="n" :value="n">
           {{ ko.stories.narrators[n] }}
