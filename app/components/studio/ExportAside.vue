@@ -118,14 +118,16 @@ async function copy() {
         :progress="socialProgress" :posted="posted" :disabled="!edit || !!progress || !pageCount" @post="ps => emit('social', ps)"
       />
       <template v-if="published">
-        <p v-for="(v, p) in posted" :key="p" class="flex items-center gap-2 text-xs text-emerald-700">
-          {{ t.postedOn(SOCIAL_NAMES[p], v!.at) }}
-          <a v-if="v!.url" :href="v!.url" target="_blank" rel="noopener" class="text-primary underline">{{ t.openPost }}</a>
+        <p v-for="(v, p) in posted" :key="p" class="flex flex-wrap items-center gap-x-1.5 text-xs">
+          <a v-if="v!.url" :href="v!.url" target="_blank" rel="noopener" class="text-primary underline">{{ t.postLink(SOCIAL_NAMES[p]) }}</a>
+          <span v-else>{{ t.postLink(SOCIAL_NAMES[p]) }}</span>
+          <span class="text-emerald-700">· {{ t.postedAt(v!.at) }}</span>
         </p>
-        <template v-if="published.manual">
-          <p class="text-xs text-emerald-700">{{ t.publishedOn(published.at) }}</p>
-          <a v-if="published.url" :href="published.url" target="_blank" rel="noopener" class="text-primary break-all text-xs underline">{{ published.url }}</a>
-        </template>
+        <p v-if="published.manual" class="flex flex-wrap items-center gap-x-1.5 text-xs">
+          <a v-if="published.url" :href="published.url" target="_blank" rel="noopener" class="text-primary underline">{{ t.postLink('') }}</a>
+          <span v-else>{{ t.postLink('') }}</span>
+          <span class="text-emerald-700">· {{ t.postedAt(published.at) }}</span>
+        </p>
         <Button size="sm" variant="ghost" class="self-start" :disabled="!edit" @click="emit('unpublish')">{{ t.unpublish }}</Button>
       </template>
       <form v-else class="flex flex-col gap-1.5" @submit.prevent="emit('publish', url.trim())">
