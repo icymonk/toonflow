@@ -72,6 +72,11 @@ export const SUGGEST_FIELDS = ['logline', 'heading', 'beats', 'punchline'] as co
 export type SuggestField = (typeof SUGGEST_FIELDS)[number]
 export const suggestSchema = z.object({ options: z.array(z.string().trim().min(1).max(1000)).min(1).max(5).transform(o => [...new Set(o)].slice(0, 3)) })
 
+/** STO-16 화 나누기 결과 */
+export const episodesSchema = z.object({
+  parts: z.array(z.object({ title: z.string().trim().max(80).catch(''), text: z.string().trim().min(1).max(20000), hook: z.string().trim().max(300).catch('') })).min(2).max(6),
+})
+
 /** STO-11: 여러 안을 받으면 안마다 방향을 다르게 */
 export const DRAFT_DIRECTIONS = ['faithful', 'twist', 'emotion'] as const
 export type DraftDirection = (typeof DRAFT_DIRECTIONS)[number]
@@ -85,6 +90,9 @@ export const storyParams = z.object({
   extraRequest: z.string().max(500).catch(''),
   basedOn: z.string().optional(),
   direction: z.enum(DRAFT_DIRECTIONS).optional(),
+  /** STO-16: 몇 화로 나눌지(없으면 AI가 정함), 이 화가 몇 화 중 몇 번째인지 */
+  partCount: z.number().int().min(2).max(6).optional(),
+  part: z.object({ index: z.number().int().min(1), total: z.number().int().min(2) }).optional(),
   versionId: z.string().optional(),
   draft: z.string().max(20000).optional(),
   /** STO-03: 작품 메모·캐릭터 성격·말투 */

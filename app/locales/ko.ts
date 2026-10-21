@@ -830,7 +830,7 @@ export const ko = {
     withdrawnBefore: '제보자가 동의를 철회했어요',
     withdrawnAfter: '게시한 제보의 동의 철회 요청이 왔어요',
     prefs: { title: '알림 설정', done: 'AI 생성 완료', failed: 'AI 생성 실패', usage: '사용량 경고(80%·100%)', withdrawn: '제보 동의 철회', feedback: '피드백 답변' },
-    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약', 'panel.check': 'AI 점검', 'story.suggest': '추천 입력' } as Record<string, string>,
+    types: { 'story.analyze': '썰 분석', 'story.draft': '각색안', 'story.titles': '제목 후보', 'storyboard.split': '자동 콘티', 'panel.image': '컷 그림', 'publish.caption': '캡션 초안', 'story.rewrite': '부분 다시 쓰기', 'style.sample': '그림체 미리 보기', 'character.candidate': '캐릭터 후보', 'submission.summary': '제보 요약', 'panel.check': 'AI 점검', 'story.suggest': '추천 입력', 'story.episodes': '여러 화로 나누기' } as Record<string, string>,
   },
   publishList: {
     allSeries: '모든 작품',

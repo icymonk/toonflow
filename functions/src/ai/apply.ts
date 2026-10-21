@@ -1,7 +1,7 @@
 import type { JobType } from '../../../shared/jobs'
 import type { z } from 'zod'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { analysisSchema, captionSchema, DIRECTION_KO, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
+import { analysisSchema, captionSchema, DIRECTION_KO, episodesSchema, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
 import { continueOutfits, emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
@@ -86,6 +86,10 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
       // 첫 각색안은 바로 "사용 중"
       tx.update(epRef, { storyVersionCount: n, ...(ep.get('activeStoryVersionId') ? {} : { activeStoryVersionId: ref.id }), updatedAt: now })
     })
+  }
+  else if (job.type === 'story.episodes') {
+    const e = parse(episodesSchema, result)
+    await epRef.update({ episodePlan: { parts: e.parts, jobId }, updatedAt: now })
   }
   else if (job.type === 'story.titles' && params.versionId) {
     const t = parse(titlesSchema, result)

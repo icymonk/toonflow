@@ -31,10 +31,21 @@ const draft = (p: StoryParams): TextPrompt => ({
     + `톤: ${TONE_KO[p.tone]}. 화자: ${p.narrator === 'first' ? '작가 본인 1인칭' : '제보자 이야기를 전하는 3인칭'}. 구어체, 한국 인스타툰 말투. `
     + '실명·특정 가능한 정보는 바꿔서 쓴다. 마지막 장면은 펀치라인으로 마무리. '
     + (p.direction ? `${DIRECTION_RULE[p.direction]} ` : '')
+    + (p.part ? (p.part.index < p.part.total ? `이 이야기는 ${p.part.total}화 중 ${p.part.index}화야. 마지막 장면은 펀치라인 대신 다음 화가 궁금해지는 장면에서 끊어(punchline에는 다음 화 예고 한 줄). ` : `이 이야기는 ${p.part.total}화 중 마지막 화야. 앞 화들에서 이어지는 결말과 펀치라인으로 마무리해. `) : '')
     + `heading은 장면 제목, beats는 무슨 일이 일어나는지 1~2문장, dialogues는 그 장면의 대사. ${LINE_TYPES} `
     + 'titles는 제목 후보 3개(15자 이내), logline은 한 줄 요약. '
     + '반드시 JSON만: {"titles": [str], "logline": str, "scenes": [{"heading": str, "beats": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}], "punchline": str}',
   prompt: [p.material, p.extraRequest && `추가 요청: ${p.extraRequest}`].filter(Boolean).join('\n\n'),
+})
+
+// STO-16
+const episodes = (p: StoryParams): TextPrompt => ({
+  format: 'episodes',
+  system: `너는 인스타툰 연재 편집자야. 긴 제보 썰을 한 화에 다 줄이지 말고 ${p.partCount ? `정확히 ${p.partCount}화` : '2~6화 중 이야기에 맞는 화 수'}로 나눠. `
+    + `한 화는 ${p.pageCount}장 안팎 분량. 화마다 끝은 다음 화가 궁금해지는 드라마틱한 순간에서 끊고, 마지막 화는 결말로 마무리. `
+    + 'text는 그 화에 쓸 원문 부분을 원문 문장 그대로 이어 붙인 것(요약하지 말고, 빠지는 부분 없이 모든 화를 합치면 원문 전체). title은 그 화 제목(15자 이내), hook은 끊는 지점 한 줄 설명. '
+    + '반드시 JSON만: {"parts": [{"title": str, "text": str, "hook": str}]}',
+  prompt: p.material,
 })
 
 const titles = (p: StoryParams): TextPrompt => ({
@@ -93,7 +104,7 @@ const caption = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
-const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite, 'story.suggest': suggest }
+const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite, 'story.suggest': suggest, 'story.episodes': episodes }
 
 // INB-23
 const summarize = (material: string): TextPrompt => ({
