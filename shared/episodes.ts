@@ -41,6 +41,16 @@ export const duplicateEpisodeInput = z.object({
 })
 export type DuplicateEpisodeInput = z.infer<typeof duplicateEpisodeInput>
 
+/** STO-16: 긴 썰을 여러 화로. 화마다 재료 원문 일부를 갖는다 */
+export const EPISODE_PARTS_MAX = 6
+export const splitEpisodesInput = z.object({
+  workspaceId: z.string().min(1),
+  episodeId: z.string().min(1),
+  parts: z.array(z.object({ title: z.string().trim().max(80), text: z.string().trim().min(1).max(20000) })).min(2).max(EPISODE_PARTS_MAX),
+})
+export type SplitEpisodesInput = z.infer<typeof splitEpisodesInput>
+export interface MaterialPart { index: number, total: number, text: string }
+
 export const trashInput = z.object({
   workspaceId: z.string().min(1),
   kind: z.enum(['episode', 'series']),
@@ -71,6 +81,10 @@ export interface Series extends SeriesInput {
 }
 
 export interface Episode {
+  /** STO-16 여러 화로 나눈 재료 원문 일부 */
+  materialPart?: MaterialPart | null
+  /** STO-16 AI가 제안한 화 나누기 (서버만 씀) */
+  episodePlan?: { parts: { title: string, text: string, hook: string }[], jobId: string } | null
   id: string
   seriesId: string
   title: string

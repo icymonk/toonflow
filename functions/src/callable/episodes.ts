@@ -1,7 +1,7 @@
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
-import { createEpisodeInput, duplicateEpisodeInput, episodeTitle, trashInput } from '../../../shared/episodes'
+import { createEpisodeInput, duplicateEpisodeInput, episodeTitle, splitEpisodesInput, trashInput } from '../../../shared/episodes'
 import { titleFrom } from '../../../shared/submissions'
 import { withDefaults } from '../../../shared/workspace'
 import { requireMember } from '../lib/authz'
@@ -68,6 +68,42 @@ export const createEpisode = authedCallable(createEpisodeInput, async ({ uid, da
     })
     tx.update(seriesRef, { episodeCount: number, updatedAt: now })
     return { episodeId: epRef.id }
+  })
+})
+
+/** STO-16: 지금 화는 1부분만 남기고, 나머지 부분으로 같은 작품에 다음 화들을 만든다. 재료 썰 연결은 그대로 */
+export const splitEpisodes = authedCallable(splitEpisodesInput, async ({ uid, data }) => {
+  await requireMember(data.workspaceId, uid, 'editor')
+  const db = getFirestore()
+  const ws = db.doc(`workspaces/${data.workspaceId}`)
+  const epRef = ws.collection('episodes').doc(data.episodeId)
+  return db.runTransaction(async (tx) => {
+    const ep = await tx.get(epRef)
+    if (!ep.exists || ep.get('deletedAt')) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+    const seriesRef = ws.collection('series').doc(ep.get('seriesId') as string)
+    const series = await tx.get(seriesRef)
+    if (!series.exists || series.get('deletedAt')) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+    const submissionIds = (ep.get('submissionIds') as string[] | undefined) ?? []
+    const subs = await Promise.all(submissionIds.map(id => tx.get(ws.collection('submissions').doc(id))))
+    const now = FieldValue.serverTimestamp()
+    const total = data.parts.length
+    const [first, ...rest] = data.parts
+    tx.update(epRef, { materialPart: { index: 1, total, text: first!.text }, ...(first!.title ? { title: first!.title } : {}), episodePlan: null, updatedAt: now })
+    const base = (series.get('episodeCount') as number | undefined) ?? 0
+    const ids: string[] = []
+    rest.forEach((part, i) => {
+      const ref = ws.collection('episodes').doc()
+      ids.push(ref.id)
+      const number = base + i + 1
+      tx.set(ref, {
+        seriesId: ep.get('seriesId'), title: episodeTitle(part.title, number), number, step: 'story', status: 'active', archivedAt: null,
+        settings: { ...(ep.get('settings') as object), extraRequest: '' }, submissionIds, materialPart: { index: i + 2, total, text: part.text },
+        activeStoryVersionId: null, pageOrder: [], staleFrom: null, costKrw: 0, createdBy: uid, createdAt: now, updatedAt: now, deletedAt: null,
+      })
+    })
+    for (const s of subs) if (s.exists) tx.update(s.ref, { episodeIds: FieldValue.arrayUnion(...ids) })
+    tx.update(seriesRef, { episodeCount: base + rest.length, updatedAt: now })
+    return { episodeIds: ids }
   })
 })
 
