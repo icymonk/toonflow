@@ -36,7 +36,7 @@ async function signOut() {
   <div class="flex min-h-svh">
     <div v-if="drawer" class="fixed inset-0 z-30 bg-black/40 md:hidden" aria-hidden="true" @click="drawer = false" />
     <aside
-      class="bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 flex h-svh shrink-0 flex-col gap-1 overflow-y-auto p-3 transition-[width,translate] md:sticky md:top-0 md:translate-x-0"
+      class="bg-sidebar text-sidebar-foreground fixed inset-y-0 left-0 z-40 flex h-svh shrink-0 flex-col gap-1 overflow-x-hidden overflow-y-auto p-3 transition-[width,translate] md:sticky md:top-0 md:translate-x-0"
       :class="[collapsed ? 'w-16' : 'w-60', drawer ? 'translate-x-0' : '-translate-x-full']"
     >
       <div class="flex items-center justify-between px-2 py-2">
