@@ -106,9 +106,7 @@ function again() {
 
 <template>
   <main class="mx-auto flex min-h-svh w-full max-w-xl flex-col gap-6 p-6">
-    <p class="text-sm font-bold tracking-wide">
-      {{ ko.brand.name }}
-    </p>
+    <AppBrandLogo size="sm" />
     <p v-if="state === 'loading'" class="text-muted-foreground text-sm">
       …
     </p>
