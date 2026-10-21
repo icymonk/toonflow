@@ -45,9 +45,7 @@ async function withdraw() {
 
 <template>
   <main class="mx-auto flex min-h-svh w-full max-w-xl flex-col gap-6 p-6">
-    <p class="text-sm font-bold tracking-wide">
-      {{ ko.brand.name }}
-    </p>
+    <AppBrandLogo size="sm" />
     <h1 class="text-2xl font-bold">
       {{ t.title }}<template v-if="info?.name">
         · {{ info.name }}

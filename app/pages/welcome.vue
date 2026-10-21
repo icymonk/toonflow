@@ -31,7 +31,7 @@ async function join() {
 <template>
   <div class="bg-background min-h-svh">
     <header class="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-      <span class="text-lg font-bold tracking-wide">{{ ko.brand.name }}</span>
+      <AppBrandLogo />
       <Button as-child size="sm" variant="outline">
         <NuxtLink to="/login">{{ t.login }}</NuxtLink>
       </Button>
