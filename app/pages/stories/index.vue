@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Episode, EpisodeStage, Tone } from '#shared/episodes'
-import { BookOpen, Plus, Trash2 } from '@lucide/vue'
-import { useLocalStorage } from '@vueuse/core'
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, ArrowUpDown, BookOpen, Copy, FileText, Plus, Trash2 } from '@lucide/vue'
+import { useEventListener, useLocalStorage } from '@vueuse/core'
 import { serverTimestamp } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { createEpisodeInput, EPISODE_STAGES, seriesInput, stageOf, stagePatch, TONES } from '#shared/episodes'
@@ -94,7 +94,59 @@ async function submitEpisode() {
 const showArchived = ref(false)
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
 const archivedSeries = computed(() => new Set(series.value.filter(s => s.archivedAt).map(s => s.id)))
-const shown = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || (!e.archivedAt && (!archivedSeries.value.has(e.seriesId) || e.seriesId === seriesFilter.value)))))
+const visible = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || (!e.archivedAt && (!archivedSeries.value.has(e.seriesId) || e.seriesId === seriesFilter.value)))))
+// EPI-01 정렬: 기본은 작품별 회차 오름차순
+type SortKey = 'number' | 'series' | 'stage' | 'pages' | 'cost' | 'updated'
+const sortKey = ref<SortKey>('number')
+const sortAsc = ref(true)
+function sortBy(k: SortKey) {
+  if (sortKey.value === k) sortAsc.value = !sortAsc.value
+  else { sortKey.value = k; sortAsc.value = k !== 'updated' && k !== 'cost' }
+}
+const byNumber = (a: Episode, b: Episode) => seriesName(a.seriesId).localeCompare(seriesName(b.seriesId), 'ko') || a.number - b.number
+const sorters: Record<SortKey, (a: Episode, b: Episode) => number> = {
+  number: byNumber,
+  series: byNumber,
+  stage: (a, b) => EPISODE_STAGES.indexOf(stageOf(a)) - EPISODE_STAGES.indexOf(stageOf(b)),
+  pages: (a, b) => a.settings.pageCount - b.settings.pageCount,
+  cost: (a, b) => (a.costKrw ?? 0) - (b.costKrw ?? 0),
+  updated: (a, b) => (a.updatedAt?.toMillis() ?? 0) - (b.updatedAt?.toMillis() ?? 0),
+}
+const shown = computed(() => [...visible.value].sort((a, b) => (sortAsc.value ? 1 : -1) * (sorters[sortKey.value](a, b) || byNumber(a, b))))
+const dupFor = ref<{ id: string, top: number, right: number } | null>(null)
+function openDup(e: Episode, ev: MouseEvent) {
+  if (dupFor.value?.id === e.id) return (dupFor.value = null)
+  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
+  dupFor.value = { id: e.id, top: r.bottom + 4, right: window.innerWidth - r.right }
+}
+useEventListener(window, 'scroll', () => (dupFor.value = null), { capture: true, passive: true })
+// STO-16 같은 썰에서 나눈 화는 한 묶음으로
+const groupKey = (e: Episode) => (e.materialPart ? `${e.seriesId}|${[...e.submissionIds].sort().join(',')}|${e.materialPart.total}` : null)
+interface TableRow { key: string, group?: { title: string, total: number, submissionId?: string }, e?: Episode, inGroup?: boolean }
+const tableRows = computed(() => {
+  const out: TableRow[] = []
+  const done = new Set<string>()
+  for (const e of shown.value) {
+    const g = groupKey(e)
+    if (!g) { out.push({ key: e.id, e }); continue }
+    if (done.has(g)) continue
+    done.add(g)
+    const members = shown.value.filter(x => groupKey(x) === g).sort((a, b) => a.materialPart!.index - b.materialPart!.index)
+    const sub = submissions.value.find(s => s.id === e.submissionIds[0])
+    out.push({ key: `g-${g}`, group: { title: sub?.title || t.splitGroupFallback, total: e.materialPart!.total, submissionId: sub?.id } })
+    for (const m of members) out.push({ key: m.id, e: m, inGroup: true })
+  }
+  return out
+})
+useEventListener(document, 'click', () => (dupFor.value = null))
+const cols: { key: SortKey, label: string }[] = [
+  { key: 'number', label: t.col.title },
+  { key: 'series', label: t.col.series },
+  { key: 'stage', label: t.col.stage },
+  { key: 'pages', label: t.col.pages },
+  { key: 'cost', label: t.col.cost },
+  { key: 'updated', label: t.col.updated },
+]
 const shownSeries = computed(() => series.value.filter(s => showArchived.value || !s.archivedAt || s.id === seriesFilter.value))
 const toggleSeriesArchive = (id: string, archived: boolean) => run(() => updateSeries(id, { archivedAt: archived ? null : serverTimestamp() }))
 // EPI-15 회차 번호 · EPI-14 복제
@@ -322,15 +374,15 @@ async function removeSeries(id: string) {
       </div>
 
       <div class="overflow-x-auto rounded-lg border">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[760px] text-sm">
           <thead class="bg-muted/50 text-muted-foreground text-left">
             <tr>
-              <th class="px-3 py-2 font-medium">{{ t.col.title }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.series }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.stage }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.pages }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.cost }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.updated }}</th>
+              <th v-for="c in cols" :key="c.key" class="px-3 py-2 font-medium" :aria-sort="sortKey === c.key ? (sortAsc ? 'ascending' : 'descending') : 'none'">
+                <button type="button" class="hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap" :class="{ 'text-foreground': sortKey === c.key }" @click="sortBy(c.key)">
+                  {{ c.label }}
+                  <component :is="sortKey === c.key ? (sortAsc ? ArrowUp : ArrowDown) : ArrowUpDown" class="size-3" :class="{ 'opacity-40': sortKey !== c.key }" />
+                </button>
+              </th>
               <th />
             </tr>
           </thead>
@@ -338,13 +390,25 @@ async function removeSeries(id: string) {
             <tr v-if="shown.length === 0">
               <td colspan="7" class="text-muted-foreground px-3 py-8 text-center">{{ t.empty }}</td>
             </tr>
-            <tr v-for="e in shown" :key="e.id" class="border-t" :class="{ 'opacity-60': e.archivedAt }">
-              <td class="px-3 py-2">
+            <template v-for="{ key, group, e, inGroup } in tableRows" :key="key">
+            <tr v-if="group" class="bg-muted/30 border-t">
+              <td colspan="7" class="px-3 py-1.5 text-xs">
+                <span class="flex min-w-0 items-center gap-1.5">
+                  <FileText class="text-muted-foreground size-3.5 shrink-0" />
+                  <NuxtLink v-if="group.submissionId" :to="{ path: '/inbox', query: { id: group.submissionId } }" class="max-w-[28rem] truncate font-medium hover:underline">{{ group.title }}</NuxtLink>
+                  <span v-else class="max-w-[28rem] truncate font-medium">{{ group.title }}</span>
+                  <span class="text-muted-foreground shrink-0">· {{ t.splitGroup(group.total) }}</span>
+                </span>
+              </td>
+            </tr>
+            <tr v-else-if="e" class="border-t" :class="{ 'opacity-60': e.archivedAt, 'border-t-0': inGroup }">
+              <td class="py-2 pr-3" :class="inGroup ? 'border-primary/40 border-l-2 pl-5' : 'pl-3'">
                 <input
                   v-if="edit" :value="e.number" type="number" min="1" max="9999" :aria-label="t.numberLabel"
                   class="mr-2 w-12 rounded border px-1 text-xs" @change="setNumber(e, ($event.target as HTMLInputElement).value)"
                 >
                 <NuxtLink :to="{ path: '/studio', query: { episode: e.id } }" class="font-medium hover:underline">{{ e.title }}</NuxtLink>
+                <span v-if="e.materialPart" class="text-muted-foreground ml-1.5 text-xs">{{ ko.studio.split.partOf(e.materialPart.total, e.materialPart.index) }}</span>
               </td>
               <td class="px-3 py-2">{{ seriesName(e.seriesId) }}</td>
               <td class="px-3 py-2">
@@ -361,20 +425,27 @@ async function removeSeries(id: string) {
               <td class="px-3 py-2">{{ krw(e.costKrw) }}</td>
               <td class="text-muted-foreground px-3 py-2">{{ date(e) }}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
-                <template v-if="edit">
-                  <AppSelect :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" model-value="" @change="dup(e, $event)">
-                    <option value="" disabled>{{ t.duplicate }}</option>
-                    <option v-for="m in (['structure', 'full'] as const)" :key="m" :value="m">{{ t.duplicateModes[m] }}</option>
-                  </AppSelect>
-                  <Button size="sm" variant="ghost" @click="toggleArchive(e)">
-                    {{ e.archivedAt ? t.unarchive : t.archive }}
+                <div v-if="edit" class="flex items-center justify-end gap-1">
+                  <div class="relative">
+                    <Button size="icon" variant="ghost" class="size-8" :aria-label="t.duplicate" :title="t.duplicateHint" :aria-expanded="dupFor?.id === e.id" @click.stop="openDup(e, $event)">
+                      <Copy class="size-4" />
+                    </Button>
+                    <div v-if="dupFor?.id === e.id" role="menu" class="bg-popover fixed z-50 flex w-32 flex-col rounded-md border p-1 text-left text-sm shadow-md" :style="{ top: `${dupFor.top}px`, right: `${dupFor.right}px` }" @click.stop>
+                      <button v-for="m in (['structure', 'full'] as const)" :key="m" type="button" role="menuitem" class="hover:bg-accent rounded px-2 py-1.5 text-left" @click="dupFor = null; dup(e, m)">
+                        {{ t.duplicateModes[m] }}
+                      </button>
+                    </div>
+                  </div>
+                  <Button size="icon" variant="ghost" class="size-8" :aria-label="e.archivedAt ? t.unarchive : t.archive" :title="e.archivedAt ? t.unarchive : t.archive" @click="toggleArchive(e)">
+                    <component :is="e.archivedAt ? ArchiveRestore : Archive" class="size-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" :aria-label="t.delete" @click="remove(e)">
+                  <Button size="icon" variant="ghost" class="text-destructive size-8" :aria-label="t.delete" :title="t.delete" @click="remove(e)">
                     <Trash2 class="size-4" />
                   </Button>
-                </template>
+                </div>
               </td>
             </tr>
+            </template>
           </tbody>
         </table>
       </div>
