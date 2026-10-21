@@ -141,6 +141,17 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   const files = Object.keys(unzipSync(readFileSync((await dl.path())!))).sort()
   expect(files.length).toBeGreaterThan(0)
   expect(files[0]).toMatch(/_1화_01\.jpg$/)
+  // 표지 (PUB-15·17): 작품을 고른 채 표지를 만들면 그 작품 기본이 되고, 장 수에 함께 세어 첫 장으로 붙는다
+  const studioUrl = page.url()
+  await page.goto('/page-designs')
+  await page.getByRole('button', { name: '새 표지' }).click()
+  await expect(page.getByText('작품 1개 기본')).toBeVisible()
+  await page.goto(studioUrl)
+  await page.getByRole('tab', { name: /Export/ }).click()
+  const withCover = page.getByRole('button', { name: `ZIP으로 모두 내려받기 (${files.length + 1}장)` })
+  await expect(withCover).toBeVisible()
+  const [dl2] = await Promise.all([page.waitForEvent('download'), withCover.click()])
+  expect(Object.keys(unzipSync(readFileSync((await dl2.path())!)))).toHaveLength(files.length + 1)
 
   // 릴스 영상 미리 보기·타임라인 (PUB-30~37)
   await page.getByRole('tab', { name: /릴스 영상/ }).click()
@@ -189,7 +200,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(page.getByPlaceholder(/캡션 본문/)).toHaveValue(/가짜 캡션/, { timeout: 60_000 })
   await page.getByPlaceholder(/게시 링크/).fill('https://www.instagram.com/p/e2e')
   await page.getByRole('button', { name: '게시함으로 표시' }).click()
-  await expect(page.getByText(/게시함$/)).toBeVisible()
+  await expect(page.getByRole('link', { name: '게시물', exact: true })).toHaveAttribute('href', 'https://www.instagram.com/p/e2e')
   await page.goto('/publish')
   await expect(page.getByRole('link', { name: 'https://www.instagram.com/p/e2e' })).toBeVisible()
 

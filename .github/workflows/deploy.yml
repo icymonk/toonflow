@@ -48,6 +48,25 @@ jobs:
       - run: pnpm test
       - run: pnpm generate
 
+      # PR: 미리보기 채널은 사이트마다 개수 제한이 있어서(넘으면 429 channel quota reached), 닫힌 PR의 채널을 먼저 지운다
+      - if: env.HAS_SA == 'true' && github.event_name == 'pull_request'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      - if: env.HAS_SA == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 --json number --jq '.[].number')
+          pnpm exec firebase hosting:channel:list --site toonflow-studio --project toonflow-351ed --json \
+            | jq -r '.result.channels[]?.name' | sed 's#.*/channels/##' | grep -E '^pr[0-9]+-' | while read -r ch; do
+              n=${ch#pr}; n=${n%%-*}
+              if ! grep -qx "$n" <<< "$open"; then
+                echo "닫힌 PR #$n 미리보기 채널 지우기: $ch"
+                pnpm exec firebase hosting:channel:delete "$ch" --site toonflow-studio --project toonflow-351ed --force || true
+              fi
+            done || true
+
       # PR: 미리보기 채널(7일)에 앱만 올리고 PR에 주소를 댓글로 남긴다
       - if: env.HAS_SA == 'true' && github.event_name == 'pull_request'
         uses: FirebaseExtended/action-hosting-deploy@v0

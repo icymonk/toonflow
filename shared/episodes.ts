@@ -61,6 +61,9 @@ export interface Series extends SeriesInput {
   memo?: string
   coverText?: string
   outroText?: string
+  /** PUB-15·16 작품 기본 표지·끝장 디자인 */
+  coverDesignId?: string | null
+  outroDesignId?: string | null
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null
@@ -74,7 +77,7 @@ export interface Episode {
   number: number
   step: Step
   status: EpisodeStatus
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null, coverDesignId?: string, outroDesignId?: string }
   submissionIds: string[]
   activeStoryVersionId?: string | null
   storyVersionCount?: number
@@ -84,7 +87,8 @@ export interface Episode {
   review?: Record<string, import('./review').ReviewState>
   caption?: { text: string, hashtags: string[] } | null
   aiCheck?: import('./aicheck').AiCheck | null
-  published?: { at?: Ts, url: string } | null
+  /** 직접 표시했거나 바로 게시한 첫 발행. Instagram으로 올렸으면 instagramMediaId가 있다 */
+  published?: { at?: Ts, url: string, instagramMediaId?: string } | null
   /** PUB-24: 서버가 Instagram에 게시하는 중·실패 (끝나면 지운다) */
   instagramPost?: { status: 'posting' | 'failed', error?: string, at?: Ts } | null
   /** PUB-25: Threads 게시 중·실패, 게시한 링크 */

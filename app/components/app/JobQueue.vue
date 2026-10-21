@@ -50,7 +50,7 @@ async function act(fn: 'cancelAiJob' | 'retryAiJob', j: QueueJob) {
       <ListTodo class="size-4" />
       <span v-if="q.activeCount.value" class="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full px-1 text-[10px] leading-4">{{ q.activeCount.value }}</span>
     </Button>
-    <div v-if="open" class="bg-popover absolute right-0 z-20 mt-1 flex max-h-[70vh] w-96 max-w-[calc(100vw-1.5rem)] flex-col gap-1 overflow-y-auto rounded-md border p-2 text-sm shadow-md">
+    <div v-if="open" class="bg-popover fixed inset-x-3 top-14 z-20 mt-1 flex max-h-[70vh] flex-col sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:w-96 gap-1 overflow-y-auto rounded-md border p-2 text-sm shadow-md">
       <div class="flex items-center justify-between px-1">
         <span class="font-medium">{{ t.title }}</span>
         <label v-if="episode" class="flex items-center gap-1.5 text-xs"><AppCheck v-model="onlyEpisode" /> {{ t.thisEpisode }}</label>

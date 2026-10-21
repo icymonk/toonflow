@@ -37,7 +37,7 @@ async function create() {
       <span class="truncate">{{ auth.workspace?.name }}</span>
       <span aria-hidden="true">▾</span>
     </button>
-    <div v-if="open" role="menu" class="bg-popover text-popover-foreground absolute top-full left-0 z-30 mt-1 flex w-60 flex-col rounded-md border p-1 text-sm shadow-md">
+    <div v-if="open" role="menu" class="bg-popover text-popover-foreground absolute inset-x-0 top-full z-30 mt-1 flex max-h-80 min-w-0 flex-col overflow-y-auto rounded-md border p-1 text-sm shadow-md">
       <p v-if="!auth.workspaces.length" class="text-muted-foreground px-2 py-1 text-xs">{{ t.loading }}</p>
       <button v-for="w in auth.workspaces" :key="w.id" type="button" role="menuitem" class="hover:bg-muted flex items-center gap-2 rounded px-2 py-1.5 text-left" @click="go(w.id)">
         <span class="flex-1 truncate">{{ w.name }}</span>

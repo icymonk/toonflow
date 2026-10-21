@@ -54,6 +54,8 @@ describe('roles × paths', () => {
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
     await assertFails(updateDoc(doc(db('viewer'), `${W}/episodes/e1`), { review: { typo: 'pass' } }))
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { caption: { text: 'c', hashtags: [] }, published: { url: 'https://x' } }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { published: null, threadsPublished: null }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/episodes/e1`), { threadsPublished: { url: 'https://x' } }))
   })
   it('only owner/admin manage workspace settings', async () => {
     await assertSucceeds(updateDoc(doc(db('owner'), W), { name: 'new' }))
@@ -125,6 +127,17 @@ describe('2단계 경로', () => {
     await assertFails(setDoc(doc(db('editor'), `${W}/assets/a7`), { ...a, seriesId: 3 }))
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { seriesId: 's1' }))
     await assertSucceeds(updateDoc(doc(db('editor'), `${W}/assets/a1`), { seriesId: null }))
+  })
+  it('pageDesigns: editors create cover/outro, kind fixed, image under refs/pageDesigns', async () => {
+    const d = { name: '표지', kind: 'cover', bgColor: '#FFFFFF', textColor: '#1F2A44', align: 'center', showSeries: true, showNumber: true, showTitle: true, text: '', titleSize: 96, textSize: 32, boxed: false, imagePath: null, seriesId: null, archivedAt: null, deletedAt: null, createdBy: 'editor', createdAt: new Date(), updatedAt: new Date() }
+    await assertSucceeds(setDoc(doc(db('editor'), `${W}/pageDesigns/d1`), d))
+    await assertFails(setDoc(doc(db('editor'), `${W}/pageDesigns/d2`), { ...d, kind: 'middle' }))
+    await assertFails(setDoc(doc(db('viewer'), `${W}/pageDesigns/d3`), { ...d, createdBy: 'viewer' }))
+    await assertFails(setDoc(doc(db('editor'), `${W}/pageDesigns/d4`), { ...d, imagePath: 'workspaces/w2/refs/pageDesigns/x.png' }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/pageDesigns/d1`), { imagePath: `${W}/refs/pageDesigns/d1/a.png`, seriesId: 'sr1', text: '다음 화 예고' }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/pageDesigns/d1`), { kind: 'outro' }))
+    await assertFails(updateDoc(doc(db('editor'), `${W}/pageDesigns/d1`), { text: 'x'.repeat(301) }))
+    await assertSucceeds(updateDoc(doc(db('editor'), `${W}/series/sr1`), { coverDesignId: 'd1', outroDesignId: null }))
   })
   it('candidates: editors import from aiJobs path and flag favorite/hidden only', async () => {
     const imp = { imagePath: `${W}/aiJobs/j1/0.png`, width: 1080, height: 1350, source: 'import', jobId: '', input: null, hidden: false, favorite: false, workspaceId: 'w1', episodeId: 'e1', panelId: 'p1', createdAt: new Date() }
