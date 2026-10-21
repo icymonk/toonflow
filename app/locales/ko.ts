@@ -446,6 +446,9 @@ export const ko = {
       igUploading: (a: number, b: number) => `올리는 중 ${a} / ${b}장`,
       igPosting: 'Instagram에 게시하는 중…',
       igPosted: 'Instagram에 게시했어요',
+      igStarted: 'Instagram에 게시를 시작했어요. 몇 분 걸릴 수 있고, 이 화면을 닫아도 계속돼요.',
+      igPostingNote: 'Instagram에 게시하는 중… 끝나면 게시 링크가 여기에 나와요.',
+      igFailedNote: '지난 Instagram 게시가 실패했어요. 다시 시도할 수 있어요.',
       igTooMany: (n: number) => `Instagram 게시는 ${n}장까지예요.`,
       igCaptionLong: (n: number) => `Instagram 캡션은 ${n}자까지예요. 캡션을 줄여 주세요.`,
       igConnect: '설정에서 Instagram을 연결하면 여기서 바로 게시할 수 있어요',
@@ -1063,6 +1066,7 @@ export const ko = {
     instagramNotConfigured: 'Instagram 연동이 아직 설정되지 않았어요. 운영자에게 문의해 주세요.',
     instagramNotConnected: 'Instagram 연결이 없거나 만료됐어요. 설정에서 다시 연결해 주세요.',
     instagramFailed: 'Instagram에 올리지 못했어요. 잠시 뒤 다시 시도해 주세요.',
+    instagramBusy: '이 에피소드는 지금 Instagram에 게시하는 중이에요. 끝날 때까지 기다려 주세요.',
   },
   plans: { free: '무료', basic: '베이직', pro: '프로' },
 } as const

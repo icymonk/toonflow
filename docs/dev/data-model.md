@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v3.1 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v3.2 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -122,3 +122,4 @@
 - v2.9: 4-D — `workspaces/{ws}/activity/{id}` `{ uid, action, meta, at }`(CMN-31, 서버가 멤버·초대·워크스페이스 관리 callable에서 남김, 멤버가 읽음), `workspaces/{ws}/adminViews/{id}` `{ by, email, reason, workspaceId, at }`(CMN-54, `logAdminView`가 남김, 소유자·관리자·운영자가 읽음, collectionGroup 단일 필드 색인 `at` 내림차순 — `fieldOverrides`, 1필드 복합 색인은 배포가 400으로 거절). callable `adminOverview`(이번 달 워크스페이스별 비용·작업 수·실패율·모델별), `logAdminView`(열람 이유 필수, 에피소드·제보·멤버 수를 돌려줌)
 - v3.0: 4-E — `workspaces/{ws}/episodes/{ep}/presence/{uid}` `{ name, photoURL, panelId, at }`(STU-24, 각자 자기 문서만 쓰고 `at`은 서버 시각, 30초마다 갱신·75초 지나면 안 보임, 나갈 때 지움). 새 워크스페이스에 기본 그림체 4개를 `styles`에 `preset: true`로 복사(STL-03). 다크 모드는 UI 토큰만, 저장 데이터 없음.
 - v3.1: PUB-24 — `workspaces/{ws}.instagram` `{ userId, username, expiresAt, connectedAt }`(서버만 씀), `instagramTokens/{ws}` `{ accessToken, userId, issuedAt, expiresAt, by }`·`instagramStates/{state}` `{ workspaceId, uid, expiresAt }`(규칙 없음 = 서버만). 게시할 장은 `workspaces/{ws}/exports/{ep}/{batch}/{NN}.jpg`(편집자가 올리고 게시 뒤 서버가 지움). 게시하면 에피소드 `published.instagramMediaId`. callable `instagramAuthUrl`·`connectInstagram`·`disconnectInstagram`·`publishInstagram`, 매일 `refreshInstagramTokens`. 시크릿 `INSTAGRAM_APP_ID`·`INSTAGRAM_APP_SECRET`(없으면 `unset`)
+- v3.2: PUB-24 게시를 비동기로 — `publishInstagram`은 에피소드 `instagramPost` `{ status: 'posting', at, by }`와 `instagramPosts/{id}` `{ workspaceId, episodeId, paths, caption, by, createdAt }`(서버만)를 만들고 바로 끝난다. 트리거 `postInstagram`(문서 생성, 300초, 재시도 없음)이 게시한 뒤 `published`를 쓰고 `instagramPost`를 지우거나 `{ status: 'failed', error }`로. 게시 중 표시가 10분 지나면 다시 게시할 수 있다. Hosting `/fn` 경유 callable은 60초에 끊겨서 캐러셀을 기다리면 화면에 실패로 보였다
