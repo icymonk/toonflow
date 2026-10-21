@@ -117,10 +117,19 @@ const captionCost = computed(() => lib.estimateText('publish.caption', story.mat
 const makeCaption = () => (story.active.value ? run(() => story.caption(story.active.value!), t.publish.captionStarted) : toast.warning(t.board.needStory))
 const setCaptionText = (text: string) => run(() => s.updateEpisode({ caption: { text: text.slice(0, 2000), hashtags: episode.value?.caption?.hashtags ?? [] } }))
 const markPublished = (url: string) => run(() => s.updateEpisode({ status: 'published', published: { at: serverTimestamp(), url: url.slice(0, 500) } }), t.publish.published)
-const unpublish = () => run(() => s.updateEpisode({ status: 'done', published: null }))
+const unpublish = () => run(() => s.updateEpisode({ status: 'done', published: null, threadsPublished: null }))
 const publishedInfo = computed(() => {
   const p = episode.value?.published
-  return p ? { at: p.at ? new Date(p.at.toMillis()).toLocaleDateString('ko-KR') : '', url: p.url } : null
+  return p ? { at: p.at ? new Date(p.at.toMillis()).toLocaleDateString('ko-KR') : '', url: p.url, manual: !p.instagramMediaId && p.url !== episode.value?.threadsPublished?.url } : null
+})
+// SNS마다 게시 일시·링크
+const postedAt = (at?: { toMillis: () => number }) => (at ? new Date(at.toMillis()).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
+const socialPosted = computed(() => {
+  const e = episode.value
+  const out: Partial<Record<SocialPlatform, { at: string, url: string }>> = {}
+  if (e?.published?.instagramMediaId) out.instagram = { at: postedAt(e.published.at), url: e.published.url }
+  if (e?.threadsPublished) out.threads = { at: postedAt(e.threadsPublished.at), url: e.threadsPublished.url }
+  return out
 })
 async function guardExport(fn: () => unknown) {
   if (left.value && !await confirmDialog(t.review.notPassed(left.value))) return
@@ -140,7 +149,8 @@ async function postSocial(platforms: SocialPlatform[]) {
   if (platforms.includes('instagram') && fullCaption.value.length > IG_CAPTION_MAX) return toast.error(t.publish.igCaptionLong(IG_CAPTION_MAX))
   const text = threadsText(fullCaption.value)
   const where = platforms.map(p => (p === 'instagram' ? `Instagram @${igUser.value}` : `Threads @${thUser.value}`)).join(', ')
-  if (!await confirmDialog(t.publish.socialConfirm(n, where, platforms.includes('threads') && text !== fullCaption.value))) return
+  const again = platforms.filter(p => socialPosted.value[p]).map(p => (p === 'instagram' ? 'Instagram' : 'Threads'))
+  if (!await confirmDialog(t.publish.socialConfirm(n, where, platforms.includes('threads') && text !== fullCaption.value, again))) return
   try {
     await exp.social(platforms.map(p => ({ platform: p, caption: p === 'threads' ? text : fullCaption.value })))
     toast.info(t.publish.socialStarted)
@@ -734,7 +744,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :ig-state="igState" :threads="thUser" :th-state="thState" :threads-url="episode.threadsPublished?.url ?? ''" :social-progress="socialProgress" :withdrawn="withdrawnSources.length"
+            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :ig-state="igState" :threads="thUser" :th-state="thState" :posted="socialPosted" :social-progress="socialProgress" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
             @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @social="ps => guardExport(() => postSocial(ps))"

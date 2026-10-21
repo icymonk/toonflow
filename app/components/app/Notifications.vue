@@ -30,7 +30,7 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1) 
       <Bell class="size-4" />
       <span v-if="count" class="bg-primary text-primary-foreground absolute top-1 right-1 rounded-full px-1 text-[10px] leading-4">{{ count }}</span>
     </Button>
-    <div v-if="open" class="bg-popover absolute right-0 z-20 mt-1 flex max-h-96 w-80 flex-col overflow-y-auto rounded-md border p-1 text-sm shadow-md">
+    <div v-if="open" class="bg-popover fixed inset-x-3 top-14 z-20 mt-1 flex max-h-96 flex-col sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:w-80 overflow-y-auto rounded-md border p-1 text-sm shadow-md">
       <div class="flex justify-end px-1">
         <button class="text-muted-foreground text-xs hover:underline" @click="showPrefs = !showPrefs">{{ t.prefs.title }}</button>
       </div>

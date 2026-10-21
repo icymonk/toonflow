@@ -265,7 +265,8 @@ service cloud.firestore {
           allow delete: if signedIn() && request.auth.uid == uid;
         }
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'threadsPublished', 'updatedAt'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['threadsPublished']) || request.resource.data.threadsPublished == null)
           && strLen(request.resource.data.title, 1, 80)
           && request.resource.data.number is int && request.resource.data.number >= 1 && request.resource.data.number <= 9999
           && request.resource.data.step in ['story', 'storyboard', 'illustrate', 'review', 'export']
