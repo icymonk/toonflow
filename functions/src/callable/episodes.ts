@@ -163,6 +163,7 @@ export const duplicateEpisode = authedCallable(duplicateEpisodeInput, async ({ u
     for (const p of pages.docs) {
       tx.set(dst.collection('pages').doc(pageId.get(p.id)!), {
         layout: p.get('layout'),
+        ...(p.get('title') ? { title: p.get('title') } : {}),
         panelIds: ((p.get('panelIds') as string[] | undefined) ?? []).map(id => panelId.get(id)).filter(Boolean),
         deletedAt: null,
         updatedAt: now,

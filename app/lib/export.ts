@@ -4,7 +4,7 @@ import type { Firestore } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import type { CandidateRef } from './candidates'
 import { getBlob, ref as storageRef } from 'firebase/storage'
-import { adjustFilter, fontCss, spikyPath } from '#shared/render'
+import { adjustFilter, fontCss, layoutTitle, spikyPath } from '#shared/render'
 import { resolveCandidatePath } from './candidates'
 
 const INK = '#1F2A44'
@@ -32,6 +32,16 @@ export function paintPage(ctx: Ctx, laid: LaidCut[], W: number, H: number, ts: T
   const font = fontCss(ts.font)
   ctx.fillStyle = '#fff'
   ctx.fillRect(0, 0, W, H)
+  const title = layoutTitle(laid[0]?.cut.page, W, H)
+  if (title) {
+    ctx.save()
+    ctx.fillStyle = INK
+    ctx.font = `700 ${title.size}px ${font}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(title.text, title.x, title.y)
+    ctx.restore()
+  }
   for (const it of laid) {
     const { r } = it
     ctx.save()

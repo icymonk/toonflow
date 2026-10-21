@@ -3,12 +3,12 @@ import type { Character } from '#shared/library'
 import type { Dialogue, DialogueType, Page, PageLayout, Panel } from '#shared/studio'
 import { ArrowDown, ArrowUp, Check, Plus, X } from '@lucide/vue'
 import { matchCharacters } from '#shared/library'
-import { DIALOGUE_WARN_CHARS, layoutOptions, SHOTS } from '#shared/studio'
+import { DIALOGUE_WARN_CHARS, layoutOptions, PAGE_TITLE_MAX, SHOTS } from '#shared/studio'
 import { ko } from '~/locales/ko'
 
 // SBD-10·11·13·23: 선택한 컷의 항목·대사·메모, 선택한 장의 배치
 const props = defineProps<{ panel: Panel, page: Page, edit: boolean, characters?: Character[], refining?: boolean, styles?: { id: string, name: string }[], sceneOutfitDiff?: number }>()
-const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], create: [name: string, once: boolean], refine: [], split: [], merge: [], refUpload: [file: File], refRemove: [], outfitScene: [] }>()
+const emit = defineEmits<{ edit: [field: keyof Panel, value: unknown], layout: [layout: PageLayout], pageTitle: [title: string], create: [name: string, once: boolean], refine: [], split: [], merge: [], refUpload: [file: File], refRemove: [], outfitScene: [] }>()
 const hasNext = computed(() => props.page.panelIds.indexOf(props.panel.id) < props.page.panelIds.length - 1)
 function pickRef(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
@@ -20,6 +20,8 @@ const linked = (name: string) => matchCharacters([name], props.characters ?? [])
 const t = ko.studio.board
 const TYPES = Object.keys(t.lineTypes) as DialogueType[]
 const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm disabled:opacity-50'
+const layouts = computed(() => layoutOptions(props.page.panelIds.length))
+const layoutName = (l: string) => t.layouts[l] ?? t.layoutRows(l)
 
 const lines = ref<Dialogue[]>([])
 watch(() => props.panel.id, () => (lines.value = props.panel.dialogues.map(d => ({ ...d, speaker: d.speaker ?? '' }))), { immediate: true })
@@ -42,11 +44,15 @@ const text = (field: keyof Panel) => String(props.panel[field] ?? '')
 </script>
 
 <template>
-  <div v-if="page.panelIds.length === 2" class="flex flex-col gap-1.5">
+  <div class="flex flex-col gap-1.5">
+    <Label>{{ t.pageTitle }}</Label>
+    <Input :model-value="page.title ?? ''" :maxlength="PAGE_TITLE_MAX" :placeholder="t.pageTitleHint" :aria-label="t.pageTitle" :disabled="!edit" @change="emit('pageTitle', ($event.target as HTMLInputElement).value)" />
+  </div>
+  <div v-if="layouts.length > 1" class="flex flex-col gap-1.5">
     <Label>{{ t.layout }}</Label>
-    <AppSelect :value="page.layout" :class="selectClass" :disabled="!edit" @change="emit('layout', $event as PageLayout)">
-      <option v-for="l in layoutOptions(2)" :key="l" :value="l">
-        {{ t.layouts[l] }}
+    <AppSelect :value="page.layout" :class="selectClass" :disabled="!edit" :aria-label="t.layout" @change="emit('layout', $event as PageLayout)">
+      <option v-for="l in layouts" :key="l" :value="l">
+        {{ layoutName(l) }}
       </option>
     </AppSelect>
   </div>

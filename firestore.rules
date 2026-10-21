@@ -322,9 +322,10 @@ service cloud.firestore {
         match /pages/{pageId} {
           allow read: if canView(ws);
           allow create, update: if canEdit(ws)
-            && request.resource.data.keys().hasOnly(['layout', 'panelIds', 'deletedAt', 'updatedAt'])
-            && request.resource.data.layout in ['1', '2v', '2h', '3', '4']
-            && request.resource.data.panelIds is list && request.resource.data.panelIds.size() <= 4;
+            && request.resource.data.keys().hasOnly(['layout', 'panelIds', 'title', 'deletedAt', 'updatedAt'])
+            && request.resource.data.layout in ['1', '2v', '2h', '3', '4', '1-2', '2-1', '1-2-1', '3-1', '1-3', '2-1-2', '3-2', '2-3', '2-2-1', '3-2-1', '2-2-2', '3-3', '1-2-3', '3-1-3', '2-3-2', '3-3-1', '2-2-2-1', '2-2-2-2', '3-2-3', '3-3-2']
+            && (!('title' in request.resource.data) || strLen(request.resource.data.title, 0, 40))
+            && request.resource.data.panelIds is list && request.resource.data.panelIds.size() <= 8;
         }
         match /panels/{panelId} {
           allow read: if canView(ws);

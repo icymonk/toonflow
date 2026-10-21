@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Cut } from '#shared/studio'
+import { cutBoxes } from '#shared/render'
 import { ko } from '~/locales/ko'
 
 // SBD-30 콘티 보기: 장 단위 썸네일 (그림이 없으면 장면 설명 글 상자)
@@ -10,17 +11,20 @@ const pages = computed(() => {
   for (const c of props.cuts) (out[c.pageIndex] ??= []).push(c)
   return out.filter(Boolean)
 })
-const grid: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', '2h': 'grid-cols-2', '3': 'grid-rows-3', '4': 'grid-cols-2 grid-rows-2' }
+// aspect는 '4 / 5' 꼴. 출력과 같은 칸 배치를 %로 그린다
+const ratio = computed(() => { const [a, b] = props.aspect.split('/').map(Number); return (b || 5) / (a || 4) })
+const boxes = (cs: Cut[]) => cutBoxes(cs, 1080, 1080 * ratio.value)
 </script>
 
 <template>
   <div class="grid w-full flex-1 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] content-start gap-4 overflow-y-auto p-1">
     <div v-for="cs in pages" :key="cs[0]!.page.id" class="flex flex-col gap-1">
       <span class="text-muted-foreground text-xs">{{ ko.studio.page(cs[0]!.pageIndex + 1) }}</span>
-      <div class="bg-card grid gap-0.5 rounded border p-0.5" :class="grid[cs[0]!.page.layout]" :style="{ aspectRatio: aspect }">
+      <div class="bg-card relative rounded border" :style="{ aspectRatio: aspect }">
+        <span v-if="boxes(cs).title" class="absolute flex items-center justify-center truncate text-[10px] font-bold" :style="boxes(cs).title!">{{ cs[0]!.page.title }}</span>
         <button
-          v-for="c in cs" :key="c.panel.id" class="overflow-hidden bg-neutral-100 text-left text-[10px] leading-tight text-neutral-700"
-          :class="{ 'ring-primary ring-2': c.panel.id === selectedId }" @click="emit('select', c.panel.id)"
+          v-for="(c, i) in cs" :key="c.panel.id" class="absolute overflow-hidden bg-neutral-100 text-left text-[10px] leading-tight text-neutral-700"
+          :class="{ 'ring-primary ring-2': c.panel.id === selectedId }" :style="boxes(cs).cuts[i]" @click="emit('select', c.panel.id)"
         >
           <StudioPanelImage v-if="c.panel.selectedCandidateId" :candidate-id="c.panel.selectedCandidateId" :panel-id="c.panel.id" :crop="c.panel.crop" :adjust="c.panel.adjust" class="relative size-full" />
           <span v-else class="line-clamp-6 p-1.5">{{ c.panel.scene || ko.studio.noScene }}</span>
