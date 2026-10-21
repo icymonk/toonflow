@@ -4,7 +4,7 @@ import type { Page, Panel } from './studio'
 export const SNAPSHOT_MAX_PANELS = 80
 export const SNAPSHOT_NAME_MAX = 40
 
-const PAGE_KEYS = ['layout', 'panelIds'] as const
+const PAGE_KEYS = ['layout', 'panelIds', 'title'] as const
 const PANEL_KEYS = ['pageId', 'scene', 'place', 'mood', 'characterNames', 'characterIds', 'shot', 'expression', 'action', 'outfit', 'note', 'dialogues', 'selectedCandidateId', 'crop', 'bubbles', 'refImage', 'styleId', 'staleFrom'] as const
 
 export type SnapPage = Pick<Page, 'id' | (typeof PAGE_KEYS)[number]>

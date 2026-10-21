@@ -2,7 +2,7 @@ import type { Character, Style } from './library'
 import type { Crop, Cut, Panel } from './studio'
 import { samePlace } from './studio'
 import { describeAppearance, NO_TEXT, stylePrompt, variantFor } from './library'
-import { cutRects, pageSize } from './render'
+import { cutRects, pageSize, titleBand } from './render'
 
 // Illustrate (ILL-01~06·10~12·20·23·40·41)
 export const CANDIDATE_DEFAULT = 2
@@ -32,7 +32,7 @@ export const FULL_BLEED = 'One single full-bleed illustration that fills the who
 export function cutSize(cuts: Cut[], cut: Cut, aspect?: string): { w: number, h: number } {
   const { w: W, h: H } = pageSize(aspect)
   const onPage = cuts.filter(c => c.page.id === cut.page.id)
-  const r = cutRects(cut.page.layout, onPage.length, W, H)[Math.min(cut.indexInPage, 3)] ?? { w: W, h: H }
+  const r = cutRects(cut.page.layout, onPage.length, W, H, titleBand(cut.page, H))[cut.indexInPage] ?? { w: W, h: H }
   return { w: Math.round(r.w), h: Math.round(r.h) }
 }
 

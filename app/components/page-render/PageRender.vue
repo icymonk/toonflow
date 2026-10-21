@@ -2,7 +2,7 @@
 import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
-import { adjustFilter, cutRects, fontCss, layoutPage, pageSize, spikyPath } from '#shared/render'
+import { adjustFilter, fontCss, layoutPage, layoutTitle, pageRects, pageSize, spikyPath } from '#shared/render'
 import { resolveCandidatePath } from '~/lib/candidates'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
@@ -13,7 +13,8 @@ const route = useRoute()
 const auth = useAuthStore()
 const cache = useState<Record<string, string>>('storage-urls', () => ({}))
 const size = computed(() => pageSize(props.aspect))
-const rects = computed(() => cutRects(props.cuts[0]?.page.layout ?? '1', props.cuts.length, size.value.w, size.value.h))
+const rects = computed(() => pageRects(props.cuts, size.value.w, size.value.h))
+const title = computed(() => layoutTitle(props.cuts[0]?.page, size.value.w, size.value.h))
 const urls = reactive<Record<string, string>>({})
 watchEffect(() => {
   for (const c of props.cuts) {
@@ -74,6 +75,7 @@ defineExpose({ svg })
         <rect :x="it.r.x" :y="it.r.y" :width="it.r.w" :height="it.r.h" />
       </clipPath>
     </defs>
+    <text v-if="title" :x="title.x" :y="title.y" text-anchor="middle" dominant-baseline="middle" :font-family="fontCss(typeset.font)" :font-size="title.size" font-weight="700" fill="#1F2A44">{{ title.text }}</text>
     <g v-for="it in items" :key="it.cut.panel.id" @pointerdown="emit('select', it.cut.panel.id, null)">
       <g :clip-path="`url(#clip-${it.cut.panel.id})`">
         <rect :x="it.r.x" :y="it.r.y" :width="it.r.w" :height="it.r.h" fill="#F4F4F5" />

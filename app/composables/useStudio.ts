@@ -8,7 +8,7 @@ import { restorePlan, SNAPSHOT_MAX_PANELS, SNAPSHOT_NAME_MAX, takeSnapshot } fro
 import { ACTIVE_STATUSES } from '#shared/jobs'
 import type { StoryVersion } from '#shared/story'
 import { prevEpisodeSummary, previousEpisode } from '#shared/story'
-import { createHistory, emptyPanel, LAYOUT_BY_COUNT, movedPanelIds, movePage, movePanelTo, orderCuts } from '#shared/studio'
+import { createHistory, emptyPanel, LAYOUT_BY_COUNT, MAX_PANELS_PER_PAGE, movedPanelIds, movePage, movePanelTo, orderCuts, PAGE_TITLE_MAX } from '#shared/studio'
 
 interface ActiveJob { id: string, type: JobType, status: JobStatus, target: StartAiJobInput['target'] }
 
@@ -165,7 +165,7 @@ export function useStudio(episodeId: Ref<string>) {
 
   async function addPanel(pageId: string) {
     const page = pages.value.find(p => p.id === pageId)
-    if (!page || page.panelIds.length >= 4) return null
+    if (!page || page.panelIds.length >= MAX_PANELS_PER_PAGE) return null
     const before = [...page.panelIds]
     const panelRef = doc(sub('panels'))
     const apply = (ids: string[], deleted: boolean) => {
@@ -250,7 +250,7 @@ export function useStudio(episodeId: Ref<string>) {
     const cut = cuts.value.find(c => c.panel.id === panelId)
     if (!cut) return null
     const { id: _id, pageId: _page, ...data } = cut.panel
-    const id = cut.page.panelIds.length < 4 ? await addPanel(cut.page.id) : await addPage(cut.page.id)
+    const id = cut.page.panelIds.length < MAX_PANELS_PER_PAGE ? await addPanel(cut.page.id) : await addPage(cut.page.id)
     if (id) await updatePanel(id, { ...data, selectedCandidateId: null, staleFrom: null })
     return id
   }
@@ -261,7 +261,7 @@ export function useStudio(episodeId: Ref<string>) {
     if (!cut || cut.panel.dialogues.length < 2) return null
     const half = Math.ceil(cut.panel.dialogues.length / 2)
     const { id: _id, pageId: _page, ...data } = cut.panel
-    const id = cut.page.panelIds.length < 4 ? await addPanel(cut.page.id) : await addPage(cut.page.id)
+    const id = cut.page.panelIds.length < MAX_PANELS_PER_PAGE ? await addPanel(cut.page.id) : await addPage(cut.page.id)
     if (!id) return null
     await updatePanel(id, { ...data, dialogues: data.dialogues.slice(half), bubbles: null, selectedCandidateId: null, staleFrom: null })
     await updatePanel(panelId, { dialogues: cut.panel.dialogues.slice(0, half), bubbles: null })
@@ -309,9 +309,10 @@ export function useStudio(episodeId: Ref<string>) {
   }
 
   const setLayout = (pageId: string, layout: PageLayout) => track(() => updateDoc(doc(sub('pages'), pageId), { layout, ...touch() }))
+  const setPageTitle = (pageId: string, title: string) => track(() => updateDoc(doc(sub('pages'), pageId), { title: title.trim().slice(0, PAGE_TITLE_MAX), ...touch() }))
 
   return {
-    episode, missing, prevSummary, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout,
+    episode, missing, prevSummary, seriesName, seriesReviewItems, setSeriesReviewItems, series, updateSeries, splitPanel, mergeNext, addFixedPages, cuts, busyPanels, jobs, dropPanel, shiftPage, duplicatePanel, setLayout, setPageTitle,
     pending, savedAt, failed, retry, canUndo, canRedo, undo, redo,
     rename, setStep, updatePanel, updateEpisode, addPage, addPanel, deletePanel, movePanel,
     snapshots, currentSnapshot, saveSnapshot, removeSnapshot, restoreSnapshot,

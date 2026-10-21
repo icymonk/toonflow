@@ -1,6 +1,7 @@
 import type { Adjust } from './studio'
 import { findPii } from './privacy'
-import type { Cut, Dialogue, DialogueType, PageLayout, Panel } from './studio'
+import type { Cut, Dialogue, DialogueType, Page, PageLayout, Panel } from './studio'
+import { LAYOUT_BY_COUNT, MAX_PANELS_PER_PAGE, rowsOf } from './studio'
 
 // 장 렌더러 공용 계산 (R5, REV-01~04·11). 좌표: 장은 출력 픽셀, 말풍선은 컷 안 0~1 비율
 export const PAGE_SIZES: Record<string, { w: number, h: number }> = { '4:5': { w: 1080, h: 1350 }, '1:1': { w: 1080, h: 1080 }, '3:4': { w: 1080, h: 1440 } }
@@ -10,21 +11,49 @@ export const PAGE_MARGIN = 24
 export const PANEL_GAP = 16
 export interface Rect { x: number, y: number, w: number, h: number }
 
-export function cutRects(layout: PageLayout, count: number, W: number, H: number): Rect[] {
+/** top: 장 제목 띠(SBD-25)가 차지하는 높이 */
+export function cutRects(layout: PageLayout, count: number, W: number, H: number, top = 0): Rect[] {
   const m = PAGE_MARGIN
   const g = PANEL_GAP
   const iw = W - 2 * m
-  const ih = H - 2 * m
-  const rows = (n: number) => Array.from({ length: n }, (_, i) => ({ x: m, y: m + i * ((ih - g * (n - 1)) / n + g), w: iw, h: (ih - g * (n - 1)) / n }))
-  const n = Math.max(1, Math.min(4, count))
-  if (n === 1 || layout === '1') return rows(1)
-  if (n === 2 && layout === '2h') return [0, 1].map(i => ({ x: m + i * ((iw - g) / 2 + g), y: m, w: (iw - g) / 2, h: ih }))
-  if (n === 4 || layout === '4') {
-    const cw = (iw - g) / 2
-    const ch = (ih - g) / 2
-    return [0, 1, 2, 3].slice(0, n).map(i => ({ x: m + (i % 2) * (cw + g), y: m + Math.floor(i / 2) * (ch + g), w: cw, h: ch }))
+  const ih = H - 2 * m - top
+  const grid = (rows: number[]) => {
+    const rh = (ih - g * (rows.length - 1)) / rows.length
+    return rows.flatMap((c, r) => {
+      const cw = (iw - g * (c - 1)) / c
+      return Array.from({ length: c }, (_, i) => ({ x: m + i * (cw + g), y: m + top + r * (rh + g), w: cw, h: rh }))
+    })
   }
-  return rows(n)
+  const n = Math.max(1, Math.min(MAX_PANELS_PER_PAGE, count))
+  const rows = rowsOf(layout, n)
+  if (rows) return grid(rows)
+  if (n === 1 || layout === '1') return grid([1])
+  if (n === 2 && layout === '2h') return grid([2])
+  if (n <= 4 && (n === 4 || layout === '4')) return grid([2, 2]).slice(0, n)
+  if (n <= 4) return grid(Array.from({ length: n }, () => 1))
+  return grid(rowsOf(LAYOUT_BY_COUNT[n]!, n)!)
+}
+
+/** SBD-25 장 제목 띠 높이 (제목이 없으면 0) */
+export const titleBand = (page: Pick<Page, 'title'> | undefined, H: number) => (page?.title?.trim() ? Math.round(H * 0.1) : 0)
+/** 한 장의 컷 칸들 (제목 띠 아래) */
+export const pageRects = (cuts: Cut[], W: number, H: number) => cutRects(cuts[0]?.page.layout ?? '1', cuts.length, W, H, titleBand(cuts[0]?.page, H))
+export interface LaidTitle { text: string, x: number, y: number, size: number }
+export function layoutTitle(page: Pick<Page, 'title'> | undefined, W: number, H: number): LaidTitle | null {
+  const text = page?.title?.trim()
+  if (!text) return null
+  const band = titleBand(page, H)
+  const size = Math.round(Math.min(band * 0.62, ((W - 2 * PAGE_MARGIN - 32) / Math.max(1, [...text].length)) * 1.1))
+  return { text, x: W / 2, y: PAGE_MARGIN + (band - PANEL_GAP) / 2, size }
+}
+/** 콘티 보기·미리보기 썸네일용: 칸 위치를 장 대비 %로 */
+export function cutBoxes(cuts: Cut[], W: number, H: number) {
+  const pct = (v: number, of: number) => `${(v / of) * 100}%`
+  const band = titleBand(cuts[0]?.page, H)
+  return {
+    title: band ? { left: pct(PAGE_MARGIN, W), right: pct(PAGE_MARGIN, W), top: pct(PAGE_MARGIN, H), height: pct(band - PANEL_GAP, H) } : null,
+    cuts: pageRects(cuts, W, H).map(r => ({ left: pct(r.x, W), top: pct(r.y, H), width: pct(r.w, W), height: pct(r.h, H) })),
+  }
 }
 
 export type BubbleTail = 'none' | 'bl' | 'b' | 'br' | 'tl' | 'tr'
@@ -158,7 +187,7 @@ export interface LaidBubble { b: Bubble, px: Rect, lines: string[], lh: number, 
 export interface LaidCut { cut: Cut, r: Rect, img: Rect, bubbles: LaidBubble[] }
 /** 화면(SVG)·출력(Canvas) 공용 배치 계산 */
 export function layoutPage(cuts: Cut[], W: number, H: number, ts: Typeset, override?: (panelId: string, b: Bubble) => Bubble): LaidCut[] {
-  const rects = cutRects(cuts[0]?.page.layout ?? '1', cuts.length, W, H)
+  const rects = pageRects(cuts, W, H)
   return cuts.map((cut, i) => {
     const r = rects[i]!
     const crop = cut.panel.crop

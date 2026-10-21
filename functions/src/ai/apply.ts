@@ -125,7 +125,7 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
           })
           return ref.id
         })
-        tx.set(pageRef, { layout: LAYOUT_BY_COUNT[ids.length], panelIds: ids, deletedAt: null, updatedAt: now })
+        tx.set(pageRef, { layout: LAYOUT_BY_COUNT[ids.length], panelIds: ids, ...(pg.title ? { title: pg.title } : {}), deletedAt: null, updatedAt: now })
         return pageRef.id
       })
       tx.update(epRef, { pageOrder: order, storyboardJobId: jobId, staleFrom: null, updatedAt: now })

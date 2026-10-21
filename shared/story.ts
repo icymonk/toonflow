@@ -48,6 +48,7 @@ export const captionSchema = z.object({ caption: z.string().min(1).max(2000), ha
 // SBD-01 자동 콘티
 export const splitSchema = z.object({
   pages: z.array(z.object({
+    title: z.string().trim().max(40).catch(''),
     panels: z.array(z.object({
       scene: z.string(),
       place: z.string().catch(''),
@@ -58,7 +59,7 @@ export const splitSchema = z.object({
       outfit: z.string().catch(''),
       mood: z.string().catch(''),
       dialogues: z.array(line).max(8).catch([]),
-    })).min(1).max(4),
+    })).min(1).max(8),
   })).min(1).max(20),
 })
 export type Split = z.infer<typeof splitSchema>

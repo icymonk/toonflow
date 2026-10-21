@@ -1,6 +1,6 @@
 import type { Cut, Dialogue, Panel } from './studio'
 import { describe, expect, it } from 'vitest'
-import { autoCheck, autoPlace, cutRects, syncBubbles, wrapText } from './render'
+import { autoCheck, autoPlace, cutRects, layoutTitle, syncBubbles, titleBand, wrapText } from './render'
 import { emptyPanel } from './studio'
 
 const d = (id: string, text: string, type: Dialogue['type'] = 'speech'): Dialogue => ({ id, type, speaker: '', speakerId: null, text })
@@ -13,6 +13,17 @@ describe('render', () => {
     expect(r[3]!.x + r[3]!.w).toBeCloseTo(1056)
     expect(cutRects('2h', 2, 1080, 1350)[1]!.y).toBe(24)
     expect(cutRects('2v', 2, 1080, 1350)[1]!.x).toBe(24)
+  })
+  it('lays out row layouts (SBD-23) under the title band (SBD-25)', () => {
+    const r = cutRects('3-2-1', 6, 1080, 1080, 108)
+    expect(r).toHaveLength(6)
+    expect(r[0]!.y).toBe(24 + 108)
+    expect(r[3]!.w).toBeGreaterThan(r[0]!.w)
+    expect(r[5]!.w).toBeCloseTo(1032)
+    expect(r[5]!.y + r[5]!.h).toBeCloseTo(1056)
+    expect(cutRects('3-2-1', 5, 1080, 1080)).toHaveLength(5)
+    expect(titleBand({ title: ' ' }, 1080)).toBe(0)
+    expect(layoutTitle({ title: 'POV : 여친이 배부르다고 할 때' }, 1080, 1080)!.size).toBeLessThanOrEqual(67)
   })
   it('wraps text', () => {
     expect(wrapText('가나다 라마바사 아', 5)).toEqual(['가나다', '라마바사', '아'])

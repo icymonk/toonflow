@@ -55,7 +55,7 @@ describe('createHistory', () => {
 describe('movePanelTo / movePage / layoutOptions', () => {
   const pg = (id: string, panelIds: string[]) => ({ id, layout: '1' as const, panelIds })
   it('moves within and across pages, refusing full pages', () => {
-    const pages = [pg('a', ['1', '2', '3']), pg('b', ['4']), pg('c', ['5', '6', '7', '8'])]
+    const pages = [pg('a', ['1', '2', '3']), pg('b', ['4']), pg('c', ['5', '6', '7', '8', '9', '10', '11', '12'])]
     expect(movePanelTo(pages, '1', 'a', 2)).toEqual({ a: ['2', '3', '1'] })
     expect(movePanelTo(pages, '2', 'b', 0)).toEqual({ a: ['1', '3'], b: ['2', '4'] })
     expect(movePanelTo(pages, '1', 'c', 0)).toBeNull()
@@ -64,7 +64,9 @@ describe('movePanelTo / movePage / layoutOptions', () => {
     expect(movePage(['a', 'b', 'c'], 'b', -1)).toEqual(['b', 'a', 'c'])
     expect(movePage(['a', 'b'], 'b', 1)).toBeNull()
     expect(layoutOptions(2)).toEqual(['2v', '2h'])
-    expect(layoutOptions(3)).toEqual(['3'])
+    expect(layoutOptions(3)).toEqual(['3', '1-2', '2-1'])
+    expect(layoutOptions(6)[0]).toBe('3-2-1')
+    expect(layoutOptions(9)).toEqual(['1'])
   })
 })
 
