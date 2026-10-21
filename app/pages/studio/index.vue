@@ -757,6 +757,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
+        <StudioEpisodeSplit
+          v-if="step === 'story'" :episode="episode" :edit="edit" :running="running('story.episodes') > 0" :cost="lib.estimateText('story.episodes', story.material.value.length)"
+          @plan="n => run(() => story.planEpisodes(n), t.split.started)" @split="parts => run(() => story.splitEpisodes(parts), t.split.done(parts.length))"
+        />
         <template v-else-if="step === 'export'">
           <div class="mb-3 flex gap-1" role="tablist">
             <Button size="sm" role="tab" :aria-selected="expMode === 'image'" :variant="expMode === 'image' ? 'default' : 'outline'" @click="expMode = 'image'">{{ t.video.tabImage }}</Button>
