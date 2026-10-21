@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ListTodo, LogOut, Menu, MessageSquare, MessageSquarePlus, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
+import { LogOut, Menu, MessageSquare, MessageSquarePlus, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
 import { onKeyStroke, useLocalStorage, useMediaQuery } from '@vueuse/core'
 import { isActive, NAV_GROUPS, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
@@ -114,9 +114,7 @@ async function signOut() {
           <Button variant="ghost" size="icon" :aria-label="ko.nav.search" :title="ko.palette.shortcut" @click="paletteOpen = true">
             <Search class="size-4" />
           </Button>
-          <Button variant="ghost" size="icon" :aria-label="ko.nav.queue" disabled>
-            <ListTodo class="size-4" />
-          </Button>
+          <AppJobQueue />
           <Button variant="ghost" size="icon" :aria-label="ko.feedback.send" :title="ko.feedback.send" @click="feedbackOpen = true">
             <MessageSquarePlus class="size-4" />
           </Button>

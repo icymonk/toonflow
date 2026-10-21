@@ -189,6 +189,10 @@ service cloud.firestore {
       match /aiJobs/{jobId} {
         allow read: if canView(ws);
       }
+      // PUB-24·25 SNS 게시 작업 (AIU-01 대기열에 보인다). 서버만 쓴다
+      match /socialPosts/{id} {
+        allow read: if canView(ws);
+      }
       // EPI-01·02: 편집자 이상이 직접 만들고 고친다. episodeCount·deletedAt은 서버만
       match /series/{id} {
         allow read: if canView(ws);

@@ -1,6 +1,6 @@
 # 데이터 구조
 
-> 상태: 초안 · v3.3 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
+> 상태: 초안 · v3.4 · 2026-10-21 — 원칙: 워크스페이스 데이터는 모두 `workspaces/{wsId}` 아래(R2). 금액은 원 단위 정수(R10). 시각은 `Timestamp`.
 
 ## 1. Firestore
 
@@ -124,3 +124,4 @@
 - v3.1: PUB-24 — `workspaces/{ws}.instagram` `{ userId, username, expiresAt, connectedAt }`(서버만 씀), `instagramTokens/{ws}` `{ accessToken, userId, issuedAt, expiresAt, by }`·`instagramStates/{state}` `{ workspaceId, uid, expiresAt }`(규칙 없음 = 서버만). 게시할 장은 `workspaces/{ws}/exports/{ep}/{batch}/{NN}.jpg`(편집자가 올리고 게시 뒤 서버가 지움). 게시하면 에피소드 `published.instagramMediaId`. callable `instagramAuthUrl`·`connectInstagram`·`disconnectInstagram`·`publishInstagram`, 매일 `refreshInstagramTokens`. 시크릿 `INSTAGRAM_APP_ID`·`INSTAGRAM_APP_SECRET`(없으면 `unset`)
 - v3.2: PUB-24 게시를 비동기로 — `publishInstagram`은 에피소드 `instagramPost` `{ status: 'posting', at, by }`와 `instagramPosts/{id}` `{ workspaceId, episodeId, paths, caption, by, createdAt }`(서버만)를 만들고 바로 끝난다. 트리거 `postInstagram`(문서 생성, 300초, 재시도 없음)이 게시한 뒤 `published`를 쓰고 `instagramPost`를 지우거나 `{ status: 'failed', error }`로. 게시 중 표시가 10분 지나면 다시 게시할 수 있다. Hosting `/fn` 경유 callable은 60초에 끊겨서 캐러셀을 기다리면 화면에 실패로 보였다
 - v3.3: PUB-25 Threads — Instagram과 같은 구조로 `workspaces/{ws}.threads`, `threadsTokens/{ws}`·`threadsStates/{state}`·`threadsPosts/{id}`(서버만), 에피소드 `threadsPost`·`threadsPublished { at, url, mediaId }`(발행 기록 `published`가 없을 때만 Threads 링크로 채움). callable `threadsAuthUrl`·`connectThreads`·`disconnectThreads`·`publishThreads`, 트리거 `postThreads`, 매일 `refreshThreadsTokens`. 시크릿 `THREADS_APP_ID`·`THREADS_APP_SECRET`
+- v3.4: SNS 게시 작업을 `workspaces/{ws}/socialPosts/{id}` `{ platform: 'instagram'|'threads', episodeId, paths, caption, by, status: queued|running|succeeded|failed, progress: { step: prepare|process|publish, done, total }, url, error, createdAt, startedAt, finishedAt }`로 옮김(멤버가 읽고 서버만 씀, 남겨 둠). 트리거 `postInstagram`·`postThreads`를 `postSocial` 하나로 합침. `instagramPosts`·`threadsPosts`는 쓰지 않는다. AIU-01 대기열 패널이 `aiJobs`(40개)와 `socialPosts`(20개)를 함께 보여 준다

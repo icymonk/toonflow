@@ -66,7 +66,7 @@ export const disconnectInstagram = authedCallable(instagramWorkspaceInput, async
   return { ok: true as const }
 })
 
-/** 브라우저가 그려 올린 장 JPG로 게시를 접수만 한다. 실제 게시는 postInstagram 트리거가 한다
+/** 브라우저가 그려 올린 장 JPG로 게시를 접수만 한다. 실제 게시는 postSocial 트리거가 한다
  * (Hosting `/fn` 경유 호출은 60초에 끊겨서, 캐러셀 처리를 기다리면 화면에는 실패로 보인다) */
 export const publishInstagram = authedCallable(publishInstagramInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
@@ -80,7 +80,7 @@ export const publishInstagram = authedCallable(publishInstagramInput, async ({ u
     if (!ep.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
     if (igPostingActive(ep.get('instagramPost'), Date.now())) throw new HttpsError('failed-precondition', ERROR_KEYS.instagramBusy)
     tx.update(epRef, { instagramPost: { status: 'posting', at: FieldValue.serverTimestamp(), by: uid } })
-    tx.create(db.collection('instagramPosts').doc(), { workspaceId: data.workspaceId, episodeId: data.episodeId, paths: data.paths, caption: data.caption, by: uid, createdAt: FieldValue.serverTimestamp() })
+    tx.create(db.collection(`workspaces/${data.workspaceId}/socialPosts`).doc(), { platform: 'instagram', episodeId: data.episodeId, paths: data.paths, caption: data.caption, by: uid, status: 'queued', createdAt: FieldValue.serverTimestamp() })
   })
   return { ok: true as const }
 })
