@@ -5,7 +5,7 @@ import { EPISODE_PARTS_MAX } from '#shared/episodes'
 import { ko } from '~/locales/ko'
 
 // STO-16 긴 썰을 여러 화로 나누기: AI 제안 → 고쳐서 확정
-const props = defineProps<{ episode: Episode, edit: boolean, running: boolean, cost: number }>()
+const props = defineProps<{ episode: Episode, edit: boolean, running: boolean, cost: number, hasMaterial: boolean }>()
 const emit = defineEmits<{ plan: [count?: number], split: [parts: { title: string, text: string }[]] }>()
 const t = ko.studio.split
 const count = ref(0)
@@ -31,7 +31,7 @@ async function confirm() {
         <option :value="0">{{ t.auto }}</option>
         <option v-for="n in EPISODE_PARTS_MAX - 1" :key="n" :value="n + 1">{{ t.n(n + 1) }}</option>
       </AppSelect>
-      <Button variant="outline" class="flex-1" :disabled="running" @click="emit('plan', count || undefined)">
+      <Button variant="outline" class="flex-1" :disabled="running || !hasMaterial" @click="emit('plan', count || undefined)">
         <Loader2 v-if="running" class="size-4 animate-spin" /><Scissors v-else class="size-4" /> {{ running ? t.planning : t.plan(cost) }}
       </Button>
     </div>
