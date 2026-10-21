@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dialoguesToText, draftSchema, parseJson, summarySchema, textToDialogues } from './story'
+import { dialoguesToText, draftSchema, materialToScenes, parseJson, summarySchema, textToDialogues } from './story'
 
 describe('parseJson', () => {
   it('accepts fenced JSON and fills defaults', () => {
@@ -32,5 +32,17 @@ describe('dialogue text', () => {
 describe('summarySchema', () => {
   it('falls back for unknown genre and out-of-range score', () => {
     expect(parseJson(summarySchema, '{"summary":["a","b","c"],"genre":"romance","score":150,"reason":"r"}')).toEqual({ summary: ['a', 'b', 'c'], genre: 'empathy', score: 50, reason: 'r' })
+  })
+})
+
+describe('materialToScenes', () => {
+  it('one scene per paragraph, at most 20', () => {
+    expect(materialToScenes('첫 문단\n둘째 줄\n\n---\n\n  다음 문단  ')).toEqual([
+      { id: 's1', heading: '장면 1', beats: '첫 문단\n둘째 줄', dialogues: [] },
+      { id: 's2', heading: '장면 2', beats: '다음 문단', dialogues: [] },
+    ])
+    const many = materialToScenes(Array.from({ length: 25 }, (_, i) => `p${i}`).join('\n\n'))
+    expect(many).toHaveLength(20)
+    expect(many[19]!.beats).toBe('p19\n\np20\n\np21\n\np22\n\np23\n\np24')
   })
 })

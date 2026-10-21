@@ -81,19 +81,24 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(snapName).toHaveValue(/^각색 확정 전 · /)
   await snapDialog.getByRole('button', { name: '닫기' }).click()
 
+  // STO-25: 각색 없이 원문 그대로인 안
+  await page.getByRole('button', { name: '원문 그대로 쓰기' }).click()
+  await expect(page.getByRole('button', { name: /원문 그대로.*사용 중/ })).toBeVisible({ timeout: 30_000 })
+
   // 이번 화 그림체를 각색 단계 오른쪽 패널에서 바로 고른다
   const epStyle = page.getByLabel('이번 화 그림체')
   await pick(epStyle, { index: 1 })
   await expect(epStyle).not.toHaveAttribute('data-value', '')
 
   // 에피소드 없이 제작실에 오면 마지막에 연 에피소드가 열리고, "다른 에피소드"는 목록을 보여 준다
-  const epUrl = page.url()
+  const epId = new URL(page.url()).searchParams.get('episode')
+  const isEp = (u: URL) => u.pathname === '/studio' && u.searchParams.get('episode') === epId
   await page.goto('/studio')
-  await page.waitForURL(epUrl)
+  await page.waitForURL(isEp)
   await page.getByRole('link', { name: /다른 에피소드/ }).click()
   await expect(page.getByText('이어서 작업할 에피소드를 고르세요')).toBeVisible()
   await page.getByRole('listitem').getByRole('link').first().click()
-  await page.waitForURL(epUrl)
+  await page.waitForURL(isEp)
 
   // 콘티
   await page.getByRole('tab', { name: /Storyboard/ }).click()
