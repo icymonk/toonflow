@@ -189,7 +189,7 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await expect(page.getByPlaceholder(/캡션 본문/)).toHaveValue(/가짜 캡션/, { timeout: 60_000 })
   await page.getByPlaceholder(/게시 링크/).fill('https://www.instagram.com/p/e2e')
   await page.getByRole('button', { name: '게시함으로 표시' }).click()
-  await expect(page.getByText(/게시함$/)).toBeVisible()
+  await expect(page.getByRole('link', { name: '게시물', exact: true })).toHaveAttribute('href', 'https://www.instagram.com/p/e2e')
   await page.goto('/publish')
   await expect(page.getByRole('link', { name: 'https://www.instagram.com/p/e2e' })).toBeVisible()
 

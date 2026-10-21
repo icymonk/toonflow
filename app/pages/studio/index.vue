@@ -118,12 +118,12 @@ const makeCaption = () => (story.active.value ? run(() => story.caption(story.ac
 const setCaptionText = (text: string) => run(() => s.updateEpisode({ caption: { text: text.slice(0, 2000), hashtags: episode.value?.caption?.hashtags ?? [] } }))
 const markPublished = (url: string) => run(() => s.updateEpisode({ status: 'published', published: { at: serverTimestamp(), url: url.slice(0, 500) } }), t.publish.published)
 const unpublish = () => run(() => s.updateEpisode({ status: 'done', published: null, threadsPublished: null }))
+const postedAt = (at?: { toMillis: () => number }) => (at ? new Date(at.toMillis()).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
 const publishedInfo = computed(() => {
   const p = episode.value?.published
-  return p ? { at: p.at ? new Date(p.at.toMillis()).toLocaleDateString('ko-KR') : '', url: p.url, manual: !p.instagramMediaId && p.url !== episode.value?.threadsPublished?.url } : null
+  return p ? { at: postedAt(p.at), url: p.url, manual: !p.instagramMediaId && p.url !== episode.value?.threadsPublished?.url } : null
 })
 // SNS마다 게시 일시·링크
-const postedAt = (at?: { toMillis: () => number }) => (at ? new Date(at.toMillis()).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '')
 const socialPosted = computed(() => {
   const e = episode.value
   const out: Partial<Record<SocialPlatform, { at: string, url: string }>> = {}
