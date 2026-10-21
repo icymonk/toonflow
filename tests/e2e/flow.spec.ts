@@ -222,6 +222,9 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
 
   // 공개 제보 링크 (INB-02~05): 설정 → 로그인 없는 브라우저에서 제출 → Inbox
   await page.goto('/settings')
+  // AIU-21: 사용 내역에 이 달 작업이 종류별로 보인다
+  await expect(page.getByTestId('usage-detail')).toContainText('각색안')
+  await expect(page.getByTestId('usage-detail').getByRole('table')).toContainText('자동 콘티')
   await page.getByLabel('제보 받기').check()
   await page.getByLabel('작가 소개').fill('회사 썰 그리는 작가예요')
   await page.getByLabel(/질문 칸/).fill('언제 있었던 일이에요?')

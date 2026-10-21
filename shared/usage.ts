@@ -63,3 +63,45 @@ export type GrantPlanInput = z.infer<typeof grantPlanInput>
 export function formatKrw(n: number): string {
   return `₩${Math.round(n).toLocaleString('ko-KR')}`
 }
+
+/** AIU-21: 사용 내역을 묶어 보기 위한 AI 작업의 최소 모양 */
+export interface UsageJobLike { type: string, costKrw?: number, requestedBy?: string, target?: { episodeId?: string }, createdAt?: { toMillis: () => number } }
+export interface UsageGroup { key: string, krw: number, count: number }
+
+/** 한국 시간 기준 그 달의 날짜 (1~31) */
+export const kstDay = (ms: number) => new Date(ms + 9 * 60 * 60 * 1000).getUTCDate()
+
+/** 이전 n달의 월 키 (이번 달부터) */
+export function recentMonths(n: number, now: Date = new Date()): string[] {
+  const k = monthKey(now)
+  const y = Number(k.slice(0, 4))
+  const m = Number(k.slice(4)) - 1
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - i, 1))
+    return `${d.getUTCFullYear()}${String(d.getUTCMonth() + 1).padStart(2, '0')}`
+  })
+}
+
+/** AIU-21: 금액이 큰 순으로 묶는다. 키가 없는 작업은 '' 묶음 */
+export function groupUsage<T extends UsageJobLike>(jobs: T[], key: (j: T) => string | undefined): UsageGroup[] {
+  const m = new Map<string, UsageGroup>()
+  for (const j of jobs) {
+    const k = key(j) ?? ''
+    const g = m.get(k) ?? { key: k, krw: 0, count: 0 }
+    g.krw += j.costKrw ?? 0
+    g.count++
+    m.set(k, g)
+  }
+  return [...m.values()].sort((a, b) => b.krw - a.krw || b.count - a.count)
+}
+
+/** AIU-21: 그 달 일별 금액. 길이는 그 달 날 수 */
+export function dailyUsage(jobs: UsageJobLike[], month: string): number[] {
+  const days = new Date(Date.UTC(Number(month.slice(0, 4)), Number(month.slice(4)), 0)).getUTCDate()
+  const out = Array.from({ length: days }, () => 0)
+  for (const j of jobs) {
+    const ms = j.createdAt?.toMillis()
+    if (ms != null) out[kstDay(ms) - 1]! += j.costKrw ?? 0
+  }
+  return out
+}

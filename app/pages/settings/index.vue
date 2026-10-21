@@ -113,7 +113,7 @@ function saveWorkspace() {
     </Card>
 
     </section>
-    <section id="set-usage" class="scroll-mt-32 md:scroll-mt-20"><AppUsageCard /></section>
+    <section id="set-usage" class="flex scroll-mt-32 flex-col gap-6 md:scroll-mt-20"><AppUsageCard /><SettingsUsageDetailCard /></section>
     <section id="set-workspace" class="scroll-mt-32 md:scroll-mt-20">
 
     <Card>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { asPlan, effectiveLimitKrw, formatKrw, monthKey, planCapKrw, remainingKrw, usageLevel, usageRatio } from './usage'
+import { asPlan, dailyUsage, effectiveLimitKrw, formatKrw, groupUsage, monthKey, planCapKrw, recentMonths, remainingKrw, usageLevel, usageRatio } from './usage'
 
 describe('usage', () => {
   it('caps the workspace limit at the plan and adds this month\'s credit (AIU-24)', () => {
@@ -29,5 +29,27 @@ describe('usage', () => {
 
   it('formats won', () => {
     expect(formatKrw(50000)).toBe('₩50,000')
+  })
+})
+
+describe('usage breakdown', () => {
+  const at = (iso: string) => ({ toMillis: () => Date.parse(iso) })
+  const jobs = [
+    { type: 'panel.image', costKrw: 300, requestedBy: 'a', target: { episodeId: 'e1' }, createdAt: at('2026-10-01T15:30:00Z') },
+    { type: 'story.draft', costKrw: 20, requestedBy: 'b', target: { episodeId: 'e1' }, createdAt: at('2026-10-02T01:00:00Z') },
+    { type: 'panel.image', costKrw: 0, requestedBy: 'a', createdAt: at('2026-10-31T14:00:00Z') },
+  ]
+  it('groups by key, biggest first', () => {
+    expect(groupUsage(jobs, j => j.type)).toEqual([{ key: 'panel.image', krw: 300, count: 2 }, { key: 'story.draft', krw: 20, count: 1 }])
+    expect(groupUsage(jobs, j => j.target?.episodeId)).toEqual([{ key: 'e1', krw: 320, count: 2 }, { key: '', krw: 0, count: 1 }])
+  })
+  it('daily in KST', () => {
+    const d = dailyUsage(jobs, '202610')
+    expect(d).toHaveLength(31)
+    expect(d[1]).toBe(320)
+    expect(d[0]).toBe(0)
+  })
+  it('recent months', () => {
+    expect(recentMonths(3, new Date('2026-01-15T00:00:00Z'))).toEqual(['202601', '202512', '202511'])
   })
 })
