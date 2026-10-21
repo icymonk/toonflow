@@ -58,6 +58,13 @@
         }
       },
       {
+        "source": "/fn/splitEpisodes",
+        "function": {
+          "functionId": "splitEpisodes",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "/fn/deleteToTrash",
         "function": {
           "functionId": "deleteToTrash",
