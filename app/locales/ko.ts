@@ -677,6 +677,11 @@ export const ko = {
     },
     story: {
       make: '각색안 만들기',
+      verbatim: '원문 그대로 쓰기',
+      verbatimHint: '각색하지 않고 원문을 문단마다 장면으로 나눠 바로 써요(AI 비용 없음). 콘티를 나눌 때도 원문 순서·대사를 그대로 살려요',
+      verbatimLabel: '원문 그대로',
+      verbatimDone: '원문 그대로인 안을 만들고 사용 중으로 정했어요',
+      original: '원문',
       seriesMemo: '작품 참고 (연재 메모)',
       seriesMemoPh: '세계관·설정·고정 문구. 이 작품 모든 회차 각색에 함께 넘겨요',
       contextNote: '작품 메모, 직전 화 줄거리, 주요 캐릭터의 성격·말투·기본 의상도 함께 넘겨요',
