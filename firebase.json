@@ -296,6 +296,34 @@
         }
       },
       {
+        "source": "/fn/threadsAuthUrl",
+        "function": {
+          "functionId": "threadsAuthUrl",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/connectThreads",
+        "function": {
+          "functionId": "connectThreads",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/disconnectThreads",
+        "function": {
+          "functionId": "disconnectThreads",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/publishThreads",
+        "function": {
+          "functionId": "publishThreads",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

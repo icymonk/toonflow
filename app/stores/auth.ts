@@ -43,6 +43,8 @@ export interface Workspace {
   deleteAt: number | null
   /** PUB-24: 연결한 Instagram 계정 */
   instagram: InstagramInfo | null
+  /** PUB-25: 연결한 Threads 계정 */
+  threads: InstagramInfo | null
 }
 
 export interface WorkspaceItem { id: string, name: string, role: Role | null, deleteAt: number | null }
@@ -114,7 +116,7 @@ export const useAuthStore = defineStore('auth', () => {
       getDoc(doc($firestore, 'workspaces', wsId, 'members', uid)),
     ])
     const data = ws.data() ?? {}
-    workspace.value = { id: wsId, name: data.name, ownerId: data.ownerId, defaults: withDefaults(data.defaults), deleteAt: millis(data.deleteAt), instagram: (data.instagram as InstagramInfo | undefined) ?? null }
+    workspace.value = { id: wsId, name: data.name, ownerId: data.ownerId, defaults: withDefaults(data.defaults), deleteAt: millis(data.deleteAt), instagram: (data.instagram as InstagramInfo | undefined) ?? null, threads: (data.threads as InstagramInfo | undefined) ?? null }
     role.value = (member.get('role') as Role | undefined) ?? null
     // ACC-22 마지막 활동 (실패해도 넘어간다)
     if (member.exists()) updateDoc(member.ref, { lastActiveAt: serverTimestamp() }).catch(() => {})

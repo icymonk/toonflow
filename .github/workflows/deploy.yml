@@ -72,15 +72,15 @@ jobs:
           fi
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      # PUB-24: Meta 앱의 Instagram 앱 ID·시크릿. 없으면 "unset"으로 두고 Instagram 게시를 끈 채로 배포한다 (함수가 시크릿을 참조해서 비워 둘 수 없다)
+      # PUB-24·25: Meta 앱의 Instagram·Threads 앱 ID·시크릿. 없으면 "unset"으로 두고 그 게시를 끈 채로 배포한다 (함수가 시크릿을 참조해서 비워 둘 수 없다)
       - if: env.HAS_SA == 'true' && github.event_name != 'pull_request' && contains(env.ONLY, 'functions')
         run: |
-          for name in INSTAGRAM_APP_ID INSTAGRAM_APP_SECRET; do
+          for name in INSTAGRAM_APP_ID INSTAGRAM_APP_SECRET THREADS_APP_ID THREADS_APP_SECRET; do
             value="${!name}"
             current="$(pnpm exec firebase functions:secrets:access "$name" --project default 2>/dev/null || true)"
             if [ -z "$value" ]; then
               if [ -n "$current" ]; then continue; fi
-              echo "::warning::$name 시크릿이 없어 Instagram 게시를 끈 채로 배포해요"
+              echo "::warning::$name 시크릿이 없어 그 게시를 끈 채로 배포해요"
               value=unset
             fi
             if [ "$current" != "$value" ]; then
@@ -90,6 +90,8 @@ jobs:
         env:
           INSTAGRAM_APP_ID: ${{ secrets.INSTAGRAM_APP_ID }}
           INSTAGRAM_APP_SECRET: ${{ secrets.INSTAGRAM_APP_SECRET }}
+          THREADS_APP_ID: ${{ secrets.THREADS_APP_ID }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
       # PUB-03: 출력 때 Canvas가 Storage 이미지를 읽을 수 있게 버킷 CORS를 연다 (storage.cors.json)
       - if: env.HAS_SA == 'true' && github.event_name != 'pull_request' && contains(env.ONLY, 'storage')
         uses: google-github-actions/setup-gcloud@v3
