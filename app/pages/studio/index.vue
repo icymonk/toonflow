@@ -16,6 +16,9 @@ import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
 import { composeCaption } from '#shared/publish'
+import type { DesignKind } from '#shared/pagedesign'
+import { DESIGN_FROM_SERIES, pickDesign } from '#shared/pagedesign'
+import type { ExportSlot } from '~/composables/useExport'
 import { IG_CAPTION_MAX, IG_MAX_ITEMS, igPostingActive } from '#shared/instagram'
 import { threadsText } from '#shared/threads'
 import type { SocialPlatform } from '#shared/social'
@@ -57,12 +60,30 @@ const exportPages = computed(() => {
   for (const c of s.cuts.value) m.set(c.page.id, [...(m.get(c.page.id) ?? []), c])
   return [...m.values()]
 })
+// PUB-15·16 표지·끝장: 에피소드에서 고르지 않으면 작품 기본
+const pageDesigns = usePageDesigns()
+const coverDesign = computed(() => pickDesign(episode.value?.settings.coverDesignId, s.series.value?.coverDesignId, pageDesigns.list.value, 'cover'))
+const outroDesign = computed(() => pickDesign(episode.value?.settings.outroDesignId, s.series.value?.outroDesignId, pageDesigns.list.value, 'outro'))
+const designInfo = computed(() => ({ series: s.seriesName.value, number: episode.value?.number ?? 1, title: episode.value?.title ?? '' }))
+const exportSlots = computed<ExportSlot[]>(() => [
+  ...(coverDesign.value ? [{ kind: 'design' as const, design: coverDesign.value }] : []),
+  ...exportPages.value.map(cuts => ({ kind: 'cuts' as const, cuts })),
+  ...(outroDesign.value ? [{ kind: 'design' as const, design: outroDesign.value }] : []),
+])
+const extraPages = computed(() => (coverDesign.value ? 1 : 0) + (outroDesign.value ? 1 : 0))
+function setDesign(kind: DesignKind, value: string) {
+  const key = kind === 'cover' ? 'coverDesignId' : 'outroDesignId'
+  const rest = { ...episode.value!.settings }
+  delete rest[key]
+  return run(() => s.updateEpisode({ settings: value === DESIGN_FROM_SERIES ? rest : { ...rest, [key]: value } }))
+}
+const setSeriesDesign = (kind: DesignKind, id: string | null) => run(() => s.updateSeries(kind === 'cover' ? { coverDesignId: id } : { outroDesignId: id }))
 // PUB-12·14: 제보자 크레딧과 철회된 재료 썰
 const credit = computed(() => creditLine(story.sources.value.map(x => x.credit)))
 const creditPlace = computed(() => episode.value?.settings.creditPlace ?? 'caption')
 const lastLabel = computed(() => [creditPlace.value === 'page' ? credit.value : '', episode.value?.settings.aiLabel !== false ? AI_LABEL : ''].filter(Boolean).join(' · ') || null)
 const withdrawnSources = computed(() => story.sources.value.filter(x => x.status === 'withdrawn' || x.withdrawn))
-const exp = useExport(s, review, exportPages, lastLabel)
+const exp = useExport(s, review, exportSlots, lastLabel, designInfo)
 // PUB-30~37 릴스 영상
 const expMode = ref<'image' | 'video'>('image')
 const video = useVideo(s, review, lastLabel)
@@ -137,13 +158,13 @@ async function guardExport(fn: () => unknown) {
   return fn()
 }
 const expPage = ref(0)
-watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIndex, i => (expPage.value = i ?? 0), { immediate: true })
+watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIndex, i => (expPage.value = (i ?? 0) + (coverDesign.value ? 1 : 0)), { immediate: true })
 const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.publish.failed))
 // PUB-24
 const igUser = computed(() => auth.workspace?.instagram?.username ?? null)
 const queue = useJobQueue()
 async function postSocial(platforms: SocialPlatform[]) {
-  const n = exportPages.value.length
+  const n = exportSlots.value.length
   if (!platforms.length) return
   if (n > IG_MAX_ITEMS) return toast.error(t.publish.igTooMany(IG_MAX_ITEMS))
   if (platforms.includes('instagram') && fullCaption.value.length > IG_CAPTION_MAX) return toast.error(t.publish.igCaptionLong(IG_CAPTION_MAX))
@@ -675,7 +696,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           />
         </div>
         <StudioExportPreview
-          v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportPages" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
+          v-else-if="step === 'export' && cuts.length" v-model="expPage" :pages="exportSlots" :info="designInfo" :aspect="episode.settings.aspect" :typeset="review.typeset.value"
           :label="lastLabel" :name="s.seriesName.value || episode.title" :watermark="s.series.value?.watermark || null"
         />
         <StudioBoardView v-else-if="view === 'board' && cuts.length" :cuts="cuts" :selected-id="selectedId" :aspect="aspect" @select="id => { select(id); view = 'cut' }" />
@@ -732,7 +753,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           :analyzing="running('story.analyze') > 0" :titling="running('story.titles') > 0"
           :series-memo="s.series.value?.memo ?? ''" :styles="lib.styles.value" :characters="lib.characters.value" :series-style-id="s.series.value?.styleId ?? null" :series-main-ids="s.series.value?.mainCharacterIds ?? []"
           @series-style="id => run(() => lib.setSeriesStyle(episode!.seriesId, id))" @series-main="(id, on) => run(() => lib.setMain(episode!.seriesId, id, on))" @series-memo="m => run(() => s.updateSeries({ memo: m }))"
-          :cover-text="s.series.value?.coverText ?? ''" :outro-text="s.series.value?.outroText ?? ''" @series-fixed="p => run(() => s.updateSeries(p))"
+          :extra-pages="extraPages" :cover-text="s.series.value?.coverText ?? ''" :outro-text="s.series.value?.outroText ?? ''" @series-fixed="p => run(() => s.updateSeries(p))"
           @settings="patch => run(() => story.updateSettings(patch))" @analyze="run(story.analyze, t.story.started)"
           @titles="run(() => story.titles(storyVersion!), t.story.started)" @apply-title="title => run(() => s.rename(title))"
         />
@@ -742,12 +763,12 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
             <Button size="sm" role="tab" :aria-selected="expMode === 'video'" :variant="expMode === 'video' ? 'default' : 'outline'" @click="expMode = 'video'"><Clapperboard class="size-3.5" /> {{ t.video.tabVideo }}</Button>
           </div>
           <StudioExportAside
-            v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
+            v-if="expMode === 'image'" :page-count="exportSlots.length" :designs="pageDesigns.list.value" :cover-id="episode.settings.coverDesignId" :outro-id="episode.settings.outroDesignId" :series-cover-id="s.series.value?.coverDesignId ?? null" :series-outro-id="s.series.value?.outroDesignId ?? null" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
             :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :ig-state="igState" :threads="thUser" :th-state="thState" :posted="socialPosted" :social-progress="socialProgress" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
-            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @social="ps => guardExport(() => postSocial(ps))"
+            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @social="ps => guardExport(() => postSocial(ps))" @design="setDesign" @series-design="setSeriesDesign"
             @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
           />
           <StudioVideoAside

@@ -61,6 +61,9 @@ export interface Series extends SeriesInput {
   memo?: string
   coverText?: string
   outroText?: string
+  /** PUB-15·16 작품 기본 표지·끝장 디자인 */
+  coverDesignId?: string | null
+  outroDesignId?: string | null
   episodeCount: number
   createdAt?: Ts
   deletedAt?: Ts | null
@@ -74,7 +77,7 @@ export interface Episode {
   number: number
   step: Step
   status: EpisodeStatus
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null, coverDesignId?: string, outroDesignId?: string }
   submissionIds: string[]
   activeStoryVersionId?: string | null
   storyVersionCount?: number

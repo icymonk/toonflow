@@ -197,12 +197,12 @@ service cloud.firestore {
       match /series/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'coverDesignId', 'outroDesignId', 'episodeCount', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100)
           && request.resource.data.episodeCount == 0 && request.resource.data.deletedAt == null
           && request.resource.data.createdBy == request.auth.uid && request.resource.data.createdAt == request.time;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'archivedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'intro', 'tone', 'pageCount', 'aspect', 'styleId', 'mainCharacterIds', 'reviewItems', 'hashtags', 'greeting', 'watermark', 'memo', 'coverText', 'outroText', 'coverPath', 'coverDesignId', 'outroDesignId', 'archivedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 40) && strLen(request.resource.data.intro, 0, 100);
       }
       // REV-07 말풍선 템플릿. 고치지 않고 지우고 새로 만든다
@@ -237,6 +237,22 @@ service cloud.firestore {
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
           && (!('variants' in request.resource.data) || request.resource.data.variants.size() <= 12)
           && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
+      }
+      // PUB-15~17 표지·끝장 디자인. 종류는 만들 때 정하고, 삭제는 deletedAt
+      match /pageDesigns/{id} {
+        function designOk() {
+          let d = request.resource.data;
+          return strLen(d.name, 1, 30) && d.kind in ['cover', 'outro'] && d.text is string && d.text.size() <= 300
+            && (d.imagePath == null || (d.imagePath is string && d.imagePath.matches('workspaces/' + ws + '/refs/pageDesigns/.*')))
+            && (d.seriesId == null || d.seriesId is string);
+        }
+        allow read: if canView(ws);
+        allow create: if canEdit(ws)
+          && request.resource.data.keys().hasOnly(['name', 'kind', 'bgColor', 'textColor', 'align', 'showSeries', 'showNumber', 'showTitle', 'text', 'titleSize', 'textSize', 'boxed', 'imagePath', 'seriesId', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && designOk() && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
+        allow update: if canEdit(ws) && resource.data.deletedAt == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'bgColor', 'textColor', 'align', 'showSeries', 'showNumber', 'showTitle', 'text', 'titleSize', 'textSize', 'boxed', 'imagePath', 'seriesId', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && designOk() && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
       }
       // STL-01~09: samples·sampleJobId는 서버(style.sample)만
       match /styles/{id} {

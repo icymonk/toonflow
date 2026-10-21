@@ -32,6 +32,7 @@ describe('storage', () => {
     await assertFails(put('editor', `${W}/refs/characters/ch1/a.txt`, 'text/plain'))
     await assertFails(put('viewer', `${W}/refs/characters/ch1/b.png`, 'image/png'))
     await assertFails(put('stranger', `${W}/refs/characters/ch1/c.png`, 'image/png'))
+    await assertSucceeds(put('editor', `${W}/refs/pageDesigns/d1/a.png`, 'image/png'))
     await assertFails(put('editor', `${W}/refs/unknown/x/a.png`, 'image/png'))
   })
   it('background music (PUB-36): audio only under refs/music', async () => {
