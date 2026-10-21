@@ -39,12 +39,12 @@ function make() {
     <div v-if="edit" class="mt-2 flex flex-col gap-1.5 border-t pt-2">
       <Input v-model="request" :placeholder="t.requestPh" :aria-label="t.request" maxlength="200" />
       <div class="flex gap-1.5">
-        <AppSelect v-model.number="n" class="border-input bg-card h-9 rounded-md border px-2 text-sm" :aria-label="t.count">
+        <AppSelect v-model.number="n" class="border-input bg-card h-8 rounded-lg border px-2 text-sm" :aria-label="t.count">
           <option v-for="i in 3" :key="i" :value="i">
             {{ i }}안
           </option>
         </AppSelect>
-        <Button class="flex-1" size="sm" :disabled="!hasMaterial" :title="hasMaterial ? '' : t.noMaterial" @click="make">
+        <Button class="flex-1" :disabled="!hasMaterial" :title="hasMaterial ? '' : t.noMaterial" @click="make">
           <Sparkles class="size-4" /> {{ t.make }}
         </Button>
       </div>
