@@ -4,7 +4,7 @@ import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestor
 import { ACTIVE_STATUSES } from '#shared/jobs'
 
 type Ts = { toMillis: () => number }
-export interface QueueJob { id: string, type: JobType, status: JobStatus, target?: { episodeId?: string, panelId?: string }, error?: { retryable?: boolean }, createdAt?: Ts, startedAt?: Ts, finishedAt?: Ts }
+export interface QueueJob { id: string, type: JobType, status: JobStatus, target?: { episodeId?: string, panelId?: string }, error?: { retryable?: boolean }, attempts?: number, createdAt?: Ts, startedAt?: Ts, finishedAt?: Ts }
 
 /** AIU-01 대기열: AI 작업과 SNS 게시 작업을 최근 순으로 */
 export function useJobQueue() {

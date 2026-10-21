@@ -92,6 +92,17 @@ async function finish(ref: DocumentReference, wsId: string, models: ModelsConfig
   })
 }
 
+/** 취소는 예약만 풀어 두므로, 그 뒤 도착한 결과의 실제 비용을 더한다 */
+async function chargeCanceled(ref: DocumentReference, wsId: string, models: ModelsConfig, usage: JobUsage) {
+  await getFirestore().runTransaction(async (tx) => {
+    const job = await tx.get(ref)
+    if (job.get('status') !== 'canceled') return
+    const cost = actualKrw(models, job.get('model'), usage)
+    settle(tx, wsId, job.get('month'), 0, cost, job.get('target')?.episodeId, job.get('requestedBy'))
+    tx.update(ref, { costKrw: cost })
+  })
+}
+
 // AIU-02·03·05·13: 작업 실행 (docs/dev/ai-jobs.md 1절 5~9)
 export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>({
   retryConfig: { maxAttempts: 3, minBackoffSeconds: 10 },
@@ -104,7 +115,13 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
   const job = await ref.get()
   if (!job.exists || !ACTIVE_STATUSES.includes(job.get('status'))) return
   const attempt = ((job.get('attempts') as number | undefined) ?? 0) + 1
-  await ref.update({ status: 'running', attempts: attempt, startedAt: FieldValue.serverTimestamp() })
+  // 취소와 겹치지 않게: 아직 대기·진행 중일 때만 시작
+  const started = await getFirestore().runTransaction(async (tx) => {
+    if (!ACTIVE_STATUSES.includes((await tx.get(ref)).get('status'))) return false
+    tx.update(ref, { status: 'running', attempts: attempt, startedAt: FieldValue.serverTimestamp() })
+    return true
+  })
+  if (!started) return
   const models = await loadModels()
   let usage = (job.get('usage') as JobUsage | undefined) ?? {}
 
@@ -118,6 +135,8 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
       usage = out.usage
       result = out.result
       await ref.update({ providerResult: out.result, providerRequestId: out.requestId, usage })
+      // AIU-03: 진행 중에 취소됐으면 반영하지 않고 실제로 쓴 만큼만 정산
+      if ((await ref.get()).get('status') === 'canceled') return chargeCanceled(ref, workspaceId, models, usage)
     }
     // 8. 결과 반영 (각색안·분석·제목 후보)
     await applyResult(workspaceId, jobId, job.data() as Parameters<typeof applyResult>[2], result)
@@ -125,6 +144,7 @@ export const runAiJob = onTaskDispatched<{ workspaceId: string, jobId: string }>
   }
   catch (e) {
     const error = classify(e)
+    if ((await ref.get()).get('status') === 'canceled') return
     // 형식이 틀린 응답은 버리고 다음 시도에서 다시 부른다
     if (error.code === 'invalid_output') await ref.update({ providerResult: FieldValue.delete() })
     if (!isLastAttempt(error.code, attempt)) {

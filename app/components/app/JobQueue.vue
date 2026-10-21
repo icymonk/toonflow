@@ -5,7 +5,7 @@ import { ListTodo } from '@lucide/vue'
 import { onClickOutside, useIntervalFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { episodeTitle } from '#shared/episodes'
-import { ACTIVE_STATUSES } from '#shared/jobs'
+import { ACTIVE_STATUSES, JOB_KIND, SLOW_SECS } from '#shared/jobs'
 import { socialRatio } from '#shared/social'
 import { errorMessage } from '~/lib/errors'
 import { callFn } from '~/lib/functions'
@@ -88,6 +88,8 @@ async function act(fn: 'cancelAiJob' | 'retryAiJob', j: QueueJob) {
           <div v-else class="bg-primary/70 h-full w-1/3 animate-pulse" />
         </div>
         <span v-if="where(r)" class="truncate text-xs">{{ where(r) }}</span>
+        <span v-if="r.job && (r.job.attempts ?? 0) > 1" class="text-muted-foreground text-xs">{{ t.attempt(r.job.attempts!) }}</span>
+        <span v-if="r.job && r.status === 'running' && secs(r) > SLOW_SECS[JOB_KIND[r.job.type]]" class="text-xs text-amber-700 dark:text-amber-400">{{ t.slow }}</span>
         <span class="text-muted-foreground text-xs">{{ [r.step, when(r)].filter(Boolean).join(' · ') }}</span>
       </div>
       <p class="text-muted-foreground px-1 pt-2 text-xs">{{ t.recent }}</p>

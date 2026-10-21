@@ -1,13 +1,13 @@
 import type { ModelEntry } from '../../../../shared/config'
 import type { ImageModel, TextModel } from '../types'
 import { defineSecret } from 'firebase-functions/params'
+import { CALL_TIMEOUT_MS } from '../../../../shared/jobs'
 import { AiError } from '../errors'
 
 /** Google AI Studio 키. Functions Secret Manager에만 둔다 (docs/dev/security.md) */
 export const GEMINI_API_KEY = defineSecret('GEMINI_API_KEY')
 
 const BASE = 'https://generativelanguage.googleapis.com/v1beta/models'
-const TIMEOUT_MS = 240_000
 const BLOCKED = ['SAFETY', 'PROHIBITED_CONTENT', 'IMAGE_SAFETY', 'IMAGE_PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII', 'RECITATION']
 
 /** 올린 참조 이미지 형식 (JPG·WebP·PNG) */
@@ -32,12 +32,12 @@ export function geminiError(status: number, body: GenerateResponse): AiError {
   return new AiError('internal', message)
 }
 
-export async function generateContent(model: string, body: unknown, key: string, f: Fetch = fetch): Promise<GenerateResponse> {
+export async function generateContent(model: string, body: unknown, key: string, f: Fetch = fetch, timeoutMs = CALL_TIMEOUT_MS.text): Promise<GenerateResponse> {
   const res = await f(`${BASE}/${model}:generateContent`, {
     method: 'POST',
     headers: { 'x-goog-api-key': key, 'content-type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(TIMEOUT_MS),
+    signal: AbortSignal.timeout(timeoutMs),
   })
   const json = await res.json().catch(() => ({})) as GenerateResponse
   if (!res.ok) throw geminiError(res.status, json)
@@ -86,7 +86,7 @@ export function geminiImage(m: ModelEntry, key = () => GEMINI_API_KEY.value(), f
         generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: aspectRatio(size.w, size.h) } },
       }
       // 한 번 호출에 한 장이라 n번 나눠 부른다
-      const results = await Promise.all(Array.from({ length: n }, () => generateContent(m.id, body, key(), f)))
+      const results = await Promise.all(Array.from({ length: n }, () => generateContent(m.id, body, key(), f, CALL_TIMEOUT_MS.image)))
       const images = results.flatMap(r => parts(r).filter(p => p.inlineData?.mimeType.startsWith('image/')).map(p => Buffer.from(p.inlineData!.data, 'base64')))
       if (images.length === 0) throw new AiError('invalid_output', 'gemini returned no image')
       return { images, requestId: results.map(r => r.responseId ?? '').join(','), billedImages: images.length }
