@@ -268,6 +268,34 @@
         }
       },
       {
+        "source": "/fn/instagramAuthUrl",
+        "function": {
+          "functionId": "instagramAuthUrl",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/connectInstagram",
+        "function": {
+          "functionId": "connectInstagram",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/disconnectInstagram",
+        "function": {
+          "functionId": "disconnectInstagram",
+          "region": "asia-northeast3"
+        }
+      },
+      {
+        "source": "/fn/publishInstagram",
+        "function": {
+          "functionId": "publishInstagram",
+          "region": "asia-northeast3"
+        }
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }

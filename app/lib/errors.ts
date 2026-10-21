@@ -43,6 +43,9 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.tooMany': 'tooMany',
   'error.tokenNotFound': 'tokenNotFound',
   'error.overPlan': 'overPlan',
+  'error.instagramNotConfigured': 'instagramNotConfigured',
+  'error.instagramNotConnected': 'instagramNotConnected',
+  'error.instagramFailed': 'instagramFailed',
 }
 
 /** 서버 오류 메시지는 SDK가 끝에 ` [403]` 같은 상태를 붙일 수 있어 앞부분으로 비교한다 */

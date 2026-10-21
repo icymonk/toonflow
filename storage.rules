@@ -28,6 +28,13 @@ service firebase.storage {
       allow read: if canView(ws);
     }
 
+    // PUB-24: Instagram에 게시할 장 이미지 (JPG, 10MB 이하). 게시가 끝나면 서버가 지운다
+    match /workspaces/{ws}/exports/{episodeId}/{batch}/{file} {
+      allow read: if canView(ws);
+      allow create: if canEdit(ws) && request.resource.size < 10 * 1024 * 1024 && request.resource.contentType == 'image/jpeg';
+      allow delete: if canEdit(ws);
+    }
+
     // AI 작업 결과 이미지: 서버만 쓴다
     match /workspaces/{ws}/aiJobs/{jobId}/{file} {
       allow read: if canView(ws);

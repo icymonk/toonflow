@@ -2,6 +2,7 @@ import type { CallableRequest } from 'firebase-functions/v2/https'
 import type { z } from 'zod'
 import { logger } from 'firebase-functions'
 import { defineBoolean } from 'firebase-functions/params'
+import type { CallableOptions } from 'firebase-functions/v2/https'
 import { HttpsError, onCall } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
 
@@ -64,8 +65,9 @@ export function runPublic<S extends z.ZodType, O>(
 export function authedCallable<S extends z.ZodType, O>(
   schema: S,
   handler: (req: AuthedRequest<z.infer<S>>) => Promise<O>,
+  opts: Pick<CallableOptions, 'secrets' | 'timeoutSeconds'> = {},
 ) {
-  return onCall({ enforceAppCheck }, req => runAuthed(schema, handler, req))
+  return onCall({ ...opts, enforceAppCheck }, req => runAuthed(schema, handler, req))
 }
 
 /** 로그인 없이 호출 (3단계 공개 제보 전용). 입력 검증 + 오류 정리만 한다 */
