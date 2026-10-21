@@ -13,3 +13,11 @@ describe('story.suggest', () => {
     expect(suggestSchema.parse({ options: ['a', 'a', 'b', 'c', 'd'] }).options).toEqual(['a', 'b', 'c'])
   })
 })
+
+describe('story.draft direction (STO-11)', () => {
+  it('adds the direction rule only when given', () => {
+    const base = { material: '썰', tone: 'comedy', pageCount: 6, narrator: 'first' }
+    expect(textPrompt('story.draft', { ...base, direction: 'twist' }).system).toContain('방향: 반전·웃음')
+    expect(textPrompt('story.draft', base).system).not.toContain('방향:')
+  })
+})

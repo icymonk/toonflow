@@ -3,7 +3,7 @@ import type { JobType } from '#shared/jobs'
 import type { RewriteMode, StoryParams, StoryVersion, SuggestField } from '#shared/story'
 import { collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
-import { parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
+import { DRAFT_DIRECTIONS, parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
 import { ko } from '~/locales/ko'
 import { callFn } from '~/lib/functions'
 
@@ -50,7 +50,8 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const analyze = () => start('story.analyze')
   /** STO-11·12: n개 안을 따로 만든다. request가 있으면 이번에만 덧붙인다 */
   const draft = (n: number, request = '', basedOn?: StoryVersion) =>
-    Promise.all(Array.from({ length: n }, () => start('story.draft', {
+    Promise.all(Array.from({ length: n }, (_, i) => start('story.draft', {
+      ...(n > 1 ? { direction: DRAFT_DIRECTIONS[i % DRAFT_DIRECTIONS.length] } : {}),
       ...(request ? { extraRequest: [episode.value!.settings.extraRequest, request].filter(Boolean).join('\n') } : {}),
       ...(basedOn ? { basedOn: basedOn.id } : {}),
     })))

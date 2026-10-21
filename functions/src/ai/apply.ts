@@ -1,7 +1,7 @@
 import type { JobType } from '../../../shared/jobs'
 import type { z } from 'zod'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { analysisSchema, captionSchema, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
+import { analysisSchema, captionSchema, DIRECTION_KO, summarySchema, draftSchema, parseJson, splitSchema, storyParams, titlesSchema } from '../../../shared/story'
 import type { Character } from '../../../shared/library'
 import { matchCharacters } from '../../../shared/library'
 import { continueOutfits, emptyPanel, LAYOUT_BY_COUNT } from '../../../shared/studio'
@@ -71,13 +71,13 @@ export async function applyResult(wsId: string, jobId: string, job: JobDoc, resu
       if (existing.exists || !ep.exists) return
       const n = ((ep.get('storyVersionCount') as number | undefined) ?? 0) + 1
       tx.set(ref, {
-        label: `${n}안`,
+        label: params.direction ? `${n}안 · ${DIRECTION_KO[params.direction]}` : `${n}안`,
         source: 'ai',
         logline: d.logline,
         scenes: d.scenes.map((s, i) => ({ id: `s${i + 1}`, ...s })),
         punchline: d.punchline,
         titleCandidates: d.titles,
-        settings: { tone: params.tone, pageCount: params.pageCount, narrator: params.narrator, extraRequest: params.extraRequest },
+        settings: { tone: params.tone, pageCount: params.pageCount, narrator: params.narrator, extraRequest: params.extraRequest, direction: params.direction ?? null },
         jobId,
         basedOn: params.basedOn ?? null,
         editedAt: null,

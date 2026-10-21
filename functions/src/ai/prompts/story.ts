@@ -19,11 +19,18 @@ const analyze = (p: StoryParams): TextPrompt => ({
   prompt: p.material,
 })
 
+const DIRECTION_RULE = {
+  faithful: '방향: 원작 충실. 썰의 사건 순서와 디테일을 최대한 살리고 과장은 줄인다.',
+  twist: '방향: 반전·웃음. 원작 사실은 지키되 웃음 포인트와 반전을 더 세게 살리고, 마지막에 예상 못 한 펀치라인을 둔다.',
+  emotion: '방향: 감정선. 주인공의 속마음과 공감 포인트를 살려 독자가 "내 얘기 같다"고 느끼게 한다.',
+} as const
+
 const draft = (p: StoryParams): TextPrompt => ({
   format: 'draft',
   system: `너는 인스타툰 각색 작가야. 제보 썰을 ${p.pageCount}장짜리 인스타툰으로 각색해. 장면 하나가 한 장이라 scenes는 정확히 ${p.pageCount}개. `
     + `톤: ${TONE_KO[p.tone]}. 화자: ${p.narrator === 'first' ? '작가 본인 1인칭' : '제보자 이야기를 전하는 3인칭'}. 구어체, 한국 인스타툰 말투. `
     + '실명·특정 가능한 정보는 바꿔서 쓴다. 마지막 장면은 펀치라인으로 마무리. '
+    + (p.direction ? `${DIRECTION_RULE[p.direction]} ` : '')
     + `heading은 장면 제목, beats는 무슨 일이 일어나는지 1~2문장, dialogues는 그 장면의 대사. ${LINE_TYPES} `
     + 'titles는 제목 후보 3개(15자 이내), logline은 한 줄 요약. '
     + '반드시 JSON만: {"titles": [str], "logline": str, "scenes": [{"heading": str, "beats": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}], "punchline": str}',
