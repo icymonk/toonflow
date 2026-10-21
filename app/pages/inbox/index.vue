@@ -82,6 +82,9 @@ const route = useRoute()
 const currentId = ref<string | undefined>(route.query.id ? String(route.query.id) : undefined)
 watch(() => route.query.id, id => id && (currentId.value = String(id)))
 const current = computed(() => list.value.find(s => s.id === currentId.value))
+const bodyOpen = ref(false)
+const longBody = computed(() => (current.value?.body.length ?? 0) > 700)
+watch(currentId, () => (bodyOpen.value = false))
 
 // INB-02·06·15: 제보 링크 복사, 첨부 이미지, 연락처(소유자·관리자)
 const { $firestore, $storage, $functions } = useNuxtApp()
@@ -319,13 +322,32 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
           </li>
         </ul>
 
-        <Card v-if="current" class="overflow-y-auto">
-          <CardHeader>
+        <Card v-if="current" class="overflow-y-auto pt-0">
+          <CardHeader class="bg-card sticky top-0 z-10 border-b pt-4 pb-3">
             <Button variant="ghost" size="sm" class="self-start lg:hidden" @click="currentId = undefined">
               {{ t.backToList }}
             </Button>
             <CardTitle>{{ current.status === 'withdrawn' ? t.status.withdrawn : current.title }}</CardTitle>
             <CardDescription>{{ t.source[current.source] }}<template v-if="current.sourceNote"> · {{ current.sourceNote }}</template> · {{ date(current) }}</CardDescription>
+            <div class="flex flex-wrap items-center gap-2">
+              <AppSelect
+                :value="current.status" :class="selectClass" :aria-label="t.setStatus" :disabled="!edit || !isManual(current)"
+                @change="applyStatus([current.id], $event as SubmissionStatus)"
+              >
+                <option v-for="st in isManual(current) ? MANUAL_STATUSES : [current.status]" :key="st" :value="st">
+                  {{ t.status[st] }}
+                </option>
+              </AppSelect>
+              <span v-if="!edit" class="text-muted-foreground text-xs">{{ t.readOnly }}</span>
+              <template v-if="current.status !== 'withdrawn'">
+                  <Button v-if="edit" size="sm" variant="outline" :disabled="summarizing === current.id && !current.aiSummary" @click="runSummary">
+                    {{ current.aiSummary ? t.summary.again : t.summary.run }} · {{ t.summary.cost(summaryCost) }}
+                  </Button>
+              </template>
+              <Button v-if="edit && ['accepted', 'used'].includes(current.status)" as-child size="sm">
+                <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: current.id } }">{{ t.toEpisode }}</NuxtLink>
+              </Button>
+            </div>
             <details v-if="edit && current.status !== 'withdrawn'" class="text-muted-foreground text-xs">
               <summary class="cursor-pointer">
                 {{ t.report }}
@@ -353,9 +375,12 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
                 {{ list.find(x => x.id === id)?.title }}
               </button>
             </div>
-            <p v-if="current.status !== 'withdrawn'" class="whitespace-pre-wrap text-sm leading-relaxed">
-              {{ current.body }}
-            </p>
+            <div v-if="current.status !== 'withdrawn'" class="flex flex-col items-start gap-1">
+              <p class="whitespace-pre-wrap text-sm leading-relaxed" :class="{ 'line-clamp-[14]': longBody && !bodyOpen }">
+                {{ current.body }}
+              </p>
+              <Button v-if="longBody" size="sm" variant="link" class="h-auto px-0" @click="bodyOpen = !bodyOpen">{{ bodyOpen ? t.bodyLess : t.bodyMore }}</Button>
+            </div>
             <div v-if="attachmentUrls.length" class="flex flex-col gap-1.5 text-sm">
               <span class="font-medium">{{ t.attachments }}</span>
               <div class="flex flex-wrap gap-2">
@@ -377,9 +402,6 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
             <section v-if="current.status !== 'withdrawn'" class="flex flex-col gap-1.5 rounded-md border p-3 text-sm">
               <div class="flex items-center justify-between gap-2">
                 <span class="font-medium">{{ t.summary.title }}</span>
-                <Button v-if="edit" size="sm" variant="outline" :disabled="summarizing === current.id && !current.aiSummary" @click="runSummary">
-                  {{ current.aiSummary ? t.summary.again : t.summary.run }} · {{ t.summary.cost(summaryCost) }}
-                </Button>
               </div>
               <template v-if="current.aiSummary">
                 <ol class="list-decimal pl-4 text-xs">
@@ -406,17 +428,6 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
                 <Button v-if="current.maskedBody" size="sm" variant="ghost" @click="clearPii">{{ t.pii.clear }}</Button>
               </div>
             </section>
-            <div class="flex items-center gap-2">
-              <AppSelect
-                :value="current.status" :class="selectClass" :aria-label="t.setStatus" :disabled="!edit || !isManual(current)"
-                @change="applyStatus([current.id], $event as SubmissionStatus)"
-              >
-                <option v-for="st in isManual(current) ? MANUAL_STATUSES : [current.status]" :key="st" :value="st">
-                  {{ t.status[st] }}
-                </option>
-              </AppSelect>
-              <span v-if="!edit" class="text-muted-foreground text-xs">{{ t.readOnly }}</span>
-            </div>
             <form class="flex flex-col gap-2" @submit.prevent="saveDetail">
               <Label for="detail-tags">{{ t.tagsLabel }}</Label>
               <Input id="detail-tags" v-model="detail.tags" :disabled="!edit" />
@@ -431,9 +442,6 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
               <NuxtLink v-for="id in current.episodeIds" :key="id" :to="`/studio?episode=${id}`" class="text-primary underline">
                 {{ id }}
               </NuxtLink>
-              <Button v-if="edit && ['accepted', 'used'].includes(current.status)" as-child size="sm" class="self-start">
-                <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: current.id } }">{{ t.toEpisode }}</NuxtLink>
-              </Button>
             </div>
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Episode, EpisodeStage, Tone } from '#shared/episodes'
-import { Archive, ArchiveRestore, ArrowDown, ArrowUp, ArrowUpDown, BookOpen, Copy, Plus, Trash2 } from '@lucide/vue'
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, ArrowUpDown, BookOpen, Copy, FileText, Plus, Trash2 } from '@lucide/vue'
 import { useEventListener, useLocalStorage } from '@vueuse/core'
 import { serverTimestamp } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
@@ -113,7 +113,31 @@ const sorters: Record<SortKey, (a: Episode, b: Episode) => number> = {
   updated: (a, b) => (a.updatedAt?.toMillis() ?? 0) - (b.updatedAt?.toMillis() ?? 0),
 }
 const shown = computed(() => [...visible.value].sort((a, b) => (sortAsc.value ? 1 : -1) * (sorters[sortKey.value](a, b) || byNumber(a, b))))
-const dupFor = ref<string | null>(null)
+const dupFor = ref<{ id: string, top: number, right: number } | null>(null)
+function openDup(e: Episode, ev: MouseEvent) {
+  if (dupFor.value?.id === e.id) return (dupFor.value = null)
+  const r = (ev.currentTarget as HTMLElement).getBoundingClientRect()
+  dupFor.value = { id: e.id, top: r.bottom + 4, right: window.innerWidth - r.right }
+}
+useEventListener(window, 'scroll', () => (dupFor.value = null), { capture: true, passive: true })
+// STO-16 같은 썰에서 나눈 화는 한 묶음으로
+const groupKey = (e: Episode) => (e.materialPart ? `${e.seriesId}|${[...e.submissionIds].sort().join(',')}|${e.materialPart.total}` : null)
+interface TableRow { key: string, group?: { title: string, total: number, submissionId?: string }, e?: Episode, inGroup?: boolean }
+const tableRows = computed(() => {
+  const out: TableRow[] = []
+  const done = new Set<string>()
+  for (const e of shown.value) {
+    const g = groupKey(e)
+    if (!g) { out.push({ key: e.id, e }); continue }
+    if (done.has(g)) continue
+    done.add(g)
+    const members = shown.value.filter(x => groupKey(x) === g).sort((a, b) => a.materialPart!.index - b.materialPart!.index)
+    const sub = submissions.value.find(s => s.id === e.submissionIds[0])
+    out.push({ key: `g-${g}`, group: { title: sub?.title || t.splitGroupFallback, total: e.materialPart!.total, submissionId: sub?.id } })
+    for (const m of members) out.push({ key: m.id, e: m, inGroup: true })
+  }
+  return out
+})
 useEventListener(document, 'click', () => (dupFor.value = null))
 const cols: { key: SortKey, label: string }[] = [
   { key: 'number', label: t.col.title },
@@ -366,13 +390,25 @@ async function removeSeries(id: string) {
             <tr v-if="shown.length === 0">
               <td colspan="7" class="text-muted-foreground px-3 py-8 text-center">{{ t.empty }}</td>
             </tr>
-            <tr v-for="e in shown" :key="e.id" class="border-t" :class="{ 'opacity-60': e.archivedAt }">
-              <td class="px-3 py-2">
+            <template v-for="{ key, group, e, inGroup } in tableRows" :key="key">
+            <tr v-if="group" class="bg-muted/30 border-t">
+              <td colspan="7" class="px-3 py-1.5 text-xs">
+                <span class="inline-flex items-center gap-1.5">
+                  <FileText class="text-muted-foreground size-3.5" />
+                  <NuxtLink v-if="group.submissionId" :to="{ path: '/inbox', query: { id: group.submissionId } }" class="font-medium hover:underline">{{ group.title }}</NuxtLink>
+                  <span v-else class="font-medium">{{ group.title }}</span>
+                  <span class="text-muted-foreground">· {{ t.splitGroup(group.total) }}</span>
+                </span>
+              </td>
+            </tr>
+            <tr v-else-if="e" class="border-t" :class="{ 'opacity-60': e.archivedAt, 'border-t-0': inGroup }">
+              <td class="py-2 pr-3" :class="inGroup ? 'border-primary/40 border-l-2 pl-5' : 'pl-3'">
                 <input
                   v-if="edit" :value="e.number" type="number" min="1" max="9999" :aria-label="t.numberLabel"
                   class="mr-2 w-12 rounded border px-1 text-xs" @change="setNumber(e, ($event.target as HTMLInputElement).value)"
                 >
                 <NuxtLink :to="{ path: '/studio', query: { episode: e.id } }" class="font-medium hover:underline">{{ e.title }}</NuxtLink>
+                <span v-if="e.materialPart" class="text-muted-foreground ml-1.5 text-xs">{{ ko.studio.split.partOf(e.materialPart.total, e.materialPart.index) }}</span>
               </td>
               <td class="px-3 py-2">{{ seriesName(e.seriesId) }}</td>
               <td class="px-3 py-2">
@@ -391,10 +427,10 @@ async function removeSeries(id: string) {
               <td class="px-3 py-2 text-right whitespace-nowrap">
                 <div v-if="edit" class="flex items-center justify-end gap-1">
                   <div class="relative">
-                    <Button size="icon" variant="ghost" class="size-8" :aria-label="t.duplicate" :title="t.duplicateHint" :aria-expanded="dupFor === e.id" @click.stop="dupFor = dupFor === e.id ? null : e.id">
+                    <Button size="icon" variant="ghost" class="size-8" :aria-label="t.duplicate" :title="t.duplicateHint" :aria-expanded="dupFor?.id === e.id" @click.stop="openDup(e, $event)">
                       <Copy class="size-4" />
                     </Button>
-                    <div v-if="dupFor === e.id" role="menu" class="bg-popover absolute right-0 top-full z-20 mt-1 flex w-32 flex-col rounded-md border p-1 text-left text-sm shadow-md" @click.stop>
+                    <div v-if="dupFor?.id === e.id" role="menu" class="bg-popover fixed z-50 flex w-32 flex-col rounded-md border p-1 text-left text-sm shadow-md" :style="{ top: `${dupFor.top}px`, right: `${dupFor.right}px` }" @click.stop>
                       <button v-for="m in (['structure', 'full'] as const)" :key="m" type="button" role="menuitem" class="hover:bg-accent rounded px-2 py-1.5 text-left" @click="dupFor = null; dup(e, m)">
                         {{ t.duplicateModes[m] }}
                       </button>
@@ -409,6 +445,7 @@ async function removeSeries(id: string) {
                 </div>
               </td>
             </tr>
+            </template>
           </tbody>
         </table>
       </div>
