@@ -1,6 +1,6 @@
 import type { CleanupInput, UsageInput } from './assets'
 import type { CompleteOnboardingInput, CompleteOnboardingOutput } from './account'
-import type { CreateEpisodeInput, DuplicateEpisodeInput, TrashInput } from './episodes'
+import type { CreateEpisodeInput, DuplicateEpisodeInput, SplitEpisodesInput, TrashInput } from './episodes'
 import type { IntakeStatus, IntakeSubmitInput, IntakeTokenInput } from './intake'
 import type { ReportPageInput, ReportSubmissionInput, ResolveReportInput } from './reports'
 import type { JobRefInput, StartAiJobInput } from './jobs'
@@ -56,6 +56,7 @@ export interface Callables {
   retryAiJob: { input: JobRefInput, output: { ok: true } }
   createEpisode: { input: CreateEpisodeInput, output: { episodeId: string } }
   duplicateEpisode: { input: DuplicateEpisodeInput, output: { episodeId: string } }
+  splitEpisodes: { input: SplitEpisodesInput, output: { episodeIds: string[] } }
   deleteToTrash: { input: TrashInput, output: { ok: true } }
   restoreFromTrash: { input: TrashItemInput, output: { ok: true } }
   purgeFromTrash: { input: TrashItemInput, output: { ok: true } }

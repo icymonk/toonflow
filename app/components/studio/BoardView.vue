@@ -14,7 +14,7 @@ const grid: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows-2', 
 </script>
 
 <template>
-  <div class="grid w-full flex-1 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] content-start gap-4 overflow-y-auto">
+  <div class="grid w-full flex-1 grid-cols-[repeat(auto-fill,minmax(160px,1fr))] content-start gap-4 overflow-y-auto p-1">
     <div v-for="cs in pages" :key="cs[0]!.page.id" class="flex flex-col gap-1">
       <span class="text-muted-foreground text-xs">{{ ko.studio.page(cs[0]!.pageIndex + 1) }}</span>
       <div class="bg-card grid gap-0.5 rounded border p-0.5" :class="grid[cs[0]!.page.layout]" :style="{ aspectRatio: aspect }">

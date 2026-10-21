@@ -16,7 +16,7 @@ function pick(e: Event) {
 </script>
 
 <template>
-  <div class="grid grid-cols-3 gap-2">
+  <div class="grid grid-cols-3 gap-2 p-1">
     <div v-for="p in paths" :key="p" class="group relative aspect-square overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': cover === p }">
       <AppStorageImg :path="p" class="size-full" />
       <div v-if="edit" class="absolute inset-x-0 top-0 flex justify-between p-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100">

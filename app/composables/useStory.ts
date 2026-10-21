@@ -3,7 +3,7 @@ import type { JobType } from '#shared/jobs'
 import type { RewriteMode, StoryParams, StoryVersion, SuggestField } from '#shared/story'
 import { collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
-import { parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
+import { DRAFT_DIRECTIONS, parseJson, rewriteSchema, suggestSchema, textToDialogues, versionToText } from '#shared/story'
 import { ko } from '~/locales/ko'
 import { callFn } from '~/lib/functions'
 
@@ -31,7 +31,8 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
     const snaps = await Promise.all(ids.map(id => getDoc(doc($firestore, 'workspaces', ws(), 'submissions', id))))
     sources.value = snaps.filter(s => s.exists()).map(s => ({ id: s.id, title: s.get('title') as string, body: s.get('body') as string, maskedBody: s.get('maskedBody') as string | null | undefined, status: s.get('status') as string, credit: s.get('credit') as string | undefined, withdrawn: s.get('withdrawn') }))
   }, { immediate: true })
-  const material = computed(() => sources.value.map(s => s.maskedBody || s.body).join('\n\n---\n\n'))
+  // STO-16: 여러 화로 나눴으면 이 화 부분만
+  const material = computed(() => episode.value?.materialPart?.text || sources.value.map(s => s.maskedBody || s.body).join('\n\n---\n\n'))
   const active = computed(() => versions.value.find(v => v.id === episode.value?.activeStoryVersionId) ?? null)
 
   function start(type: JobType, extra: Partial<StoryParams> = {}) {
@@ -43,14 +44,19 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       narrator: e.settings.narrator,
       extraRequest: e.settings.extraRequest ?? '',
       ...(context.value ? { context: context.value } : {}),
+      ...(e.materialPart ? { part: { index: e.materialPart.index, total: e.materialPart.total } } : {}),
       ...extra,
     }
     return callFn($functions, 'startAiJob', { workspaceId: ws(), type, target: { episodeId: e.id }, params, idempotencyKey: crypto.randomUUID() })
   }
   const analyze = () => start('story.analyze')
+  /** STO-16: 화 나누기 제안 (count가 없으면 AI가 화 수를 정함) */
+  const planEpisodes = (count?: number) => start('story.episodes', count ? { partCount: count } : {})
+  const splitEpisodes = (parts: { title: string, text: string }[]) => callFn($functions, 'splitEpisodes', { workspaceId: ws(), episodeId: episode.value!.id, parts })
   /** STO-11·12: n개 안을 따로 만든다. request가 있으면 이번에만 덧붙인다 */
   const draft = (n: number, request = '', basedOn?: StoryVersion) =>
-    Promise.all(Array.from({ length: n }, () => start('story.draft', {
+    Promise.all(Array.from({ length: n }, (_, i) => start('story.draft', {
+      ...(n > 1 ? { direction: DRAFT_DIRECTIONS[i % DRAFT_DIRECTIONS.length] } : {}),
       ...(request ? { extraRequest: [episode.value!.settings.extraRequest, request].filter(Boolean).join('\n') } : {}),
       ...(basedOn ? { basedOn: basedOn.id } : {}),
     })))
@@ -133,5 +139,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, keepStale, updateSettings }
+  return { versions, sources, material, active, analyze, planEpisodes, splitEpisodes, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, keepStale, updateSettings }
 }

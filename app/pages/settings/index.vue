@@ -14,7 +14,37 @@ const defaults = reactive({ ...auth.workspace!.defaults })
 const manage = computed(() => canManage(auth.role))
 const saving = ref<'profile' | 'workspace' | null>(null)
 
-const selectClass = 'border-input bg-card h-9 rounded-md border px-3 text-sm disabled:opacity-50'
+const selectClass = 'border-input bg-card h-8 w-full rounded-lg border px-2.5 text-sm disabled:opacity-50'
+
+// 왼쪽(모바일은 위) 항목 목록: 누르면 그 카드로 스크롤, 스크롤하면 지금 보는 항목 표시
+const sections = [
+  { id: 'profile', label: t.profile },
+  { id: 'usage', label: t.usage },
+  { id: 'workspace', label: t.workspace },
+  { id: 'instagram', label: ko.instagram.title },
+  { id: 'threads', label: ko.threads.title },
+  { id: 'intake', label: t.intake.title },
+  { id: 'members', label: ko.members.title },
+  { id: 'activity', label: ko.activity.title },
+  { id: 'danger', label: ko.workspaces.danger },
+]
+const active = ref('profile')
+const go = (id: string) => {
+  active.value = id
+  document.getElementById(`set-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+let io: IntersectionObserver | undefined
+onMounted(() => {
+  io = new IntersectionObserver((es) => {
+    const hit = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0]
+    if (hit) active.value = hit.target.id.slice(4)
+  }, { rootMargin: '-120px 0px -60% 0px' })
+  for (const x of sections) {
+    const el = document.getElementById(`set-${x.id}`)
+    if (el) io.observe(el)
+  }
+})
+onBeforeUnmount(() => io?.disconnect())
 
 async function run(kind: 'profile' | 'workspace', fn: () => Promise<void>) {
   saving.value = kind
@@ -44,11 +74,29 @@ function saveWorkspace() {
 </script>
 
 <template>
-  <div class="mx-auto flex max-w-2xl flex-col gap-6 p-4 md:p-8">
+  <div class="mx-auto flex max-w-4xl gap-8 p-4 md:p-8">
+    <nav class="sticky top-20 hidden h-fit w-44 shrink-0 flex-col gap-0.5 md:flex" :aria-label="t.sections">
+      <button
+        v-for="x in sections" :key="x.id" type="button" class="rounded-md px-3 py-1.5 text-left text-sm"
+        :class="active === x.id ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'" :aria-current="active === x.id ? 'true' : undefined" @click="go(x.id)"
+      >
+        {{ x.label }}
+      </button>
+    </nav>
+    <div class="flex min-w-0 flex-1 flex-col gap-6">
     <h1 class="text-2xl font-bold">
       {{ t.title }}
     </h1>
+    <nav class="bg-background/95 sticky top-14 z-10 -mx-4 -mt-3 flex gap-1 overflow-x-auto border-b px-4 py-2 md:hidden" :aria-label="t.sections">
+      <button
+        v-for="x in sections" :key="x.id" type="button" class="shrink-0 rounded-full px-3 py-1 text-xs"
+        :class="active === x.id ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'" :aria-current="active === x.id ? 'true' : undefined" @click="go(x.id)"
+      >
+        {{ x.label }}
+      </button>
+    </nav>
 
+    <section id="set-profile" class="scroll-mt-32 md:scroll-mt-20">
     <Card>
       <CardHeader>
         <CardTitle>{{ t.profile }}</CardTitle>
@@ -64,7 +112,9 @@ function saveWorkspace() {
       </CardContent>
     </Card>
 
-    <AppUsageCard />
+    </section>
+    <section id="set-usage" class="scroll-mt-32 md:scroll-mt-20"><AppUsageCard /></section>
+    <section id="set-workspace" class="scroll-mt-32 md:scroll-mt-20">
 
     <Card>
       <CardHeader>
@@ -135,11 +185,13 @@ function saveWorkspace() {
       </CardContent>
     </Card>
 
-    <SettingsInstagramCard />
-    <SettingsThreadsCard />
-    <SettingsIntakeCard />
-    <SettingsMembersCard />
-    <SettingsActivityCard />
-    <SettingsDangerCard />
+    </section>
+    <section id="set-instagram" class="scroll-mt-32 md:scroll-mt-20"><SettingsInstagramCard /></section>
+    <section id="set-threads" class="scroll-mt-32 md:scroll-mt-20"><SettingsThreadsCard /></section>
+    <section id="set-intake" class="scroll-mt-32 md:scroll-mt-20"><SettingsIntakeCard /></section>
+    <section id="set-members" class="scroll-mt-32 md:scroll-mt-20"><SettingsMembersCard /></section>
+    <section id="set-activity" class="scroll-mt-32 md:scroll-mt-20"><SettingsActivityCard /></section>
+    <section id="set-danger" class="scroll-mt-32 md:scroll-mt-20"><SettingsDangerCard /></section>
+    </div>
   </div>
 </template>

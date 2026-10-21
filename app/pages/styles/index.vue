@@ -58,7 +58,7 @@ async function create() {
           {{ ko.empty.styles.body }}
         </p>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto">
+      <div class="-m-1 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto p-1">
         <button v-for="s in list" :key="s.id" class="bg-card flex flex-col overflow-hidden rounded-lg border text-left" :class="{ 'ring-primary ring-2': s.id === current?.id }" @click="select(s.id)">
           <AppStorageImg :path="s.samples?.[0] ?? s.refImages[0]" :alt="s.name" class="aspect-[4/5] w-full" />
           <span class="truncate px-2 pt-1.5 text-sm font-medium">{{ s.name }}</span>
