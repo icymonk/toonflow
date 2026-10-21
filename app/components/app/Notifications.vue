@@ -2,6 +2,7 @@
 import type { JobNote } from '~/composables/useNotifications'
 import { Bell } from '@lucide/vue'
 import { onClickOutside } from '@vueuse/core'
+import { episodeTitle } from '#shared/episodes'
 import { hasNewReply } from '#shared/feedback'
 import { ko } from '~/locales/ko'
 
@@ -21,6 +22,14 @@ function toggle() {
   if (open.value) markSeen()
 }
 const link = (j: JobNote) => j.target?.episodeId ? { path: '/studio', query: { episode: j.target.episodeId, ...(j.target.panelId ? { panel: j.target.panelId } : {}) } } : j.type === 'style.sample' ? '/styles' : '/characters'
+// 알림에 작품 · 에피소드 이름. 동의 철회는 그 썰로 만든 에피소드
+const { series, episodes } = useStories()
+const label = (episodeId?: string) => {
+  const ep = episodeId ? episodes.value.find(e => e.id === episodeId) : undefined
+  const s = ep ? series.value.find(x => x.id === ep.seriesId) : undefined
+  return [s?.name, ep && episodeTitle(ep.title, ep.number)].filter(Boolean).join(' · ')
+}
+const usedBy = (submissionId: string) => episodes.value.filter(e => e.submissionIds?.includes(submissionId)).map(e => label(e.id)).join(', ')
 const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1) + (prefs.value.feedback ? fb.unread.value : 0))
 </script>
 
@@ -42,6 +51,7 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1) 
       </p>
       <NuxtLink v-for="w in withdrawals" :key="w.id" :to="{ path: '/inbox', query: { id: w.id } }" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
         <span class="text-destructive">{{ w.published ? t.withdrawnAfter : t.withdrawnBefore }}</span>
+        <span v-if="usedBy(w.id)" class="truncate text-xs">{{ usedBy(w.id) }}</span>
         <span class="text-muted-foreground text-xs">{{ new Date(w.at.toMillis()).toLocaleString('ko-KR') }}</span>
       </NuxtLink>
       <NuxtLink v-for="f in answered" :key="`fb-${f.id}`" :to="{ path: '/feedback', query: { id: f.id } }" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
@@ -51,6 +61,7 @@ const count = computed(() => unread.value + (usageLevel.value === 'ok' ? 0 : 1) 
       <p v-if="!jobs.length && !withdrawals.length && !answered.length" class="text-muted-foreground px-2 py-3 text-xs">{{ t.empty }}</p>
       <NuxtLink v-for="j in jobs" :key="j.id" :to="link(j)" class="hover:bg-muted flex flex-col rounded px-2 py-1.5" @click="open = false">
         <span :class="j.status === 'failed' ? 'text-destructive' : ''">{{ t.types[j.type] ?? j.type }} · {{ j.status === 'failed' ? t.failed : t.done }}</span>
+        <span v-if="label(j.target?.episodeId)" class="truncate text-xs">{{ label(j.target?.episodeId) }}</span>
         <span class="text-muted-foreground text-xs">{{ j.finishedAt!.toMillis() > 0 ? new Date(j.finishedAt!.toMillis()).toLocaleString('ko-KR') : '' }}</span>
       </NuxtLink>
     </div>

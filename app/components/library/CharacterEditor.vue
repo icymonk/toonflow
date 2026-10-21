@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Character, CharacterInput, CharacterVariant } from '#shared/library'
 import type { Library } from '~/composables/useLibrary'
-import { Archive, Loader2, Sparkles, Trash2 } from '@lucide/vue'
+import { Archive, Check, Loader2, Sparkles, Trash2, X } from '@lucide/vue'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, emptyAppearance, SHEET, withHint } from '#shared/library'
@@ -48,15 +48,34 @@ const setCover = (path: string) => lib.update('characters', props.character.id, 
 const styleId = ref(lib.series.value.find(s => s.mainCharacterIds?.includes(props.character.id) && s.styleId)?.styleId ?? lib.styles.value[0]?.id ?? '')
 const jobId = ref<string | null>(null)
 const job = lib.watchJob(jobId)
+// 올린 사진(참조 이미지)을 앞에, 그림체 그림은 남는 칸에. 프롬프트에 사진 수를 알린다
+const refPathsFor = (style: { refImages?: string[] } | null) => [...refs.value, ...(style?.refImages ?? [])].slice(0, 5)
+const photoCount = () => Math.min(refs.value.length, 5)
 async function generate() {
   const style = lib.styles.value.find(s => s.id === styleId.value) ?? null
   try {
-    const out = await lib.generate({ characterId: props.character.id }, { prompt: characterPrompt(form, style), n: 2, negative: style?.negative || undefined, refPaths: [...(style?.refImages ?? []), ...refs.value].slice(0, 5) })
+    const out = await lib.generate({ characterId: props.character.id }, { prompt: characterPrompt(form, style, photoCount()), n: 2, negative: style?.negative || undefined, refPaths: refPathsFor(style) })
     jobId.value = out.jobId
   }
   catch (e) { fail(e) }
 }
 const addCandidate = (path: string) => (refs.value.includes(path) || refs.value.length >= 5 ? undefined : lib.update('characters', props.character.id, { refImages: [...refs.value, path], coverPath: props.character.coverPath ?? path }).catch(fail))
+// CHR-04 미리보기: 누르면 고르기(참조 이미지 + 대표), 다시 누르면 빼기, ×는 목록에서 지우기
+const hidden = ref(new Set<string>())
+const shown = (paths?: string[]) => (paths ?? []).filter(p => !hidden.value.has(p))
+const unpick = (path: string) => {
+  const rest = refs.value.filter(p => p !== path)
+  return lib.update('characters', props.character.id, { refImages: rest, coverPath: props.character.coverPath === path ? (rest[0] ?? null) : props.character.coverPath }).catch(fail)
+}
+async function togglePick(path: string) {
+  if (refs.value.includes(path)) return unpick(path)
+  if (refs.value.length >= 5) return toast.error(t.refsFull)
+  await lib.update('characters', props.character.id, { refImages: [...refs.value, path], coverPath: path }).catch(fail)
+}
+async function dismiss(path: string) {
+  hidden.value = new Set([...hidden.value, path])
+  if (refs.value.includes(path)) await unpick(path)
+}
 
 // CHR-05 시트 · CHR-12 일관성 테스트
 const multiKind = ref<'sheet' | 'consistency' | null>(null)
@@ -65,10 +84,10 @@ const multiJob = lib.watchJob(multiJobId)
 const busy = computed(() => multiJob.value?.status === 'queued' || multiJob.value?.status === 'running')
 async function generateMany(kind: 'sheet' | 'consistency') {
   const style = lib.styles.value.find(s => s.id === styleId.value) ?? null
-  const base = characterPrompt(form, style)
+  const base = characterPrompt(form, style, photoCount())
   const prompts = kind === 'sheet' ? SHEET.map(s => withHint(base, s.hint, true)) : CONSISTENCY_SCENES.map(h => withHint(base, h))
   try {
-    const out = await lib.generate({ characterId: props.character.id }, { prompts, negative: style?.negative || undefined, refPaths: [...refs.value, ...(style?.refImages ?? [])].slice(0, 5) })
+    const out = await lib.generate({ characterId: props.character.id }, { prompts, negative: style?.negative || undefined, refPaths: refPathsFor(style) })
     multiKind.value = kind
     multiJobId.value = out.jobId
   }
@@ -181,12 +200,18 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
         <p v-else-if="job?.status === 'failed'" class="text-destructive text-xs">
           {{ t.failed }}
         </p>
-        <template v-else-if="job?.status === 'succeeded' && job.providerResult?.length">
+        <template v-else-if="job?.status === 'succeeded' && shown(job.providerResult).length">
           <span class="text-muted-foreground text-xs">{{ t.candidates }}</span>
           <div class="grid grid-cols-2 gap-2 p-1">
-            <button v-for="p in job.providerResult" :key="p" class="overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': refs.includes(p) }" @click="addCandidate(p)">
-              <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
-            </button>
+            <div v-for="p in shown(job.providerResult)" :key="p" class="relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': refs.includes(p) }">
+              <button class="block w-full" :aria-pressed="refs.includes(p)" :aria-label="refs.includes(p) ? t.unpick : t.pick" @click="togglePick(p)">
+                <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
+              </button>
+              <span v-if="refs.includes(p)" class="bg-primary text-primary-foreground absolute bottom-1 left-1 flex items-center gap-0.5 rounded px-1 text-[11px]"><Check class="size-3" />{{ t.picked }}</span>
+              <button class="bg-background/90 hover:bg-background absolute top-1 right-1 flex size-6 items-center justify-center rounded-full border" :aria-label="t.dismiss" :title="t.dismiss" @click="dismiss(p)">
+                <X class="size-3.5" />
+              </button>
+            </div>
           </div>
         </template>
       </div>
@@ -224,13 +249,20 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       <p v-else-if="multiJob?.status === 'failed'" class="text-destructive text-xs">
         {{ t.failed }}
       </p>
-      <template v-else-if="multiJob?.status === 'succeeded' && multiJob.providerResult?.length">
+      <template v-else-if="multiJob?.status === 'succeeded' && shown(multiJob.providerResult).length">
         <span class="text-muted-foreground text-xs">{{ multiKind === 'sheet' ? t.sheetPick : t.consistencyHint }}</span>
         <div class="grid gap-2" :class="multiKind === 'sheet' ? 'grid-cols-3' : 'grid-cols-2'">
-          <button v-for="(p, i) in multiJob.providerResult" :key="p" class="relative overflow-hidden rounded-md border" :disabled="multiKind !== 'sheet'" @click="keepSheet(i, p)">
-            <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
-            <span class="bg-background/80 absolute bottom-0 left-0 px-1 text-[11px]">{{ multiKind === 'sheet' ? SHEET[i]?.label : CONSISTENCY_SCENES[i] }}</span>
-          </button>
+          <template v-for="(p, i) in multiJob.providerResult" :key="p">
+            <div v-if="!hidden.has(p)" class="relative overflow-hidden rounded-md border">
+              <button class="block w-full" :disabled="multiKind !== 'sheet'" @click="keepSheet(i, p)">
+                <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
+              </button>
+              <span class="bg-background/80 absolute bottom-0 left-0 px-1 text-[11px]">{{ multiKind === 'sheet' ? SHEET[i]?.label : CONSISTENCY_SCENES[i] }}</span>
+              <button class="bg-background/90 hover:bg-background absolute top-1 right-1 flex size-6 items-center justify-center rounded-full border" :aria-label="t.dismiss" :title="t.dismiss" @click="dismiss(p)">
+                <X class="size-3.5" />
+              </button>
+            </div>
+          </template>
         </div>
       </template>
     </div>

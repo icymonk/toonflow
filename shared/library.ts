@@ -100,8 +100,10 @@ export const NO_TEXT = 'Do not draw any text, letters, numbers, signs, or speech
 export const stylePrompts = (s: StyleInput) => SAMPLE_SCENES.map(scene => `${stylePrompt(s)}. Scene: ${scene}. ${NO_TEXT}`)
 
 /** CHR-04: 캐릭터 대표 이미지 후보 */
-export const characterPrompt = (c: CharacterInput, s: StyleInput | null) =>
-  `${s ? `${stylePrompt(s)}. ` : ''}Character reference sheet of "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}. Front view, full body, neutral pose, white background. ${NO_TEXT}`
+/** photos: 앞쪽 참조 이미지 중 이 캐릭터의 사진·그림 수. 나머지 참조는 그림체 */
+export const characterPrompt = (c: CharacterInput, s: StyleInput | null, photos = 0) =>
+  `${photos ? `The first ${photos} reference image${photos > 1 ? 's are' : ' is'} of "${c.name}" (photo or drawing). Keep the same person: face shape, hairstyle, hair color, body type, and outfit must stay recognizable. Redraw them as an illustration in the art style below, not as a photo. Any other reference images show only the art style. ` : ''}`
+  + `${s ? `${stylePrompt(s)}. ` : ''}Character reference sheet of "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}. Front view, full body, neutral pose, white background. ${NO_TEXT}`
 
 /** 이미지 작업 params (style.sample · panel.image) */
 export const imageParams = z.object({
