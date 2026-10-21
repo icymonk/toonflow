@@ -121,7 +121,7 @@ const shown = computed(() => props.candidates.filter(c => showHidden.value || !c
         <button v-for="l in library" :key="l.id" @click="emit('import', l.path); picking = false"><AppStorageImg :path="l.path" class="aspect-[4/5] w-full" /></button>
       </div>
       <button v-if="hiddenCount" class="text-muted-foreground self-start text-xs underline" @click="showHidden = !showHidden">{{ showHidden ? t.hideHidden : t.showHidden(hiddenCount) }}</button>
-      <div class="grid grid-cols-2 gap-2">
+      <div class="grid grid-cols-2 gap-2 p-1">
         <div v-for="c in shown" :key="c.id" class="group relative overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': c.id === cut.panel.selectedCandidateId }">
           <button class="block w-full" :aria-label="t.choose" :disabled="!edit" @click="emit('choose', c.id)">
             <AppStorageImg :path="c.imagePath" class="aspect-[4/5] w-full" />

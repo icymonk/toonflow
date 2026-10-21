@@ -183,7 +183,7 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
         </p>
         <template v-else-if="job?.status === 'succeeded' && job.providerResult?.length">
           <span class="text-muted-foreground text-xs">{{ t.candidates }}</span>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2 p-1">
             <button v-for="p in job.providerResult" :key="p" class="overflow-hidden rounded-md border" :class="{ 'ring-primary ring-2': refs.includes(p) }" @click="addCandidate(p)">
               <AppStorageImg :path="p" class="aspect-[4/5] w-full" />
             </button>

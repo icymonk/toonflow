@@ -58,7 +58,7 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
           {{ ko.empty.characters.body }}
         </p>
       </div>
-      <div class="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto">
+      <div class="-m-1 grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] content-start gap-3 overflow-y-auto p-1">
         <button v-for="c in list" :key="c.id" class="bg-card flex flex-col overflow-hidden rounded-lg border text-left" :class="{ 'ring-primary ring-2': c.id === current?.id }" @click="select(c.id)">
           <AppStorageImg :path="c.coverPath" :alt="c.name" class="aspect-square w-full" />
           <span class="truncate px-2 pt-1.5 text-sm font-medium">{{ c.name }}</span>
