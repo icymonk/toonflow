@@ -37,6 +37,14 @@ const edit = computed(() => canEdit(auth.role))
 const episodeId = computed(() => String(route.query.episode ?? ''))
 const s = useStudio(episodeId)
 const { episode, cuts } = s
+// 같은 작품 회차 이동
+const { episodes: allEpisodes } = useStories()
+const siblings = computed(() => allEpisodes.value
+  .filter(e => e.seriesId === episode.value?.seriesId && (!e.archivedAt || e.id === episodeId.value))
+  .sort((a, b) => a.number - b.number))
+const sibIndex = computed(() => siblings.value.findIndex(e => e.id === episodeId.value))
+const goEpisode = (id?: string) => id && id !== episodeId.value && router.push({ query: { episode: id } })
+const epLabel = (e: { number: number, title: string }) => (e.title.trim() ? `${e.number}화 · ${e.title}` : `${e.number}화`)
 // STO-03: 작품 메모 + 직전 화 줄거리 + 주요·이번 화 캐릭터의 성격·말투·기본 의상
 const storyCtx = computed(() => {
   const ids = new Set([...(s.series.value?.mainCharacterIds ?? []), ...(episode.value?.settings.characterIds ?? [])])
@@ -518,6 +526,17 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
         {{ s.seriesName.value }}
       </NuxtLink>
       <span class="text-muted-foreground">›</span>
+      <div v-if="siblings.length > 1" class="flex items-center">
+        <Button size="icon-sm" variant="ghost" :aria-label="t.prevEpisode" :title="t.prevEpisode" :disabled="sibIndex <= 0" @click="goEpisode(siblings[sibIndex - 1]?.id)">
+          <ChevronLeft class="size-4" />
+        </Button>
+        <AppSelect :value="episodeId" class="border-input bg-card h-7 max-w-28 rounded-md border px-1.5 text-xs" :aria-label="t.episodeNav" @change="goEpisode($event)">
+          <option v-for="e in siblings" :key="e.id" :value="e.id">{{ epLabel(e) }}</option>
+        </AppSelect>
+        <Button size="icon-sm" variant="ghost" :aria-label="t.nextEpisode" :title="t.nextEpisode" :disabled="sibIndex < 0 || sibIndex >= siblings.length - 1" @click="goEpisode(siblings[sibIndex + 1]?.id)">
+          <ChevronRight class="size-4" />
+        </Button>
+      </div>
       <input
         v-model="titleDraft" :disabled="!edit" maxlength="80" :aria-label="ko.stories.title"
         class="hover:border-input focus:border-input w-32 rounded sm:w-48 border border-transparent bg-transparent px-1.5 py-0.5 font-semibold"

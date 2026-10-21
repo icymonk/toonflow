@@ -374,11 +374,11 @@ async function removeSeries(id: string) {
       </div>
 
       <div class="overflow-x-auto rounded-lg border">
-        <table class="w-full text-sm">
+        <table class="w-full min-w-[760px] text-sm">
           <thead class="bg-muted/50 text-muted-foreground text-left">
             <tr>
               <th v-for="c in cols" :key="c.key" class="px-3 py-2 font-medium" :aria-sort="sortKey === c.key ? (sortAsc ? 'ascending' : 'descending') : 'none'">
-                <button type="button" class="hover:text-foreground inline-flex items-center gap-1" :class="{ 'text-foreground': sortKey === c.key }" @click="sortBy(c.key)">
+                <button type="button" class="hover:text-foreground inline-flex items-center gap-1 whitespace-nowrap" :class="{ 'text-foreground': sortKey === c.key }" @click="sortBy(c.key)">
                   {{ c.label }}
                   <component :is="sortKey === c.key ? (sortAsc ? ArrowUp : ArrowDown) : ArrowUpDown" class="size-3" :class="{ 'opacity-40': sortKey !== c.key }" />
                 </button>
@@ -393,11 +393,11 @@ async function removeSeries(id: string) {
             <template v-for="{ key, group, e, inGroup } in tableRows" :key="key">
             <tr v-if="group" class="bg-muted/30 border-t">
               <td colspan="7" class="px-3 py-1.5 text-xs">
-                <span class="inline-flex items-center gap-1.5">
-                  <FileText class="text-muted-foreground size-3.5" />
-                  <NuxtLink v-if="group.submissionId" :to="{ path: '/inbox', query: { id: group.submissionId } }" class="font-medium hover:underline">{{ group.title }}</NuxtLink>
-                  <span v-else class="font-medium">{{ group.title }}</span>
-                  <span class="text-muted-foreground">· {{ t.splitGroup(group.total) }}</span>
+                <span class="flex min-w-0 items-center gap-1.5">
+                  <FileText class="text-muted-foreground size-3.5 shrink-0" />
+                  <NuxtLink v-if="group.submissionId" :to="{ path: '/inbox', query: { id: group.submissionId } }" class="max-w-[28rem] truncate font-medium hover:underline">{{ group.title }}</NuxtLink>
+                  <span v-else class="max-w-[28rem] truncate font-medium">{{ group.title }}</span>
+                  <span class="text-muted-foreground shrink-0">· {{ t.splitGroup(group.total) }}</span>
                 </span>
               </td>
             </tr>
