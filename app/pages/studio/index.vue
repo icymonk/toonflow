@@ -16,7 +16,10 @@ import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
 import { composeCaption } from '#shared/publish'
-import { IG_CAPTION_MAX, IG_MAX_ITEMS } from '#shared/instagram'
+import { IG_CAPTION_MAX, IG_MAX_ITEMS, igPostingActive } from '#shared/instagram'
+import { threadsText } from '#shared/threads'
+import type { SocialPlatform } from '#shared/social'
+import { socialRatio } from '#shared/social'
 import { storyContext } from '#shared/story'
 import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
@@ -129,19 +132,45 @@ watch(() => s.cuts.value.find(c => c.panel.id === selectedPanelId.value)?.pageIn
 const runExport = (fn: () => Promise<void>) => fn().catch(() => toast.error(t.publish.failed))
 // PUB-24
 const igUser = computed(() => auth.workspace?.instagram?.username ?? null)
-async function postInstagram() {
+const queue = useJobQueue()
+async function postSocial(platforms: SocialPlatform[]) {
   const n = exportPages.value.length
+  if (!platforms.length) return
   if (n > IG_MAX_ITEMS) return toast.error(t.publish.igTooMany(IG_MAX_ITEMS))
-  if (fullCaption.value.length > IG_CAPTION_MAX) return toast.error(t.publish.igCaptionLong(IG_CAPTION_MAX))
-  if (!igUser.value || !await confirmDialog(t.publish.igConfirm(n, igUser.value))) return
+  if (platforms.includes('instagram') && fullCaption.value.length > IG_CAPTION_MAX) return toast.error(t.publish.igCaptionLong(IG_CAPTION_MAX))
+  const text = threadsText(fullCaption.value)
+  const where = platforms.map(p => (p === 'instagram' ? `Instagram @${igUser.value}` : `Threads @${thUser.value}`)).join(', ')
+  if (!await confirmDialog(t.publish.socialConfirm(n, where, platforms.includes('threads') && text !== fullCaption.value))) return
   try {
-    await exp.instagram(fullCaption.value)
-    toast.success(t.publish.igPosted)
+    await exp.social(platforms.map(p => ({ platform: p, caption: p === 'threads' ? text : fullCaption.value })))
+    toast.info(t.publish.socialStarted)
   }
   catch (error) {
-    toast.error(errorMessage(error) ?? ko.errors.instagramFailed)
+    toast.error(errorMessage(error) ?? ko.errors.unknown)
   }
 }
+const socialProgress = computed(() => Object.fromEntries(queue.activePosts.value.filter(p => p.episodeId === episode.value?.id)
+  .map(p => [p.platform, { ratio: socialRatio(p.progress), step: p.progress ? ko.queue.steps[p.progress.step](p.progress.done, p.progress.total) : '' }])))
+const igState = computed(() => {
+  const p = episode.value?.instagramPost
+  return igPostingActive(p, Date.now()) ? 'posting' : p?.status === 'failed' ? 'failed' : null
+})
+// PUB-25
+const thUser = computed(() => auth.workspace?.threads?.username ?? null)
+const thState = computed(() => {
+  const p = episode.value?.threadsPost
+  return igPostingActive(p, Date.now()) ? 'posting' : p?.status === 'failed' ? 'failed' : null
+})
+watch(thState, (now, before) => {
+  if (before !== 'posting') return
+  if (now === 'failed') toast.error(errorMessage({ message: episode.value?.threadsPost?.error ?? '' }) ?? ko.errors.threadsFailed)
+  else if (!now && episode.value?.threadsPublished) toast.success(t.publish.thPosted)
+})
+watch(igState, (now, before) => {
+  if (before !== 'posting') return
+  if (now === 'failed') toast.error(errorMessage({ message: episode.value?.instagramPost?.error ?? '' }) ?? ko.errors.instagramFailed)
+  else if (!now && episode.value?.status === 'published') toast.success(t.publish.igPosted)
+})
 const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
@@ -705,10 +734,10 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :withdrawn="withdrawnSources.length"
+            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :ig-state="igState" :threads="thUser" :th-state="thState" :threads-url="episode.threadsPublished?.url ?? ''" :social-progress="socialProgress" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
-            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @instagram="guardExport(postInstagram)"
+            @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @social="ps => guardExport(() => postSocial(ps))"
             @settings="patch => run(() => s.updateEpisode({ settings: { ...episode!.settings, ...patch } }))" @all="guardExport(() => runExport(exp.all))" @one="guardExport(() => runExport(() => exp.one(expPage)))"
           />
           <StudioVideoAside

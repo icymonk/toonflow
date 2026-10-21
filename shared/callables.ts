@@ -11,6 +11,7 @@ import type { AdminOverview, AdminOverviewInput, LogAdminViewInput } from './act
 import type { CreateInviteInput, InviteInfo, InviteTokenInput, MemberRefInput, RevokeInviteInput, SetMemberLimitInput, SetMemberRoleInput } from './members'
 import type { GrantPlanInput, SetWorkspaceLimitInput } from './usage'
 import type { ConnectInstagramInput, InstagramWorkspaceInput, PublishInstagramInput } from './instagram'
+import type { ConnectThreadsInput, PublishThreadsInput, ThreadsWorkspaceInput } from './threads'
 
 /** 서버 기능 오류 메시지 키. 화면 문구는 app/locales/ko.ts의 errors에서 키로 찾는다 */
 export const ERROR_KEYS = {
@@ -37,6 +38,11 @@ export const ERROR_KEYS = {
   instagramNotConfigured: 'error.instagramNotConfigured',
   instagramNotConnected: 'error.instagramNotConnected',
   instagramFailed: 'error.instagramFailed',
+  instagramBusy: 'error.instagramBusy',
+  threadsNotConfigured: 'error.threadsNotConfigured',
+  threadsNotConnected: 'error.threadsNotConnected',
+  threadsFailed: 'error.threadsFailed',
+  threadsBusy: 'error.threadsBusy',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -83,5 +89,9 @@ export interface Callables {
   instagramAuthUrl: { input: InstagramWorkspaceInput, output: { url: string } }
   connectInstagram: { input: ConnectInstagramInput, output: { username: string } }
   disconnectInstagram: { input: InstagramWorkspaceInput, output: { ok: true } }
-  publishInstagram: { input: PublishInstagramInput, output: { url: string } }
+  publishInstagram: { input: PublishInstagramInput, output: { ok: true } }
+  threadsAuthUrl: { input: ThreadsWorkspaceInput, output: { url: string } }
+  connectThreads: { input: ConnectThreadsInput, output: { username: string } }
+  disconnectThreads: { input: ThreadsWorkspaceInput, output: { ok: true } }
+  publishThreads: { input: PublishThreadsInput, output: { ok: true } }
 }

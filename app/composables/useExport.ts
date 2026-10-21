@@ -1,6 +1,7 @@
 import type { Cut } from '#shared/studio'
 import { ref as sref, uploadBytes } from 'firebase/storage'
 import { zipSync } from 'fflate'
+import type { SocialPlatform } from '#shared/social'
 import { IG_CAPTION_MAX } from '#shared/instagram'
 import { exportName, layoutPage, splitBatches } from '#shared/render'
 import { selectedRefs } from '~/lib/candidates'
@@ -49,24 +50,25 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
     }
     finally { progress.value = null }
   }
-  /** PUB-24: 모든 장을 JPG로 그려 올리고 서버가 Instagram에 게시. 게시 링크를 돌려준다 */
-  async function instagram(caption: string) {
+  /** PUB-24·25: 모든 장을 JPG로 한 번 그리고, 게시할 곳마다 올려서 접수한다. 진행·결과는 socialPosts와 에피소드 instagramPost·threadsPost로 */
+  async function social(targets: { platform: SocialPlatform, caption: string }[]) {
     try {
       const ws = auth.workspace!.id
       const ep = s.episode.value!.id
       const files = await render(pages.value.map((_, i) => i), 'jpg')
-      const batch = String(Date.now())
-      const paths: string[] = []
-      for (const [k, f] of files.entries()) {
-        progress.value = ko.studio.publish.igUploading(k + 1, files.length)
-        const path = `workspaces/${ws}/exports/${ep}/${batch}/${String(k + 1).padStart(2, '0')}.jpg`
-        await uploadBytes(sref($storage, path), f.blob, { contentType: 'image/jpeg' })
-        paths.push(path)
+      for (const tg of targets) {
+        const batch = `${Date.now()}-${tg.platform}`
+        const paths: string[] = []
+        for (const [k, f] of files.entries()) {
+          progress.value = ko.studio.publish.igUploading(k + 1, files.length)
+          const path = `workspaces/${ws}/exports/${ep}/${batch}/${String(k + 1).padStart(2, '0')}.jpg`
+          await uploadBytes(sref($storage, path), f.blob, { contentType: 'image/jpeg' })
+          paths.push(path)
+        }
+        await callFn($functions, tg.platform === 'instagram' ? 'publishInstagram' : 'publishThreads', { workspaceId: ws, episodeId: ep, paths, caption: tg.caption.slice(0, IG_CAPTION_MAX) })
       }
-      progress.value = ko.studio.publish.igPosting
-      return (await callFn($functions, 'publishInstagram', { workspaceId: ws, episodeId: ep, paths, caption: caption.slice(0, IG_CAPTION_MAX) })).url
     }
     finally { progress.value = null }
   }
-  return { progress, fmt, aiLabel, all, one, instagram }
+  return { progress, fmt, aiLabel, all, one, social }
 }

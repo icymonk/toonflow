@@ -1,14 +1,13 @@
 import { randomBytes } from 'node:crypto'
 import { logger } from 'firebase-functions'
 import { FieldValue, getFirestore } from 'firebase-admin/firestore'
-import { getDownloadURL, getStorage } from 'firebase-admin/storage'
 import { defineSecret } from 'firebase-functions/params'
 import { HttpsError } from 'firebase-functions/v2/https'
 import { ERROR_KEYS } from '../../../shared/callables'
-import { connectInstagramInput, exportPathOk, IG_REDIRECT_URI, IG_SCOPES, instagramWorkspaceInput, publishInstagramInput } from '../../../shared/instagram'
+import { connectInstagramInput, exportPathOk, IG_REDIRECT_URI, IG_SCOPES, igPostingActive, instagramWorkspaceInput, publishInstagramInput } from '../../../shared/instagram'
 import { requireMember } from '../lib/authz'
 import { authedCallable } from '../lib/callable'
-import { authorizeUrl, exchangeCode, InstagramError, me, publishImages } from '../lib/instagram'
+import { authorizeUrl, exchangeCode, InstagramError, me } from '../lib/instagram'
 
 /** Meta 앱 대시보드 → Instagram → API setup with Instagram login의 앱 ID·시크릿. GitHub 시크릿 → deploy.yml이 Secret Manager로 옮긴다 */
 export const INSTAGRAM_APP_ID = defineSecret('INSTAGRAM_APP_ID')
@@ -67,7 +66,8 @@ export const disconnectInstagram = authedCallable(instagramWorkspaceInput, async
   return { ok: true as const }
 })
 
-/** 브라우저가 그려 올린 장 JPG를 Meta가 가져갈 수 있는 주소로 넘겨 게시하고, 에피소드를 발행됨으로 바꾼 뒤 올린 파일을 지운다 */
+/** 브라우저가 그려 올린 장 JPG로 게시를 접수만 한다. 실제 게시는 postSocial 트리거가 한다
+ * (Hosting `/fn` 경유 호출은 60초에 끊겨서, 캐러셀 처리를 기다리면 화면에는 실패로 보인다) */
 export const publishInstagram = authedCallable(publishInstagramInput, async ({ uid, data }) => {
   await requireMember(data.workspaceId, uid, 'editor')
   if (!data.paths.every(p => exportPathOk(p, data.workspaceId, data.episodeId))) throw new HttpsError('invalid-argument', ERROR_KEYS.invalidInput)
@@ -75,16 +75,12 @@ export const publishInstagram = authedCallable(publishInstagramInput, async ({ u
   const tok = await db.doc(`instagramTokens/${data.workspaceId}`).get()
   if (!tok.exists || tok.get('expiresAt') < Date.now()) throw new HttpsError('failed-precondition', ERROR_KEYS.instagramNotConnected)
   const epRef = db.doc(`workspaces/${data.workspaceId}/episodes/${data.episodeId}`)
-  if (!(await epRef.get()).exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
-  const bucket = getStorage().bucket()
-  try {
-    const urls = await Promise.all(data.paths.map(p => getDownloadURL(bucket.file(p))))
-    const r = await publishImages(tok.get('accessToken'), tok.get('userId'), urls, data.caption)
-    await epRef.update({ status: 'published', published: { at: FieldValue.serverTimestamp(), url: r.permalink, instagramMediaId: r.mediaId }, updatedAt: FieldValue.serverTimestamp() })
-    return { url: r.permalink }
-  }
-  catch (e) { igFailed(e) }
-  finally {
-    await Promise.all(data.paths.map(p => bucket.file(p).delete().catch(() => {})))
-  }
-}, { timeoutSeconds: 300 })
+  await db.runTransaction(async (tx) => {
+    const ep = await tx.get(epRef)
+    if (!ep.exists) throw new HttpsError('not-found', ERROR_KEYS.invalidInput)
+    if (igPostingActive(ep.get('instagramPost'), Date.now())) throw new HttpsError('failed-precondition', ERROR_KEYS.instagramBusy)
+    tx.update(epRef, { instagramPost: { status: 'posting', at: FieldValue.serverTimestamp(), by: uid } })
+    tx.create(db.collection(`workspaces/${data.workspaceId}/socialPosts`).doc(), { platform: 'instagram', episodeId: data.episodeId, paths: data.paths, caption: data.caption, by: uid, status: 'queued', createdAt: FieldValue.serverTimestamp() })
+  })
+  return { ok: true as const }
+})

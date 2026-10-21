@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SocialPlatform } from '#shared/social'
 import { Copy, Download, Loader2, Sparkles } from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import { PAGE_SIZES, POST_LIMIT } from '#shared/render'
@@ -9,9 +10,11 @@ interface SeriesPub { hashtags: string, greeting: string, watermark: string }
 const props = defineProps<{
   pageCount: number, currentPage: number, aspect: string, format: 'jpg' | 'png', aiLabel: boolean, progress: string | null, edit: boolean
   caption: string, captionText: string, hashtags: string[], series: SeriesPub, published: { at: string, url: string } | null, captionCost: number, captioning: boolean
-  credit: string, creditPlace: 'caption' | 'page', withdrawn: number, hiRes: boolean, plannedAt: string, instagram: string | null
+  credit: string, creditPlace: 'caption' | 'page', withdrawn: number, hiRes: boolean, plannedAt: string, instagram: string | null, igState: 'posting' | 'failed' | null
+  threads: string | null, thState: 'posting' | 'failed' | null, threadsUrl: string
+  socialProgress: Partial<Record<SocialPlatform, { ratio: number, step: string }>>
 }>()
-const emit = defineEmits<{ settings: [patch: Record<string, unknown>], all: [], one: [], makeCaption: [], captionText: [text: string], series: [patch: Partial<SeriesPub>], publish: [url: string], unpublish: [], instagram: [] }>()
+const emit = defineEmits<{ settings: [patch: Record<string, unknown>], all: [], one: [], makeCaption: [], captionText: [text: string], series: [patch: Partial<SeriesPub>], publish: [url: string], unpublish: [], social: [platforms: SocialPlatform[]] }>()
 const t = ko.studio.publish
 const sel = 'border-input bg-card h-8 rounded-md border px-2 text-sm'
 const url = ref('')
@@ -82,14 +85,17 @@ async function copy() {
 
     <section class="flex flex-col gap-1.5 border-t pt-3">
       <span class="font-medium">{{ t.publishTitle }}</span>
+      <StudioSocialPublish
+        :accounts="{ ...(instagram ? { instagram } : {}), ...(threads ? { threads } : {}) }" :states="{ instagram: igState, threads: thState }"
+        :progress="socialProgress" :disabled="!edit || !!progress || !pageCount" @post="ps => emit('social', ps)"
+      />
       <template v-if="published">
         <p class="text-xs text-emerald-700">{{ t.publishedOn(published.at) }}</p>
         <a v-if="published.url" :href="published.url" target="_blank" rel="noopener" class="text-primary break-all text-xs underline">{{ published.url }}</a>
+        <a v-if="threadsUrl && threadsUrl !== published.url" :href="threadsUrl" target="_blank" rel="noopener" class="text-primary break-all text-xs underline">{{ t.thPublished }}</a>
         <Button size="sm" variant="ghost" class="self-start" :disabled="!edit" @click="emit('unpublish')">{{ t.unpublish }}</Button>
       </template>
       <form v-else class="flex flex-col gap-1.5" @submit.prevent="emit('publish', url.trim())">
-        <Button v-if="instagram" size="sm" type="button" :disabled="!edit || !!progress || !pageCount" @click="emit('instagram')">{{ t.igPost(instagram) }}</Button>
-        <NuxtLink v-else to="/settings" class="text-muted-foreground text-xs underline">{{ t.igConnect }}</NuxtLink>
         <label class="flex items-center gap-2 text-xs">{{ t.plannedAt }}<input type="date" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :value="plannedAt" :disabled="!edit" @change="emit('settings', { plannedAt: val($event) || null })"></label>
         <p class="text-muted-foreground text-xs">{{ t.plannedNote }}</p>
         <Input v-model="url" type="url" class="h-8 text-xs" :placeholder="t.urlPh" :disabled="!edit" />
