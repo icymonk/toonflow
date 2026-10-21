@@ -49,7 +49,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
     }
     finally { progress.value = null }
   }
-  /** PUB-24: 모든 장을 JPG로 그려 올리고 서버가 Instagram에 게시. 게시 링크를 돌려준다 */
+  /** PUB-24: 모든 장을 JPG로 그려 올리고 게시를 접수한다. 결과는 에피소드 instagramPost·published로 */
   async function instagram(caption: string) {
     try {
       const ws = auth.workspace!.id
@@ -64,7 +64,7 @@ export function useExport(s: ReturnType<typeof useStudio>, review: ReturnType<ty
         paths.push(path)
       }
       progress.value = ko.studio.publish.igPosting
-      return (await callFn($functions, 'publishInstagram', { workspaceId: ws, episodeId: ep, paths, caption: caption.slice(0, IG_CAPTION_MAX) })).url
+      await callFn($functions, 'publishInstagram', { workspaceId: ws, episodeId: ep, paths, caption: caption.slice(0, IG_CAPTION_MAX) })
     }
     finally { progress.value = null }
   }

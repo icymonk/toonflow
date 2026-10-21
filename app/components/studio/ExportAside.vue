@@ -9,7 +9,7 @@ interface SeriesPub { hashtags: string, greeting: string, watermark: string }
 const props = defineProps<{
   pageCount: number, currentPage: number, aspect: string, format: 'jpg' | 'png', aiLabel: boolean, progress: string | null, edit: boolean
   caption: string, captionText: string, hashtags: string[], series: SeriesPub, published: { at: string, url: string } | null, captionCost: number, captioning: boolean
-  credit: string, creditPlace: 'caption' | 'page', withdrawn: number, hiRes: boolean, plannedAt: string, instagram: string | null
+  credit: string, creditPlace: 'caption' | 'page', withdrawn: number, hiRes: boolean, plannedAt: string, instagram: string | null, igState: 'posting' | 'failed' | null
 }>()
 const emit = defineEmits<{ settings: [patch: Record<string, unknown>], all: [], one: [], makeCaption: [], captionText: [text: string], series: [patch: Partial<SeriesPub>], publish: [url: string], unpublish: [], instagram: [] }>()
 const t = ko.studio.publish
@@ -88,7 +88,9 @@ async function copy() {
         <Button size="sm" variant="ghost" class="self-start" :disabled="!edit" @click="emit('unpublish')">{{ t.unpublish }}</Button>
       </template>
       <form v-else class="flex flex-col gap-1.5" @submit.prevent="emit('publish', url.trim())">
-        <Button v-if="instagram" size="sm" type="button" :disabled="!edit || !!progress || !pageCount" @click="emit('instagram')">{{ t.igPost(instagram) }}</Button>
+        <p v-if="igState === 'posting'" class="text-muted-foreground flex items-center gap-1.5 text-xs" role="status"><Loader2 class="size-3.5 animate-spin" />{{ t.igPostingNote }}</p>
+        <p v-else-if="igState === 'failed'" class="text-destructive text-xs" role="alert">{{ t.igFailedNote }}</p>
+        <Button v-if="instagram" size="sm" type="button" :disabled="!edit || !!progress || !pageCount || igState === 'posting'" @click="emit('instagram')">{{ t.igPost(instagram) }}</Button>
         <NuxtLink v-else to="/settings" class="text-muted-foreground text-xs underline">{{ t.igConnect }}</NuxtLink>
         <label class="flex items-center gap-2 text-xs">{{ t.plannedAt }}<input type="date" class="border-input bg-card h-8 rounded-md border px-2 text-xs" :value="plannedAt" :disabled="!edit" @change="emit('settings', { plannedAt: val($event) || null })"></label>
         <p class="text-muted-foreground text-xs">{{ t.plannedNote }}</p>

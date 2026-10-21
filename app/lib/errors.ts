@@ -46,6 +46,7 @@ const byKey: Record<ErrorKey, ErrorText> = {
   'error.instagramNotConfigured': 'instagramNotConfigured',
   'error.instagramNotConnected': 'instagramNotConnected',
   'error.instagramFailed': 'instagramFailed',
+  'error.instagramBusy': 'instagramBusy',
 }
 
 /** 서버 오류 메시지는 SDK가 끝에 ` [403]` 같은 상태를 붙일 수 있어 앞부분으로 비교한다 */

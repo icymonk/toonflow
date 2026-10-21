@@ -16,7 +16,7 @@ import { matchCharacters } from '#shared/library'
 import { canEdit } from '#shared/roles'
 import type { ReviewState } from '#shared/review'
 import { composeCaption } from '#shared/publish'
-import { IG_CAPTION_MAX, IG_MAX_ITEMS } from '#shared/instagram'
+import { IG_CAPTION_MAX, IG_MAX_ITEMS, igPostingActive } from '#shared/instagram'
 import { storyContext } from '#shared/story'
 import { checklist, reviewLeft } from '#shared/review'
 import { firstUnmetBefore, remaining } from '#shared/studio'
@@ -136,12 +136,21 @@ async function postInstagram() {
   if (!igUser.value || !await confirmDialog(t.publish.igConfirm(n, igUser.value))) return
   try {
     await exp.instagram(fullCaption.value)
-    toast.success(t.publish.igPosted)
+    toast.info(t.publish.igStarted)
   }
   catch (error) {
     toast.error(errorMessage(error) ?? ko.errors.instagramFailed)
   }
 }
+const igState = computed(() => {
+  const p = episode.value?.instagramPost
+  return igPostingActive(p, Date.now()) ? 'posting' : p?.status === 'failed' ? 'failed' : null
+})
+watch(igState, (now, before) => {
+  if (before !== 'posting') return
+  if (now === 'failed') toast.error(errorMessage({ message: episode.value?.instagramPost?.error ?? '' }) ?? ko.errors.instagramFailed)
+  else if (!now && episode.value?.status === 'published') toast.success(t.publish.igPosted)
+})
 const bubbleSel = ref<{ panelId: string, dialogueId: string } | null>(null)
 const selBubble = computed(() => (bubbleSel.value?.panelId === selectedPanelId.value ? bubbleSel.value.dialogueId : null))
 const pageCutsOf = computed(() => (id?: string) => s.cuts.value.filter(c => c.page.id === id))
@@ -705,7 +714,7 @@ const gridClass: Record<string, string> = { '1': 'grid-cols-1', '2v': 'grid-rows
           <StudioExportAside
             v-if="expMode === 'image'" :page-count="exportPages.length" :current-page="expPage" :aspect="episode.settings.aspect" :format="exp.fmt.value"
             :ai-label="exp.aiLabel.value" :progress="exp.progress.value" :edit="edit"
-            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :withdrawn="withdrawnSources.length"
+            :credit="credit" :credit-place="creditPlace" :hi-res="!!episode.settings.hiRes" :planned-at="episode.settings.plannedAt ?? ''" :instagram="igUser" :ig-state="igState" :withdrawn="withdrawnSources.length"
             :caption="fullCaption" :caption-text="captionText" :hashtags="episode.caption?.hashtags ?? []" :published="publishedInfo" :caption-cost="captionCost" :captioning="running('publish.caption') > 0"
             :series="{ hashtags: s.series.value?.hashtags ?? '', greeting: s.series.value?.greeting ?? '', watermark: s.series.value?.watermark ?? '' }"
             @make-caption="makeCaption" @caption-text="setCaptionText" @series="p => run(() => s.updateSeries(p))" @publish="markPublished" @unpublish="unpublish" @instagram="guardExport(postInstagram)"

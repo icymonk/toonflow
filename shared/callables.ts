@@ -37,6 +37,7 @@ export const ERROR_KEYS = {
   instagramNotConfigured: 'error.instagramNotConfigured',
   instagramNotConnected: 'error.instagramNotConnected',
   instagramFailed: 'error.instagramFailed',
+  instagramBusy: 'error.instagramBusy',
 } as const
 
 export type ErrorKey = (typeof ERROR_KEYS)[keyof typeof ERROR_KEYS]
@@ -83,5 +84,5 @@ export interface Callables {
   instagramAuthUrl: { input: InstagramWorkspaceInput, output: { url: string } }
   connectInstagram: { input: ConnectInstagramInput, output: { username: string } }
   disconnectInstagram: { input: InstagramWorkspaceInput, output: { ok: true } }
-  publishInstagram: { input: PublishInstagramInput, output: { url: string } }
+  publishInstagram: { input: PublishInstagramInput, output: { ok: true } }
 }

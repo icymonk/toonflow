@@ -85,6 +85,8 @@ export interface Episode {
   caption?: { text: string, hashtags: string[] } | null
   aiCheck?: import('./aicheck').AiCheck | null
   published?: { at?: Ts, url: string } | null
+  /** PUB-24: 서버가 Instagram에 게시하는 중·실패 (끝나면 지운다) */
+  instagramPost?: { status: 'posting' | 'failed', error?: string, at?: Ts } | null
   costKrw: number
   updatedAt?: Ts
   deletedAt?: Ts | null
