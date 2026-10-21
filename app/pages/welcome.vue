@@ -31,7 +31,7 @@ async function join() {
 <template>
   <div class="bg-background min-h-svh">
     <header class="mx-auto flex max-w-5xl items-center justify-between px-6 py-5">
-      <span class="text-lg font-bold tracking-wide">{{ ko.brand.name }}</span>
+      <AppBrandLogo />
       <Button as-child size="sm" variant="outline">
         <NuxtLink to="/login">{{ t.login }}</NuxtLink>
       </Button>
@@ -100,8 +100,10 @@ async function join() {
       </div>
     </section>
 
-    <footer class="text-muted-foreground mx-auto max-w-5xl px-6 py-8 text-xs">
-      © TOONFLOW
+    <footer class="text-muted-foreground mx-auto flex max-w-5xl flex-wrap gap-4 px-6 py-8 text-xs">
+      <span>© TOONFLOW</span>
+      <NuxtLink to="/terms" class="underline">{{ ko.legal.terms }}</NuxtLink>
+      <NuxtLink to="/privacy" class="underline">{{ ko.legal.privacy }}</NuxtLink>
     </footer>
   </div>
 </template>

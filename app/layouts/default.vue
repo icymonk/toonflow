@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ListTodo, LogOut, Menu, MessageSquare, MessageSquarePlus, Monitor, Moon, PanelLeft, Search, Sun, Trash2 } from '@lucide/vue'
 import { onKeyStroke, useLocalStorage, useMediaQuery } from '@vueuse/core'
-import { isActive, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
+import { isActive, NAV_GROUPS, NAV_MAIN, NAV_SETTINGS } from '~/lib/nav'
 import { ko } from '~/locales/ko'
 
 const theme = useTheme()
@@ -40,7 +40,9 @@ async function signOut() {
       :class="[collapsed ? 'w-16' : 'w-60', drawer ? 'translate-x-0' : '-translate-x-full']"
     >
       <div class="flex items-center justify-between px-2 py-2">
-        <span v-if="!collapsed" class="text-lg font-bold tracking-wide">{{ ko.brand.name }}</span>
+        <NuxtLink v-if="!collapsed" to="/" class="rounded-md">
+          <AppBrandLogo on-dark />
+        </NuxtLink>
         <button
           type="button"
           class="hover:bg-sidebar-accent rounded-md p-1.5"
@@ -53,17 +55,23 @@ async function signOut() {
       <AppWorkspaceSwitcher :collapsed="collapsed" />
       <AppSeriesSwitcher :collapsed="collapsed" />
       <nav class="flex flex-col gap-0.5">
-        <NuxtLink
-          v-for="item in NAV_MAIN"
-          :key="item.to"
-          :to="item.to"
-          class="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
-          :class="isActive(item, route.path) ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold' : 'hover:bg-sidebar-accent'"
-          :title="collapsed ? `${item.label} · ${item.ko}` : undefined"
-        >
-          <component :is="item.icon" class="size-4 shrink-0" aria-hidden="true" />
-          <span v-if="!collapsed">{{ item.label }} <span class="text-xs opacity-70">{{ item.ko }}</span></span>
-        </NuxtLink>
+        <template v-for="(group, gi) in NAV_GROUPS" :key="gi">
+          <p v-if="group.title && !collapsed" class="px-3 pt-3 pb-1 text-xs font-semibold opacity-60">
+            {{ group.title }}
+          </p>
+          <hr v-else-if="group.title" class="border-sidebar-border mx-2 my-1.5">
+          <NuxtLink
+            v-for="item in group.items"
+            :key="item.to"
+            :to="item.to"
+            class="flex items-center gap-3 rounded-md px-3 py-2 text-sm"
+            :class="isActive(item, route.path) ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold' : 'hover:bg-sidebar-accent'"
+            :title="collapsed ? `${item.label} · ${item.ko}` : undefined"
+          >
+            <component :is="item.icon" class="size-4 shrink-0" aria-hidden="true" />
+            <span v-if="!collapsed">{{ item.label }} <span class="text-xs opacity-70">{{ item.ko }}</span></span>
+          </NuxtLink>
+        </template>
       </nav>
       <div class="mt-auto flex flex-col gap-0.5">
         <div v-if="!collapsed" class="px-3 py-2 text-xs opacity-70">

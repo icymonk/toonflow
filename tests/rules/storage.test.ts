@@ -39,6 +39,12 @@ describe('storage', () => {
     await assertFails(put('editor', `${W}/refs/music/e1/b.png`, 'image/png'))
     await assertFails(put('viewer', `${W}/refs/music/e1/c.mp3`, 'audio/mpeg'))
   })
+  it('Instagram export pages (PUB-24): editors upload JPG only', async () => {
+    await assertSucceeds(put('editor', `${W}/exports/e1/1/01.jpg`, 'image/jpeg'))
+    await assertFails(put('editor', `${W}/exports/e1/1/02.png`, 'image/png'))
+    await assertFails(put('viewer', `${W}/exports/e1/1/03.jpg`, 'image/jpeg'))
+    await assertFails(put('stranger', `${W}/exports/e1/1/04.jpg`, 'image/jpeg'))
+  })
   it('intake attachments and AI results: members read, clients never write', async () => {
     await assertSucceeds(getBytes(ref(st('viewer'), `${W}/intake/s1/a.png`)))
     await assertFails(getBytes(ref(st('stranger'), `${W}/intake/s1/a.png`)))

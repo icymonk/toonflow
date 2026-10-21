@@ -1,4 +1,5 @@
 import type { User } from 'firebase/auth'
+import type { InstagramInfo } from '#shared/instagram'
 import type { Role } from '#shared/roles'
 import type { WorkspaceDefaults, WorkspaceSettingsInput } from '#shared/workspace'
 import {
@@ -40,6 +41,8 @@ export interface Workspace {
   defaults: WorkspaceDefaults
   /** ACC-13: 삭제 예약 시각(ms) */
   deleteAt: number | null
+  /** PUB-24: 연결한 Instagram 계정 */
+  instagram: InstagramInfo | null
 }
 
 export interface WorkspaceItem { id: string, name: string, role: Role | null, deleteAt: number | null }
@@ -111,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
       getDoc(doc($firestore, 'workspaces', wsId, 'members', uid)),
     ])
     const data = ws.data() ?? {}
-    workspace.value = { id: wsId, name: data.name, ownerId: data.ownerId, defaults: withDefaults(data.defaults), deleteAt: millis(data.deleteAt) }
+    workspace.value = { id: wsId, name: data.name, ownerId: data.ownerId, defaults: withDefaults(data.defaults), deleteAt: millis(data.deleteAt), instagram: (data.instagram as InstagramInfo | undefined) ?? null }
     role.value = (member.get('role') as Role | undefined) ?? null
     // ACC-22 마지막 활동 (실패해도 넘어간다)
     if (member.exists()) updateDoc(member.ref, { lastActiveAt: serverTimestamp() }).catch(() => {})
