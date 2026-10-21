@@ -18,6 +18,7 @@ export { connectInstagram, disconnectInstagram, instagramAuthUrl, publishInstagr
 export { runAiJob } from './ai/run'
 export { purgeExpiredTrash } from './scheduled/trash'
 export { purgeDeleted } from './scheduled/workspaces'
+export { failStalledJobs } from './scheduled/jobs'
 export { refreshInstagramTokens } from './scheduled/instagram'
 export { connectThreads, disconnectThreads, publishThreads, threadsAuthUrl } from './callable/threads'
 export { refreshThreadsTokens } from './scheduled/threads'

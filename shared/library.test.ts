@@ -17,6 +17,8 @@ describe('library', () => {
     expect(stylePrompt(s)).toContain('palette: #fff')
     expect(stylePrompts(s)).toHaveLength(3)
     expect(characterPrompt({ name: '민지', aliases: [], intro: '', appearance: emptyAppearance(), appearanceText: '안경', episodeId: null }, null)).toContain('안경')
+    expect(characterPrompt({ name: '민지', aliases: [], intro: '', appearance: emptyAppearance(), appearanceText: '', episodeId: null }, null)).not.toContain('reference image')
+    expect(characterPrompt({ name: '민지', aliases: [], intro: '', appearance: emptyAppearance(), appearanceText: '', episodeId: null }, null, 2)).toMatch(/^The first 2 reference images are of "민지"/)
     expect(imageCount({ prompts: ['a', 'b', 'c'] })).toBe(3)
     expect(imageCount({ prompt: 'a', n: 2 })).toBe(2)
   })

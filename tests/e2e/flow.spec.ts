@@ -33,6 +33,17 @@ test('썰 등록 → 각색 → 콘티 → 그림 → 말풍선 → ZIP', async 
   await page.getByLabel('한 줄 소개').fill('엘리베이터의 신입')
   await expect(page.getByRole('button', { name: /E2E 주인공/ })).toBeVisible({ timeout: 10_000 })
 
+  // CHR-04 미리보기: 눌러서 고르면 참조 이미지가 되고, 다시 누르면 빠지고, ×로 지운다
+  await page.getByRole('button', { name: /후보 2개 만들기/ }).click()
+  const picks = page.getByRole('button', { name: '이 미리보기 고르기' })
+  await expect(picks).toHaveCount(2, { timeout: 30_000 })
+  await picks.first().click()
+  await expect(page.getByRole('button', { name: '고른 것 빼기' })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: '고른 것 빼기' }).click()
+  await expect(picks).toHaveCount(2)
+  await page.getByRole('button', { name: '미리보기 지우기' }).first().click()
+  await expect(page.getByRole('button', { name: '미리보기 지우기' })).toHaveCount(1)
+
   // 썰 등록
   await page.goto('/inbox')
   await page.getByRole('button', { name: '제보 등록' }).click()

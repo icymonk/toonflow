@@ -55,3 +55,12 @@ export type StartAiJobInput = z.infer<typeof startAiJobInput>
 
 export const jobRefInput = z.object({ workspaceId: z.string().min(1), jobId: z.string().min(1) })
 export type JobRefInput = z.infer<typeof jobRefInput>
+
+/** 한 번 부를 때 기다리는 최대 시간. 넘으면 시간 초과(provider_error)로 자동 다시 시도 */
+export const CALL_TIMEOUT_MS: Record<'text' | 'image', number> = { text: 120_000, image: 150_000 }
+/** AIU-01: 이보다 오래 진행 중이면 "평소보다 오래 걸려요" (초) */
+export const SLOW_SECS: Record<'text' | 'image', number> = { text: 60, image: 120 }
+/** AIU-03: 이보다 오래 진행 중이면 서버가 멈춘 것으로 보고 실패 처리 */
+export const STALL_MS = 15 * 60_000
+export const isStalled = (status: unknown, startedAtMs: number | undefined, now: number) =>
+  status === 'running' && startedAtMs != null && now - startedAtMs > STALL_MS
