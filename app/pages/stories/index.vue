@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Episode, EpisodeStage, Tone } from '#shared/episodes'
-import { BookOpen, Plus, Trash2 } from '@lucide/vue'
-import { useLocalStorage } from '@vueuse/core'
+import { Archive, ArchiveRestore, ArrowDown, ArrowUp, ArrowUpDown, BookOpen, Copy, Plus, Trash2 } from '@lucide/vue'
+import { useEventListener, useLocalStorage } from '@vueuse/core'
 import { serverTimestamp } from 'firebase/firestore'
 import { toast } from 'vue-sonner'
 import { createEpisodeInput, EPISODE_STAGES, seriesInput, stageOf, stagePatch, TONES } from '#shared/episodes'
@@ -94,7 +94,35 @@ async function submitEpisode() {
 const showArchived = ref(false)
 const seriesName = (id: string) => series.value.find(s => s.id === id)?.name ?? ''
 const archivedSeries = computed(() => new Set(series.value.filter(s => s.archivedAt).map(s => s.id)))
-const shown = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || (!e.archivedAt && (!archivedSeries.value.has(e.seriesId) || e.seriesId === seriesFilter.value)))))
+const visible = computed(() => episodes.value.filter(e => (!seriesFilter.value || e.seriesId === seriesFilter.value) && (showArchived.value || (!e.archivedAt && (!archivedSeries.value.has(e.seriesId) || e.seriesId === seriesFilter.value)))))
+// EPI-01 정렬: 기본은 작품별 회차 오름차순
+type SortKey = 'number' | 'series' | 'stage' | 'pages' | 'cost' | 'updated'
+const sortKey = ref<SortKey>('number')
+const sortAsc = ref(true)
+function sortBy(k: SortKey) {
+  if (sortKey.value === k) sortAsc.value = !sortAsc.value
+  else { sortKey.value = k; sortAsc.value = k !== 'updated' && k !== 'cost' }
+}
+const byNumber = (a: Episode, b: Episode) => seriesName(a.seriesId).localeCompare(seriesName(b.seriesId), 'ko') || a.number - b.number
+const sorters: Record<SortKey, (a: Episode, b: Episode) => number> = {
+  number: byNumber,
+  series: byNumber,
+  stage: (a, b) => EPISODE_STAGES.indexOf(stageOf(a)) - EPISODE_STAGES.indexOf(stageOf(b)),
+  pages: (a, b) => a.settings.pageCount - b.settings.pageCount,
+  cost: (a, b) => (a.costKrw ?? 0) - (b.costKrw ?? 0),
+  updated: (a, b) => (a.updatedAt?.toMillis() ?? 0) - (b.updatedAt?.toMillis() ?? 0),
+}
+const shown = computed(() => [...visible.value].sort((a, b) => (sortAsc.value ? 1 : -1) * (sorters[sortKey.value](a, b) || byNumber(a, b))))
+const dupFor = ref<string | null>(null)
+useEventListener(document, 'click', () => (dupFor.value = null))
+const cols: { key: SortKey, label: string }[] = [
+  { key: 'number', label: t.col.title },
+  { key: 'series', label: t.col.series },
+  { key: 'stage', label: t.col.stage },
+  { key: 'pages', label: t.col.pages },
+  { key: 'cost', label: t.col.cost },
+  { key: 'updated', label: t.col.updated },
+]
 const shownSeries = computed(() => series.value.filter(s => showArchived.value || !s.archivedAt || s.id === seriesFilter.value))
 const toggleSeriesArchive = (id: string, archived: boolean) => run(() => updateSeries(id, { archivedAt: archived ? null : serverTimestamp() }))
 // EPI-15 회차 번호 · EPI-14 복제
@@ -325,12 +353,12 @@ async function removeSeries(id: string) {
         <table class="w-full text-sm">
           <thead class="bg-muted/50 text-muted-foreground text-left">
             <tr>
-              <th class="px-3 py-2 font-medium">{{ t.col.title }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.series }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.stage }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.pages }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.cost }}</th>
-              <th class="px-3 py-2 font-medium">{{ t.col.updated }}</th>
+              <th v-for="c in cols" :key="c.key" class="px-3 py-2 font-medium" :aria-sort="sortKey === c.key ? (sortAsc ? 'ascending' : 'descending') : 'none'">
+                <button type="button" class="hover:text-foreground inline-flex items-center gap-1" :class="{ 'text-foreground': sortKey === c.key }" @click="sortBy(c.key)">
+                  {{ c.label }}
+                  <component :is="sortKey === c.key ? (sortAsc ? ArrowUp : ArrowDown) : ArrowUpDown" class="size-3" :class="{ 'opacity-40': sortKey !== c.key }" />
+                </button>
+              </th>
               <th />
             </tr>
           </thead>
@@ -361,18 +389,24 @@ async function removeSeries(id: string) {
               <td class="px-3 py-2">{{ krw(e.costKrw) }}</td>
               <td class="text-muted-foreground px-3 py-2">{{ date(e) }}</td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
-                <template v-if="edit">
-                  <AppSelect :class="selectClass" :aria-label="t.duplicate" :title="t.duplicateHint" model-value="" @change="dup(e, $event)">
-                    <option value="" disabled>{{ t.duplicate }}</option>
-                    <option v-for="m in (['structure', 'full'] as const)" :key="m" :value="m">{{ t.duplicateModes[m] }}</option>
-                  </AppSelect>
-                  <Button size="sm" variant="ghost" @click="toggleArchive(e)">
-                    {{ e.archivedAt ? t.unarchive : t.archive }}
+                <div v-if="edit" class="flex items-center justify-end gap-1">
+                  <div class="relative">
+                    <Button size="icon" variant="ghost" class="size-8" :aria-label="t.duplicate" :title="t.duplicateHint" :aria-expanded="dupFor === e.id" @click.stop="dupFor = dupFor === e.id ? null : e.id">
+                      <Copy class="size-4" />
+                    </Button>
+                    <div v-if="dupFor === e.id" role="menu" class="bg-popover absolute right-0 top-full z-20 mt-1 flex w-32 flex-col rounded-md border p-1 text-left text-sm shadow-md" @click.stop>
+                      <button v-for="m in (['structure', 'full'] as const)" :key="m" type="button" role="menuitem" class="hover:bg-accent rounded px-2 py-1.5 text-left" @click="dupFor = null; dup(e, m)">
+                        {{ t.duplicateModes[m] }}
+                      </button>
+                    </div>
+                  </div>
+                  <Button size="icon" variant="ghost" class="size-8" :aria-label="e.archivedAt ? t.unarchive : t.archive" :title="e.archivedAt ? t.unarchive : t.archive" @click="toggleArchive(e)">
+                    <component :is="e.archivedAt ? ArchiveRestore : Archive" class="size-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" :aria-label="t.delete" @click="remove(e)">
+                  <Button size="icon" variant="ghost" class="text-destructive size-8" :aria-label="t.delete" :title="t.delete" @click="remove(e)">
                     <Trash2 class="size-4" />
                   </Button>
-                </template>
+                </div>
               </td>
             </tr>
           </tbody>
