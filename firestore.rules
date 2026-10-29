@@ -316,7 +316,11 @@ service cloud.firestore {
             && request.resource.data.keys().hasOnly(['font', 'fontSize', 'lineHeight', 'strokeWidth', 'strokeColor', 'updatedAt'])
             && request.resource.data.font in ['pretendard', 'gowun-dodum', 'jua']
             && request.resource.data.fontSize is number && request.resource.data.fontSize >= 12 && request.resource.data.fontSize <= 96)
-            || (docId == 'video' && validVideo(ws, request.resource.data)));
+            || (docId == 'video' && validVideo(ws, request.resource.data))
+            // QCK: 빠른 제작 답과 완료 표시
+            || (docId == 'quick' && request.resource.data.keys().hasOnly(['answers', 'done', 'updatedAt'])
+              && request.resource.data.answers is map && request.resource.data.answers.size() <= 20
+              && request.resource.data.get('done', false) is bool));
         }
         // STU·SBD: 장·컷은 편집자가 직접 쓴다. 지우기는 deletedAt(실행 취소용). 이미지 후보는 서버만
         match /pages/{pageId} {

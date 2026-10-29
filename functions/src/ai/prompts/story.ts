@@ -1,7 +1,8 @@
 import type { JobType } from '../../../../shared/jobs'
 import type { StoryParams } from '../../../../shared/story'
 import type { TextFormat } from '../types'
-import { storyParams } from '../../../../shared/story'
+import { LINE_RULE } from '../../../../shared/quick'
+import { ideasParams, storyParams } from '../../../../shared/story'
 import { AiError } from '../errors'
 import { guard } from './guard'
 
@@ -32,6 +33,7 @@ const draft = (p: StoryParams): TextPrompt => ({
     + '실명·특정 가능한 정보는 바꿔서 쓴다. 마지막 장면은 펀치라인으로 마무리. '
     + (p.direction ? `${DIRECTION_RULE[p.direction]} ` : '')
     + (p.part ? (p.part.index < p.part.total ? `이 이야기는 ${p.part.total}화 중 ${p.part.index}화야. 마지막 장면은 펀치라인 대신 다음 화가 궁금해지는 장면에서 끊어(punchline에는 다음 화 예고 한 줄). ` : `이 이야기는 ${p.part.total}화 중 마지막 화야. 앞 화들에서 이어지는 결말과 펀치라인으로 마무리해. `) : '')
+    + (p.lineLength ? `대사는 한 개에 ${LINE_RULE[p.lineLength].chars}자 이내로 짧게. ` : '')
     + `heading은 장면 제목, beats는 무슨 일이 일어나는지 1~2문장, dialogues는 그 장면의 대사. ${LINE_TYPES} `
     + 'titles는 제목 후보 3개(15자 이내), logline은 한 줄 요약. '
     + '반드시 JSON만: {"titles": [str], "logline": str, "scenes": [{"heading": str, "beats": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}], "punchline": str}',
@@ -54,6 +56,8 @@ const titles = (p: StoryParams): TextPrompt => ({
   prompt: p.draft || p.material,
 })
 
+const lineChars = (p: StoryParams) => (p.lineLength ? LINE_RULE[p.lineLength].chars : 40)
+
 const split = (p: StoryParams): TextPrompt => ({
   format: 'split',
   system: (p.pageCount === 1
@@ -64,9 +68,9 @@ const split = (p: StoryParams): TextPrompt => ({
     + 'scene은 그림 AI가 그릴 장면 설명(누가, 어디서, 무엇을. 글자·말풍선은 넣지 않는다), place는 장소·시간, characters는 등장인물 이름, '
     + 'shot은 closeup|bust|full|wide|pov 중 하나, expression·action은 주인공의 표정·동작, outfit은 그 컷 등장인물의 의상(여럿이면 "이름: 의상, 이름: 의상"), mood는 분위기·효과(집중선, 땀방울 등). '
     + '같은 장소·시간이 이어지는 컷은 place와 outfit을 글자까지 똑같이 적어. 의상은 장소나 시간이 바뀌어 갈아입을 이유가 있을 때만 바꿔. 작품 참고에 기본 의상이 있으면 그걸 기준으로 해. '
-    + `dialogues는 그 컷의 대사(한 개에 40자 이내). ${LINE_TYPES} `
+    + `dialogues는 그 컷의 대사(${p.lineLength ? `컷당 최대 ${LINE_RULE[p.lineLength].perPanel}개, ` : ''}한 개에 ${lineChars(p)}자 이내). ${LINE_TYPES} `
     // STO-25: 원문 그대로 쓰기
-    + (p.verbatim ? '이 글은 각색하지 않은 원문이야. 줄이거나 바꾸거나 빼지 말고 원문의 사건 순서와 대사·표현을 그대로 살려 컷으로 나눠. 대사가 40자를 넘으면 두 개로 나누고, 장 수가 모자라면 한 장에 컷을 더 넣어. ' : '')
+    + (p.verbatim ? `이 글은 각색하지 않은 원문이야. 줄이거나 바꾸거나 빼지 말고 원문의 사건 순서와 대사·표현을 그대로 살려 컷으로 나눠. 대사가 ${lineChars(p)}자를 넘으면 두 개로 나누고, 장 수가 모자라면 한 장에 컷을 더 넣어. ` : '')
     + '반드시 JSON만: {"pages": [{"panels": [{"scene": str, "place": str, "characters": [str], "shot": str, "expression": str, "action": str, "outfit": str, "mood": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}]}]}',
   prompt: p.draft || p.material,
 })
@@ -112,6 +116,35 @@ const caption = (p: StoryParams): TextPrompt => ({
 
 const BUILDERS: Partial<Record<JobType, (p: StoryParams) => TextPrompt>> = { 'story.analyze': analyze, 'story.draft': draft, 'story.titles': titles, 'storyboard.split': split, 'publish.caption': caption, 'story.rewrite': rewrite, 'story.suggest': suggest, 'story.episodes': episodes }
 
+// QCK-18 썰 만들기
+const NO_REAL = '실존 인물·회사·학교 이름이나 특정할 수 있는 정보는 쓰지 않는다.'
+function ideas(raw: Record<string, unknown>): TextPrompt {
+  const p = ideasParams.safeParse(raw)
+  if (!p.success) throw new AiError('internal', 'bad ideas params')
+  const d = p.data
+  const cond = [d.topic && `주제: ${d.topic}`, d.hint && `설명: ${d.hint}`, d.context && `조건: ${d.context}`].filter(Boolean).join('\n') || '조건 없음'
+  if (d.mode === 'topics') {
+    return {
+      format: 'topics',
+      system: `너는 인스타툰 기획자야. 인스타툰으로 만들기 좋은 썰 주제 6개를 서로 다르게 추천해. tag는 "#회사"처럼 #을 붙인 짧은 주제, hints는 그 주제로 쓸 썰 한 줄 설명 3개(25자 이내). ${NO_REAL} 반드시 JSON만: {"topics": [{"tag": str, "hints": [str]}]}`,
+      prompt: cond,
+    }
+  }
+  const shape = '실제로 겪은 일처럼 1인칭 구어체, 400~900자, 웃음이나 반전 포인트와 결말이 있게. title은 20자 이내 제목, summary는 세 줄 요약, body는 썰 전문(문단은 빈 줄로 나눈다).'
+  if (d.mode === 'revise' && d.base) {
+    return {
+      format: 'ideas',
+      system: `너는 인스타툰 작가야. [원래 썰]을 [바꿀 점]대로 고쳐서 썰 1개를 다시 써. ${shape} ${NO_REAL} 반드시 JSON만: {"ideas": [{"title": str, "summary": [str, str, str], "body": str}]}`,
+      prompt: `[원래 썰]\n${d.base.title}\n${d.base.body}\n\n[바꿀 점]\n${d.request || '더 재미있게'}\n\n${cond}`,
+    }
+  }
+  return {
+    format: 'ideas',
+    system: `너는 인스타툰 작가야. 조건에 맞는 한국 인스타툰 썰 3개를 서로 다른 전개로 지어. ${shape} ${NO_REAL} 반드시 JSON만: {"ideas": [{"title": str, "summary": [str, str, str], "body": str}]}`,
+    prompt: cond,
+  }
+}
+
 // INB-23
 const summarize = (material: string): TextPrompt => ({
   format: 'summary',
@@ -127,6 +160,7 @@ export function textPrompt(type: JobType, params: Record<string, unknown>): Text
 }
 
 function buildPrompt(type: JobType, params: Record<string, unknown>): TextPrompt {
+  if (type === 'story.ideas') return ideas(params)
   if (type === 'submission.summary') return summarize(String(params.material ?? '').slice(0, 20000))
   const build = BUILDERS[type]
   if (!build) return { system: '', prompt: JSON.stringify(params) }

@@ -16,6 +16,8 @@ export const fakeText: TextModel = {
       suggest: { options: ['가짜 추천 1', '가짜 추천 2', '가짜 추천 3'] },
       summary: { summary: ['첫째 줄', '둘째 줄', '셋째 줄'], genre: 'comedy', score: 72, reason: '반전이 뚜렷해요' },
       check: { items: [{ index: 1, issue: '가짜 점검: 손 모양이 어색해 보여요' }] },
+      topics: { topics: [{ tag: '#회사', hints: ['가짜 설명 1', '가짜 설명 2', '가짜 설명 3'] }, { tag: '#연애', hints: ['가짜 설명 4'] }] },
+      ideas: { ideas: [1, 2, 3].map(i => ({ title: `가짜 썰 ${i}`, summary: ['첫째 줄', '둘째 줄', '셋째 줄'], body: `가짜 썰 본문 ${i}. 오늘 회사에서 생긴 일이다.\n\n그런데 반전이 있었다.` })) },
       episodes: { parts: [{ title: '가짜 1화', text: prompt.slice(0, Math.ceil(prompt.length / 2)) || '앞', hook: '가짜 끊는 지점' }, { title: '가짜 2화', text: prompt.slice(Math.ceil(prompt.length / 2)) || '뒤', hook: '' }] },
     }
     return { text: JSON.stringify(format ? canned[format] : { echo: prompt.slice(0, 200) }), usage: { inTokens: prompt.length, outTokens: 50 }, requestId: `fake-${Date.now()}` }

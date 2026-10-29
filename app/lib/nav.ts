@@ -1,5 +1,5 @@
 import type { Component } from 'vue'
-import { BookOpen, Clapperboard, House, Images, Inbox, LayoutTemplate, Palette, Send, Settings, Users } from '@lucide/vue'
+import { BookOpen, Clapperboard, House, Images, Inbox, LayoutTemplate, Palette, Send, Settings, Users, Zap } from '@lucide/vue'
 
 /** 메뉴: docs/planning/glossary.md 1절. 영어 메뉴 + 한국어 설명 */
 export interface NavItem {
@@ -21,6 +21,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: '제작',
     items: [
+      { to: '/quick', label: 'Quick', ko: '빠른 제작', icon: Zap },
       { to: '/inbox', label: 'Inbox', ko: '제보함', icon: Inbox },
       { to: '/stories', label: 'Stories', ko: '작품', icon: BookOpen },
       { to: '/studio', label: 'Studio', ko: '제작실', icon: Clapperboard },

@@ -75,7 +75,7 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   }
 
   /** ILL-01·02·20 */
-  async function generate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean }) {
+  async function generate(list: Cut[], n: number, opts: { extra?: string, leaveRoom?: boolean, keyPrefix?: string }) {
     await Promise.all(list.map(async (cut) => {
       const st = styleOf(cut)
       const scene = await sceneRefPath(cut).catch(() => null)
@@ -84,8 +84,8 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
         workspaceId: ws(),
         type: 'panel.image',
         target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-        params: { prompt: promptOf(cut, { ...opts, sceneRef: !!scene }), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(scene ? [scene] : []), ...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
-        idempotencyKey: crypto.randomUUID(),
+        params: { prompt: promptOf(cut, { extra: opts.extra, leaveRoom: opts.leaveRoom, sceneRef: !!scene }), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(scene ? [scene] : []), ...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
+        idempotencyKey: opts.keyPrefix ? `${opts.keyPrefix}${cut.panel.id}`.slice(0, 64) : crypto.randomUUID(),
       })
     }))
   }

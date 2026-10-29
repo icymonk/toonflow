@@ -35,7 +35,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const material = computed(() => episode.value?.materialPart?.text || sources.value.map(s => s.maskedBody || s.body).join('\n\n---\n\n'))
   const active = computed(() => versions.value.find(v => v.id === episode.value?.activeStoryVersionId) ?? null)
 
-  function start(type: JobType, extra: Partial<StoryParams> = {}) {
+  function start(type: JobType, extra: Partial<StoryParams> = {}, key: string = crypto.randomUUID()) {
     const e = episode.value!
     const params: StoryParams = {
       material: material.value,
@@ -47,7 +47,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       ...(e.materialPart ? { part: { index: e.materialPart.index, total: e.materialPart.total } } : {}),
       ...extra,
     }
-    return callFn($functions, 'startAiJob', { workspaceId: ws(), type, target: { episodeId: e.id }, params, idempotencyKey: crypto.randomUUID() })
+    return callFn($functions, 'startAiJob', { workspaceId: ws(), type, target: { episodeId: e.id }, params, idempotencyKey: key })
   }
   const analyze = () => start('story.analyze')
   /** STO-16: 화 나누기 제안 (count가 없으면 AI가 화 수를 정함) */
@@ -61,7 +61,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       ...(basedOn ? { basedOn: basedOn.id } : {}),
     })))
   /** SBD-01·02 자동 콘티 / 다시 나누기 */
-  const split = (v: StoryVersion, pageCount?: number) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(v.settings.verbatim ? { verbatim: true } : {}), ...(pageCount ? { pageCount } : {}) })
+  const split = (v: StoryVersion, pageCount?: number, extra: Partial<StoryParams> = {}, key?: string) => start('storyboard.split', { versionId: v.id, draft: versionToText(v), ...(v.settings.verbatim ? { verbatim: true } : {}), ...(pageCount ? { pageCount } : {}), ...extra }, key)
   const titles = (v: StoryVersion) => start('story.titles', { versionId: v.id, draft: versionToText(v) })
   /** STO-13: 장면 본문이나 대사만 다시 쓰고, 끝나면 그 자리에 넣는다 */
   const rewriting = ref<{ jobId: string, versionId?: string, sceneId?: string, field?: 'beats' | 'dialogues', panelId?: string } | null>(null)
@@ -159,5 +159,5 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const updateSettings = (patch: Partial<Episode['settings']>) =>
     updateDoc(epRef(), { ...Object.fromEntries(Object.entries(patch).map(([k, v]) => [`settings.${k}`, v])), updatedAt: serverTimestamp() })
 
-  return { versions, sources, material, active, analyze, planEpisodes, splitEpisodes, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, verbatim, keepStale, updateSettings }
+  return { start, versions, sources, material, active, analyze, planEpisodes, splitEpisodes, draft, split, titles, caption, rewrite, refine, rewriting, rewriteRev, suggest, suggesting, suggestions, updateVersion, setActive, verbatim, keepStale, updateSettings }
 }
