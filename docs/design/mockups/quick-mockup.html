@@ -1,0 +1,70 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><style>
+*{box-sizing:border-box}body{margin:0;background:#e9e7e2;padding-top:44px!important;font-family:'Noto Sans CJK KR','Noto Sans KR',sans-serif;color:#202538;padding:28px;display:flex;gap:24px}
+.ph{overflow:visible;width:300px;height:620px;background:#faf8f4;border-radius:32px;border:8px solid #202538;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.cap{position:absolute;top:-26px;left:0;right:0;font-weight:700;text-align:center;font-size:11px;color:#686d7b}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 16px 6px;font-size:12px;color:#686d7b}
+.dots{display:flex;gap:4px}.dots i{width:18px;height:4px;border-radius:2px;background:#e9e7e2}.dots i.on{background:#ff735c}
+h2{font-size:19px;margin:10px 16px 4px}p.s{font-size:12px;color:#686d7b;margin:0 16px 12px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px}
+.c{background:#fff;border:2px solid #e9e7e2;border-radius:14px;padding:8px;font-size:13px;font-weight:600}
+.c.sel{border-color:#ff735c;box-shadow:0 0 0 3px #ff735c33}.c small{display:block;font-weight:400;color:#686d7b;font-size:11px;margin-top:2px}
+.th{height:92px;background:#f1efea;border-radius:8px;margin-bottom:6px;display:flex;align-items:center;justify-content:center}
+.row{background:#fff;border:2px solid #e9e7e2;border-radius:14px;padding:12px;margin:0 16px 8px;font-size:14px;font-weight:600;display:flex;justify-content:space-between;align-items:center}
+.row.sel{border-color:#ff735c;box-shadow:0 0 0 3px #ff735c33}.row small{font-weight:400;color:#686d7b;font-size:11px}
+.chips{display:flex;gap:6px;margin:0 16px 8px}.chip{flex:1;text-align:center;border:2px solid #e9e7e2;background:#fff;border-radius:999px;padding:8px 0;font-size:12px}.chip.sel{border-color:#ff735c;background:#ff735c1a;font-weight:700}
+.lbl{font-size:12px;color:#686d7b;margin:10px 16px 6px}
+.bot{margin-top:auto;padding:12px 16px 18px;background:#faf8f4;border-top:1px solid #e9e7e2;display:flex;gap:8px}
+.btn{flex:1;text-align:center;border-radius:12px;padding:12px 0;font-size:14px;font-weight:700;background:#ff735c}.btn.g{background:#f1efea;font-weight:500}
+.bar{height:6px;background:#f1efea;border-radius:3px;margin:4px 16px 4px;overflow:hidden}.bar b{display:block;height:100%;width:62%;background:#ff735c}
+.steps{font-size:12px;margin:8px 16px;line-height:1.9}.steps .d{color:#686d7b}.steps .n{color:#ff735c;font-weight:700}
+.pg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:4px 16px}.pg div{aspect-ratio:4/5;border-radius:6px;background:#f1efea}.pg div.f{background:#ffe1da}
+</style></head><body>
+
+<div><div class="ph"><div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;display:flex;flex-direction:column">
+<div class="top"><span>‹ 이전</span><div class="dots"><i class="on"></i><i></i><i></i><i></i><i></i><i></i></div><span>맡기기</span></div>
+<h2>어떤 형식으로 만들까요?</h2><p class="s">눌러서 고르면 다음 질문으로 넘어가요</p>
+<div class="grid">
+<div class="c sel"><div class="th"><svg width="56" height="70" viewBox="0 0 56 70"><rect x="1" y="1" width="54" height="68" rx="3" fill="#fff" stroke="#202538"/><rect x="5" y="5" width="46" height="8" fill="#202538"/><rect x="5" y="16" width="14" height="14" fill="#ffd2c9"/><rect x="21" y="16" width="14" height="14" fill="#ffd2c9"/><rect x="37" y="16" width="14" height="14" fill="#ffd2c9"/><rect x="5" y="33" width="22" height="14" fill="#ffd2c9"/><rect x="29" y="33" width="22" height="14" fill="#ffd2c9"/><rect x="5" y="50" width="46" height="15" fill="#ff735c"/></svg></div>한 장툰<small>한 장에 4~8컷</small></div>
+<div class="c"><div class="th"><svg width="80" height="70" viewBox="0 0 80 70"><g fill="#fff" stroke="#202538"><rect x="22" y="1" width="40" height="52" rx="3"/><rect x="14" y="8" width="40" height="52" rx="3"/><rect x="6" y="15" width="40" height="52" rx="3"/></g><rect x="10" y="19" width="32" height="20" fill="#ffd2c9"/><rect x="10" y="42" width="32" height="21" fill="#ffd2c9"/></svg></div>여러 장<small>4 · 6 · 8장 넘겨 보기</small></div>
+<div class="c"><div class="th"><svg width="86" height="56" viewBox="0 0 86 56"><g fill="#fff" stroke="#202538"><rect x="1" y="6" width="24" height="44" rx="3"/><rect x="31" y="6" width="24" height="44" rx="3"/><rect x="61" y="6" width="24" height="44" rx="3"/></g><text x="13" y="32" font-size="10" text-anchor="middle">1화</text><text x="43" y="32" font-size="10" text-anchor="middle">2화</text><text x="73" y="32" font-size="10" text-anchor="middle">3화</text></svg></div>여러 화로<small>긴 썰을 나눠서</small></div>
+<div class="c"><div class="th" style="font-size:26px;font-weight:800;color:#ff735c">AI</div>AI 추천<small>썰 길이 보고 정하기</small></div>
+</div>
+<div class="bot"><div class="btn">지난번처럼: 한 장툰 →</div></div>
+</div><div class="cap">① 형식</div></div></div>
+
+<div><div class="ph"><div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;display:flex;flex-direction:column">
+<div class="top"><span>‹ 이전</span><div class="dots"><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></div><span>맡기기</span></div>
+<h2>영상도 만들까요?</h2><p class="s">릴스용 9:16 영상으로 함께 만들어요</p>
+<div class="row">이미지만<small>JPG · 넘겨 보기 게시</small></div>
+<div class="row sel">영상도 만들기<small>이미지 + MP4</small></div>
+<div class="lbl">컷당 시간</div>
+<div class="chips"><div class="chip">빠르게 1.5초</div><div class="chip sel">보통 3초</div><div class="chip">느리게 5초</div></div>
+<div class="lbl">또는 전체 길이</div>
+<div class="chips"><div class="chip">15초</div><div class="chip">30초</div><div class="chip">60초</div></div>
+<div class="grid" style="margin-top:6px"><div class="c" style="grid-column:span 2"><div class="th" style="height:110px"><svg width="200" height="70" viewBox="0 0 200 70"><rect x="80" y="2" width="40" height="66" rx="4" fill="#202538"/><rect x="84" y="10" width="32" height="40" fill="#ffd2c9"/><polygon points="96,24 96,38 108,31" fill="#202538"/><rect x="10" y="60" width="60" height="4" rx="2" fill="#ff735c"/><rect x="130" y="60" width="60" height="4" rx="2" fill="#e9e7e2"/></svg></div>예시 미리보기 · 컷 8개 × 3초 = 24초</div></div>
+<div class="bot"><div class="btn">다음</div></div>
+</div><div class="cap">② 영상</div></div></div>
+
+<div><div class="ph"><div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;display:flex;flex-direction:column">
+<div class="top"><span>‹ 이전</span><div class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></div><span>맡기기</span></div>
+<h2>누가 나오나요?</h2><p class="s">고른 그림체로 그린 예시예요</p>
+<div class="grid">
+<div class="c"><div class="th"><svg width="60" height="70" viewBox="0 0 60 70"><circle cx="30" cy="22" r="14" fill="#ffe6cf" stroke="#202538"/><path d="M16 20q14-16 28 0" fill="#202538"/><rect x="16" y="38" width="28" height="30" rx="10" fill="#9fb7ff" stroke="#202538"/></svg></div>사람</div>
+<div class="c sel"><div class="th"><svg width="70" height="70" viewBox="0 0 70 70"><path d="M17 20l4-14 10 10M53 20l-4-14-10 10" fill="#fff" stroke="#202538"/><ellipse cx="35" cy="30" rx="20" ry="17" fill="#fff" stroke="#202538"/><circle cx="28" cy="29" r="2"/><circle cx="42" cy="29" r="2"/><ellipse cx="35" cy="58" rx="16" ry="11" fill="#fff" stroke="#202538"/></svg></div>동물<small>고양이·강아지</small></div>
+<div class="c"><div class="th"><svg width="60" height="70" viewBox="0 0 60 70"><ellipse cx="30" cy="38" rx="20" ry="26" fill="#d9a066" stroke="#202538"/><circle cx="23" cy="34" r="2"/><circle cx="37" cy="34" r="2"/><path d="M24 44q6 5 12 0" fill="none" stroke="#202538"/><circle cx="18" cy="52" r="1.5" fill="#8a5a2b"/></svg></div>사물·음식<small>감자·콩 의인화</small></div>
+<div class="c"><div class="th"><svg width="50" height="70" viewBox="0 0 50 70" fill="none" stroke="#202538" stroke-width="2"><circle cx="25" cy="13" r="9"/><path d="M25 22v24M25 30l-12 8M25 30l12 8M25 46l-10 18M25 46l10 18"/></svg></div>단순한 선<small>졸라맨 스타일</small></div>
+<div class="c" style="grid-column:span 2;display:flex;align-items:center;gap:8px"><span style="display:flex"><i style="width:28px;height:28px;border-radius:50%;background:#ffd2c9;border:2px solid #fff"></i><i style="width:28px;height:28px;border-radius:50%;background:#c9e4ff;border:2px solid #fff;margin-left:-8px"></i></span>등록한 캐릭터 쓰기<small style="display:inline;margin-left:auto">회사 썰 · 2명</small></div>
+</div>
+<div class="bot"><div class="btn g">‹</div><div class="btn" style="flex:4">다음</div></div>
+</div><div class="cap">④ 등장인물 모양</div></div></div>
+
+<div><div class="ph"><div style="position:absolute;inset:0;overflow:hidden;border-radius:24px;display:flex;flex-direction:column">
+<div class="top"><span>✕ 닫아도 계속돼요</span><span></span></div>
+<h2>만드는 중 · 4/6</h2><p class="s">회사 썰 · 3화 · 한 장툰 · 영상 24초</p>
+<div class="bar"><b></b></div>
+<div class="steps"><div class="d">✓ 각색 · 반전·웃음</div><div class="d">✓ 콘티 · 1장 8컷</div><div class="d">✓ 캐릭터 준비 · 고양이 2마리</div><div class="n">● 그림 그리는 중 · 5/8컷</div><div class="d">○ 말풍선 · 점검</div><div class="d">○ 영상</div></div>
+<div class="pg"><div class="f"></div><div class="f"></div><div class="f"></div><div class="f"></div><div class="f"></div><div></div><div></div><div></div></div>
+<p class="s" style="margin-top:10px">약 2분 남음 · 예상 비용 ₩1,200 · 끝나면 알림을 보내요</p>
+<div class="bot"><div class="btn g">모두 취소</div><div class="btn g">제작실에서 열기</div></div>
+</div><div class="cap">진행</div></div></div>
+</body></html>
