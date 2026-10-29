@@ -99,6 +99,14 @@ describe('server-only fields', () => {
     await assertFails(setDoc(doc(db('editor'), ref), { ...v, extra: 1 }))
     await assertFails(setDoc(doc(db('viewer'), ref), v))
   })
+  it('quick answers (QCK)', async () => {
+    const ref = `${W}/episodes/e1/meta/quick`
+    const q = { answers: { format: 'one', shape: 'animal' }, done: false }
+    await assertSucceeds(setDoc(doc(db('editor'), ref), q))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...q, done: 'yes' }))
+    await assertFails(setDoc(doc(db('editor'), ref), { ...q, extra: 1 }))
+    await assertFails(setDoc(doc(db('viewer'), ref), q))
+  })
 })
 
 describe('2단계 경로', () => {

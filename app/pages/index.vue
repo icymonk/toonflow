@@ -77,7 +77,8 @@ async function quickStart() {
     </div>
 
     <div class="flex gap-2">
-      <Button as-child><NuxtLink to="/stories">{{ t.start }}</NuxtLink></Button>
+      <Button v-if="edit" as-child><NuxtLink to="/quick">{{ ko.quick.title }}</NuxtLink></Button>
+      <Button :variant="edit ? 'outline' : 'default'" as-child><NuxtLink to="/stories">{{ t.start }}</NuxtLink></Button>
       <Button variant="outline" as-child><NuxtLink to="/inbox">{{ t.addStory }}</NuxtLink></Button>
     </div>
 
