@@ -28,6 +28,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 | [features/account.md](./features/account.md) | `ACC` 가입·로그인, 워크스페이스, 멤버 | 확정 |
 | [features/inbox.md](./features/inbox.md) | `INB` 제보함 — 웹 제보, 직접 등록, 동의, 선별 | 확정 |
 | [features/episodes.md](./features/episodes.md) | `EPI` Stories — 작품·에피소드 목록, 상태, 만들기 | 확정 |
+| [features/quick.md](./features/quick.md) | `QCK` Quick 빠른 제작 — 예시를 보고 누르는 질문 뒤 끝까지 자동 제작 | 초안 |
 | [features/studio.md](./features/studio.md) | `STU` 제작실 공통 — 레이아웃, 단계 이동, 자동 저장, 버전, 단축키 | 확정 |
 | [features/story.md](./features/story.md) | `STO` Story — 썰 분석, AI 각색, 각색안 버전 | 확정 |
 | [features/storyboard.md](./features/storyboard.md) | `SBD` Storyboard — 컷 분할, 장면·연출, 대사 확정 | 확정 |
@@ -71,6 +72,7 @@ AI 인스타툰 제작 SaaS **TOONFLOW**의 기획 문서 모음.
 | `STO` | story | `AST` | assets |
 | `SBD` | storyboard | `AIU` | ai-usage |
 | `ILL` | illustrate | `CMN` | common |
+| `QCK` | quick | | |
 
 - 번호는 문서 안에서 묶음별로 띄워 매긴다(01~, 10~, 20~ …). 새 기능은 묶음 끝 번호를 이어 쓰고, 지운 번호는 재사용하지 않는다.
 - 사용자 관점으로 쓴다. 저장 방식, 기술 이름, 필드명은 쓰지 않는다.
