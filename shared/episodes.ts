@@ -30,6 +30,9 @@ export const createEpisodeInput = z.object({
   tone: z.enum(TONES),
   pageCount,
   narrator: z.enum(['first', 'third']),
+  /** QCK-18: 바로 넣은 썰의 제보 제목·출처 메모 (AI가 만든 썰) */
+  storyTitle: z.string().trim().max(80).optional(),
+  storyNote: z.string().trim().max(200).optional(),
 }).refine(d => d.submissionIds.length > 0 || d.storyText.length > 0, { message: 'material' })
 export type CreateEpisodeInput = z.infer<typeof createEpisodeInput>
 

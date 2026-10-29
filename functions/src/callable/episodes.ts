@@ -33,7 +33,7 @@ export const createEpisode = authedCallable(createEpisodeInput, async ({ uid, da
       const ref = ws.collection('submissions').doc()
       submissionIds.push(ref.id)
       tx.set(ref, {
-        title: titleFrom('', data.storyText), body: data.storyText, source: 'self', sourceNote: '', tags: [], starred: false, note: '',
+        title: titleFrom(data.storyTitle ?? '', data.storyText), body: data.storyText, source: 'self', sourceNote: data.storyNote ?? '', tags: [], starred: false, note: '',
         status: 'used', episodeIds: [epRef.id], createdBy: uid, createdAt: now,
       })
     }

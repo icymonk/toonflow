@@ -78,6 +78,20 @@ export const episodesSchema = z.object({
   parts: z.array(z.object({ title: z.string().trim().max(80).catch(''), text: z.string().trim().min(1).max(20000), hook: z.string().trim().max(300).catch('') })).min(2).max(6),
 })
 
+/** QCK-18 썰 만들기: 주제 추천, 썰 3개, 고쳐 쓰기 */
+export const ideasParams = z.object({
+  mode: z.enum(['topics', 'ideas', 'revise']),
+  topic: z.string().max(40).catch(''),
+  hint: z.string().max(200).catch(''),
+  context: z.string().max(4000).catch(''),
+  base: z.object({ title: z.string().max(80), body: z.string().max(5000) }).optional(),
+  request: z.string().max(500).catch(''),
+})
+export type IdeasParams = z.infer<typeof ideasParams>
+export const topicsSchema = z.object({ topics: z.array(z.object({ tag: z.string().trim().min(1).max(20), hints: z.array(z.string().trim().min(1).max(60)).max(3).catch([]) })).min(1).max(6) })
+export const ideasSchema = z.object({ ideas: z.array(z.object({ title: z.string().trim().min(1).max(80), summary: z.array(z.string().trim()).max(3).catch([]), body: z.string().trim().min(1).max(5000) })).min(1).max(3) })
+export type StoryIdea = z.infer<typeof ideasSchema>['ideas'][number]
+
 /** STO-11: 여러 안을 받으면 안마다 방향을 다르게 */
 export const DRAFT_DIRECTIONS = ['faithful', 'twist', 'emotion'] as const
 export type DraftDirection = (typeof DRAFT_DIRECTIONS)[number]
@@ -103,6 +117,8 @@ export const storyParams = z.object({
   /** STO-13: 부분 다시 쓰기 */
   rewrite: z.object({ mode: z.enum(REWRITE_MODES), text: z.string().min(1).max(3000), tone: z.string().max(40).catch('') }).optional(),
   suggest: z.object({ field: z.enum(SUGGEST_FIELDS), text: z.string().max(3000).catch(''), scene: z.string().max(3000).optional() }).optional(),
+  /** QCK-16 대사 길이 */
+  lineLength: z.enum(['short', 'normal', 'long']).optional(),
 })
 export type StoryParams = z.infer<typeof storyParams>
 

@@ -344,6 +344,9 @@ const date = (s: Submission) => (s.createdAt ? new Date(s.createdAt.toMillis()).
                     {{ current.aiSummary ? t.summary.again : t.summary.run }} · {{ t.summary.cost(summaryCost) }}
                   </Button>
               </template>
+              <Button v-if="edit && current.status !== 'withdrawn' && current.status !== 'rejected'" as-child size="sm" variant="outline">
+                <NuxtLink :to="{ path: '/quick', query: { submission: current.id } }">{{ ko.quick.title }}</NuxtLink>
+              </Button>
               <Button v-if="edit && ['accepted', 'used'].includes(current.status)" as-child size="sm">
                 <NuxtLink :to="{ path: '/stories', query: { new: '1', submissions: current.id } }">{{ t.toEpisode }}</NuxtLink>
               </Button>
