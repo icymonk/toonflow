@@ -52,6 +52,11 @@ const storyCtx = computed(() => {
 })
 const story = useStory(episode, computed(() => cuts.value.length > 0), storyCtx)
 const lib = useLibrary()
+// CHR-14: 등장인물표의 인물을 이번 화 캐릭터로
+const saveCastCharacter = (name: string, look: string) => run(async () => {
+  await lib.createCharacter({ name, appearanceText: look, episodeId: episodeId.value })
+  toast.success(t.look.castSavedToast(name))
+})
 // EPI-05 에피소드를 열면 그 작품이 지금 작품이 돼요
 const currentSeries = useSeriesFilter(lib.series)
 watch(() => episode.value?.seriesId, id => id && (currentSeries.value = id), { immediate: true })
@@ -627,7 +632,11 @@ const previewBoxes = computed(() => { const z = pageSize(episode.value?.settings
               :show-style="step === 'illustrate'" :hint="step === 'illustrate' ? t.look.illHint : t.look.boardHint"
               @settings="patch => run(() => story.updateSettings(patch))" @series-style="id => run(() => lib.setSeriesStyle(episode!.seriesId, id))" @series-main="(id, on) => run(() => lib.setMain(episode!.seriesId, id, on))"
             />
-            <StudioCastPanel v-if="lookOpen && episode.cast?.length" :cast="episode.cast" :edit="edit" @save="c => run(() => s.updateEpisode({ cast: c }))" />
+            <StudioCastPanel
+              v-if="lookOpen && episode.cast?.length" :cast="episode.cast" :edit="edit" :saved="lib.characters.value.flatMap(c => [c.name, ...c.aliases])"
+              @save="c => run(() => s.updateEpisode({ cast: c }))"
+              @save-character="saveCastCharacter"
+            />
           </div>
           <div v-if="edit && step === 'storyboard'" class="flex flex-col gap-1.5 px-1 pt-1">
             <p v-if="running('storyboard.split')" class="text-muted-foreground flex items-center gap-1.5 text-xs">
