@@ -101,6 +101,8 @@ export interface Episode {
   analysis?: import('./story').Analysis & { jobId: string }
   staleFrom?: 'story' | null
   pageOrder?: string[]
+  /** SBD-17 이번 화 등장인물표 (콘티 AI가 만들고 고칠 수 있음) */
+  cast?: { name: string, look: string }[] | null
   review?: Record<string, import('./review').ReviewState>
   caption?: { text: string, hashtags: string[] } | null
   aiCheck?: import('./aicheck').AiCheck | null

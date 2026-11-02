@@ -99,6 +99,11 @@ describe('server-only fields', () => {
     await assertFails(setDoc(doc(db('editor'), ref), { ...v, extra: 1 }))
     await assertFails(setDoc(doc(db('viewer'), ref), v))
   })
+  it('episode cast (SBD-17)', async () => {
+    const ref = doc(db('editor'), `${W}/episodes/e1`)
+    await assertSucceeds(updateDoc(ref, { cast: [{ name: '민지', look: '단발' }] }))
+    await assertFails(updateDoc(ref, { cast: 'x' }))
+  })
   it('quick answers (QCK)', async () => {
     const ref = `${W}/episodes/e1/meta/quick`
     const q = { answers: { format: 'one', shape: 'animal' }, done: false }

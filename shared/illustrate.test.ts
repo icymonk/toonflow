@@ -1,6 +1,6 @@
 import type { Cut, Panel } from './studio'
 import { describe, expect, it } from 'vitest'
-import { bulkTargets, candidatePath, panelPrompt, zoomCrop, cutSize, FULL_BLEED, SCENE_REF, sameSceneCuts, sceneRefCut } from './illustrate'
+import { anchorRefCut, bulkTargets, candidatePath, panelPrompt, zoomCrop, cutSize, FULL_BLEED, SCENE_REF, sameSceneCuts, sceneRefCut } from './illustrate'
 import { emptyAppearance } from './library'
 import { emptyPanel } from './studio'
 
@@ -52,5 +52,21 @@ describe('cutSize', () => {
   })
   it('asks for a borderless full-bleed image', () => {
     expect(FULL_BLEED).toMatch(/no white margins/)
+  })
+})
+
+describe('ILL-08 · SBD-17', () => {
+  const cut = (id: string, over: Partial<Panel>) => ({ panel: { ...panel(over), id } }) as Cut
+  it('anchorRefCut picks the first drawn cut with the same character, any place', () => {
+    const cuts = [cut('a', { characterNames: ['민지'], place: '집', selectedCandidateId: 'x' }), cut('b', { characterNames: ['부장'], selectedCandidateId: 'y' }), cut('c', { characterNames: ['민지', '부장'], place: '회사' })]
+    expect(anchorRefCut(cuts, cuts[2]!)?.panel.id).toBe('a')
+    expect(anchorRefCut(cuts, cuts[2]!, cuts[0])?.panel.id).toBe('b')
+    expect(anchorRefCut(cuts, cut('d', {}))).toBeNull()
+  })
+  it('panelPrompt describes unlinked characters from the cast', () => {
+    const p = panelPrompt(panel({ scene: 's', characterNames: ['민지', '행인'] }), [], null, { cast: [{ name: '민 지', look: 'short black bob, yellow hoodie' }], anchorRef: true })
+    expect(p).toContain('Character "민지": short black bob, yellow hoodie')
+    expect(p).toContain('Other characters: 행인')
+    expect(p).toContain('The first reference image shows the same characters')
   })
 })
