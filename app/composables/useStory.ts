@@ -35,6 +35,17 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
   const material = computed(() => episode.value?.materialPart?.text || sources.value.map(s => s.maskedBody || s.body).join('\n\n---\n\n'))
   const active = computed(() => versions.value.find(v => v.id === episode.value?.activeStoryVersionId) ?? null)
 
+  /** STO-04·05·15: 살릴 것, 내 뼈대, 분석의 웃음 포인트 */
+  function draftInputs(e: Episode): Partial<StoryParams> {
+    const s = e.settings
+    const lines = (s.keepLines ?? []).filter(l => l.trim()).slice(0, 8)
+    const outline = (s.outline ?? []).map(l => l.trim()).filter(Boolean).slice(0, 20)
+    return {
+      ...(s.keepPunchline?.trim() || lines.length ? { keep: { punchline: s.keepPunchline?.trim() ?? '', lines } } : {}),
+      ...(outline.length ? { outline } : {}),
+      ...(e.analysis?.points.length ? { points: e.analysis.points.slice(0, 8) } : {}),
+    }
+  }
   function start(type: JobType, extra: Partial<StoryParams> = {}, key: string = crypto.randomUUID()) {
     const e = episode.value!
     const params: StoryParams = {
@@ -45,6 +56,7 @@ export function useStory(episode: Ref<Episode | null>, hasCuts: Ref<boolean>, co
       extraRequest: e.settings.extraRequest ?? '',
       ...(context.value ? { context: context.value } : {}),
       ...(e.materialPart ? { part: { index: e.materialPart.index, total: e.materialPart.total } } : {}),
+      ...(type === 'story.draft' ? draftInputs(e) : {}),
       ...extra,
     }
     return callFn($functions, 'startAiJob', { workspaceId: ws(), type, target: { episodeId: e.id }, params, idempotencyKey: key })

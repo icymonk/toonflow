@@ -30,6 +30,21 @@ function addMemo(phrase: string) {
   saveMemo()
 }
 const lk = ko.studio.look
+// STO-04 꼭 살릴 것 · STO-05 내 뼈대
+const keepLines = computed(() => props.episode.settings.keepLines ?? [])
+const toggleLine = (l: string) => emit('settings', { keepLines: keepLines.value.includes(l) ? keepLines.value.filter(x => x !== l) : [...keepLines.value, l].slice(0, 8) })
+const newLine = ref('')
+function addLineKeep() {
+  const l = newLine.value.trim().slice(0, 300)
+  if (l && !keepLines.value.includes(l)) emit('settings', { keepLines: [...keepLines.value, l].slice(0, 8) })
+  newLine.value = ''
+}
+const lineOptions = computed(() => [...new Set([...(a.value?.quotes ?? []), ...keepLines.value])])
+const outline = ref((props.episode.settings.outline ?? []).join('\n'))
+const outlineLines = computed(() => outline.value.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 20))
+const saveOutline = useDebounceFn(() => emit('settings', { outline: outlineLines.value.map(l => l.slice(0, 300)) }), 800)
+const punch = ref(props.episode.settings.keepPunchline ?? '')
+const savePunch = useDebounceFn(() => emit('settings', { keepPunchline: punch.value.slice(0, 200) }), 800)
 </script>
 
 <template>
@@ -53,6 +68,24 @@ const lk = ko.studio.look
     </div>
     <Textarea v-model="extra" :disabled="!edit" rows="2" :placeholder="t.extraRequest" :aria-label="t.extraRequest" maxlength="500" @input="saveExtra" />
     <AppSuggest v-if="edit" :label="t.extraRequest" :items="t.extraChips" @pick="addExtra" />
+  </section>
+
+  <section class="flex flex-col gap-2 border-t pt-3">
+    <h3 class="text-sm font-semibold">{{ t.keep }}</h3>
+    <p class="text-muted-foreground text-xs">{{ t.keepHint }}</p>
+    <Label for="s-punch" class="text-xs">{{ t.keepPunchline }}</Label>
+    <Input id="s-punch" v-model="punch" :disabled="!edit" maxlength="200" :placeholder="t.keepPunchlinePh" @input="savePunch" />
+    <span class="text-xs">{{ t.quotes }}</span>
+    <div v-if="lineOptions.length" class="flex flex-wrap gap-1.5">
+      <Button v-for="l in lineOptions" :key="l" size="sm" class="h-auto rounded-full py-1 text-left text-xs whitespace-normal" :variant="keepLines.includes(l) ? 'default' : 'outline'" :aria-pressed="keepLines.includes(l)" :disabled="!edit" @click="toggleLine(l)">{{ l }}</Button>
+    </div>
+    <div v-if="edit" class="flex gap-1.5">
+      <Input v-model="newLine" maxlength="300" :placeholder="t.keepLinePh" :aria-label="t.keepLinePh" @keydown.enter.prevent="addLineKeep" />
+      <Button size="sm" variant="outline" class="h-9" :disabled="!newLine.trim()" @click="addLineKeep">{{ t.keepAdd }}</Button>
+    </div>
+    <Label for="s-outline" class="text-xs">{{ t.outline }}</Label>
+    <Textarea id="s-outline" v-model="outline" rows="4" :disabled="!edit" :placeholder="t.outlinePh" @input="saveOutline" />
+    <p class="text-muted-foreground text-xs">{{ t.outlineHint(outlineLines.length) }}</p>
   </section>
 
   <section class="flex flex-col gap-2 border-t pt-3">

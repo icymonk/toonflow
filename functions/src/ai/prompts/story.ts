@@ -16,7 +16,8 @@ const analyze = (p: StoryParams): TextPrompt => ({
   system: '너는 인스타툰 편집자야. 제보 썰을 읽고 각색 전에 분석해. '
     + 'summary는 3줄 요약, characters는 등장인물(name: 썰에 나온 호칭, role: 관계), points는 웃음·반전·공감 포인트, '
     + 'sensitive는 실명·특정 가능한 정보(회사·학교·지역+나이 등)·혐오 표현(text: 해당 부분, reason: 이유). '
-    + '반드시 JSON만: {"summary": [str], "characters": [{"name": str, "role": str}], "points": [str], "sensitive": [{"text": str, "reason": str}]}',
+    + 'quotes는 원문에서 웃기거나 이야기의 핵심인 대사·문장을 고치지 말고 원문 글자 그대로 최대 8개. '
+    + '반드시 JSON만: {"summary": [str], "characters": [{"name": str, "role": str}], "points": [str], "sensitive": [{"text": str, "reason": str}], "quotes": [str]}',
   prompt: p.material,
 })
 
@@ -26,18 +27,38 @@ const DIRECTION_RULE = {
   emotion: '방향: 감정선. 주인공의 속마음과 공감 포인트를 살려 독자가 "내 얘기 같다"고 느끼게 한다.',
 } as const
 
+// STO-15 인스타툰 각색 규칙: 장면마다 비트 하나, 밑밥 → 쌓기 → 터뜨리기, 원문의 살아 있는 말 우선
+const CRAFT = '좋은 인스타툰 규칙: (1) 첫 장면에서 바로 상황과 인물을 보여 준다(배경 설명 길게 금지). (2) 장면마다 웃음·감정 비트는 하나. (3) 밑밥 → 쌓기 → 터뜨리기 순서로, 펀치라인 직전 장면은 기대를 최대로 끌어올린다. '
+  + '(4) 원문에 있는 말맛 있는 표현·대사는 고치지 말고 그대로 쓴다. 새로 쓰는 대사는 실제 사람이 하는 짧은 구어체로, 설명하는 대사·교훈·"ㅋㅋ" 남발 금지. (5) 내레이션은 장면 전환에만 짧게. '
+  + '(6) 마지막 장면은 반응(표정·한마디)으로 끝내고 설명을 덧붙이지 않는다. '
+
+function sceneRule(p: StoryParams): string {
+  if (p.outline?.length) return `작가가 장마다 한 줄씩 정한 [뼈대]가 있어. scenes는 정확히 ${p.outline.length}개로, [뼈대]의 순서와 내용을 그대로 따르고 바꾸지 마. 너는 장면마다 beats를 구체화하고 대사를 채우기만 해. (${p.outline.length}장짜리) `
+  return `제보 썰을 ${p.pageCount}장짜리 인스타툰으로 각색해. 장면 하나가 한 장이라 scenes는 ${p.pageCount}개가 기본이고, 이야기에 꼭 필요하면 ${Math.max(1, p.pageCount - 1)}~${p.pageCount + 1}개도 된다. 장 수를 맞추려고 웃음 포인트를 빼거나 없는 이야기를 늘리지 마. `
+}
+function keepRule(p: StoryParams): string {
+  const k = p.keep
+  return [
+    k?.punchline?.trim() && `펀치라인은 작가가 정했어: "${k.punchline.trim()}". 마지막 장면을 이 펀치라인으로 끝내고 punchline에도 이 문장을 그대로 써. `,
+    k?.lines?.length && `다음 원문 대사·문장은 작가가 꼭 살리라고 골랐어. 글자 그대로 dialogues에 넣어: ${k.lines.map(l => `"${l}"`).join(', ')}. `,
+    p.points?.length && `썰 분석의 웃음·반전 포인트: ${p.points.join(' / ')}. 이 포인트가 모두 장면으로 살아 있게 해. `,
+  ].filter(Boolean).join('')
+}
+
 const draft = (p: StoryParams): TextPrompt => ({
   format: 'draft',
-  system: `너는 인스타툰 각색 작가야. 제보 썰을 ${p.pageCount}장짜리 인스타툰으로 각색해. 장면 하나가 한 장이라 scenes는 정확히 ${p.pageCount}개. `
-    + `톤: ${TONE_KO[p.tone]}. 화자: ${p.narrator === 'first' ? '작가 본인 1인칭' : '제보자 이야기를 전하는 3인칭'}. 구어체, 한국 인스타툰 말투. `
-    + '실명·특정 가능한 정보는 바꿔서 쓴다. 마지막 장면은 펀치라인으로 마무리. '
+  system: `너는 팔로워 많은 한국 인스타툰 작가야. ${sceneRule(p)}`
+    + `톤: ${TONE_KO[p.tone]}. 화자: ${p.narrator === 'first' ? '작가 본인 1인칭' : '제보자 이야기를 전하는 3인칭'}. 한국 인스타툰 말투. `
+    + CRAFT
+    + '실명·특정 가능한 정보는 바꿔서 쓴다. '
+    + keepRule(p)
     + (p.direction ? `${DIRECTION_RULE[p.direction]} ` : '')
     + (p.part ? (p.part.index < p.part.total ? `이 이야기는 ${p.part.total}화 중 ${p.part.index}화야. 마지막 장면은 펀치라인 대신 다음 화가 궁금해지는 장면에서 끊어(punchline에는 다음 화 예고 한 줄). ` : `이 이야기는 ${p.part.total}화 중 마지막 화야. 앞 화들에서 이어지는 결말과 펀치라인으로 마무리해. `) : '')
     + (p.lineLength ? `대사는 한 개에 ${LINE_RULE[p.lineLength].chars}자 이내로 짧게. ` : '')
-    + `heading은 장면 제목, beats는 무슨 일이 일어나는지 1~2문장, dialogues는 그 장면의 대사. ${LINE_TYPES} `
-    + 'titles는 제목 후보 3개(15자 이내), logline은 한 줄 요약. '
+    + `heading은 장면 제목, beats는 무슨 일이 일어나는지 1~2문장(어떤 웃음·감정 비트인지 드러나게), dialogues는 그 장면의 대사. ${LINE_TYPES} `
+    + 'titles는 제목 후보 3개(15자 이내, 결말 스포일러 금지), logline은 한 줄 요약. '
     + '반드시 JSON만: {"titles": [str], "logline": str, "scenes": [{"heading": str, "beats": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}], "punchline": str}',
-  prompt: [p.material, p.extraRequest && `추가 요청: ${p.extraRequest}`].filter(Boolean).join('\n\n'),
+  prompt: [p.material, p.outline?.length && `[뼈대]\n${p.outline.map((l, i) => `${i + 1}장: ${l}`).join('\n')}`, p.extraRequest && `추가 요청: ${p.extraRequest}`].filter(Boolean).join('\n\n'),
 })
 
 // STO-16
