@@ -8,8 +8,14 @@ export const APPEARANCE_KEYS = ['age', 'gender', 'build', 'hair', 'eyes', 'marks
 export type AppearanceKey = (typeof APPEARANCE_KEYS)[number]
 export const APPEARANCE_LABEL: Record<AppearanceKey, string> = { age: '나이대', gender: '성별 표현', build: '키·체형', hair: '머리', eyes: '눈', marks: '특징', outfit: '기본 의상' }
 
+/** CHR-13 캐릭터 종류 */
+export const CHARACTER_KINDS = ['person', 'animal', 'object', 'simple'] as const
+export type CharacterKind = (typeof CHARACTER_KINDS)[number]
+const KIND_EN: Record<CharacterKind, string> = { person: '', animal: 'An animal character (not human). ', object: 'An anthropomorphized object/food character (not human) with a simple face. ', simple: 'A very simple doodle line character (stick-figure like, minimal details). ' }
+
 export const characterInput = z.object({
   name: str(30).min(1),
+  kind: z.enum(CHARACTER_KINDS).optional(),
   aliases: z.array(str(30).min(1)).max(5),
   intro: str(100),
   appearance: z.object({ age: str(60), gender: str(60), build: str(60), hair: str(60), eyes: str(60), marks: str(60), outfit: str(60) }),
@@ -35,6 +41,9 @@ export const emptyAppearance = (): CharacterInput['appearance'] => ({ age: '', g
 /** CHR-02: 그림 생성에 넘길 외형 설명 */
 export const describeAppearance = (a: CharacterInput['appearance']) =>
   APPEARANCE_KEYS.filter(k => a[k]?.trim()).map(k => `${APPEARANCE_LABEL[k]} ${a[k]!.trim()}`).join(', ')
+/** 그림 프롬프트에 넘길 외형 (종류 포함) */
+export const characterLook = (c: Pick<CharacterInput, 'kind' | 'appearance' | 'appearanceText'>) =>
+  `${KIND_EN[c.kind ?? 'person']}${c.appearanceText || describeAppearance(c.appearance)}`
 
 /** SBD-12: 콘티의 인물 이름을 캐릭터(이름·역할 이름)에 연결 */
 export function matchCharacters(names: string[], chars: Character[]): string[] {
@@ -103,7 +112,7 @@ export const stylePrompts = (s: StyleInput) => SAMPLE_SCENES.map(scene => `${sty
 /** photos: 앞쪽 참조 이미지 중 이 캐릭터의 사진·그림 수. 나머지 참조는 그림체 */
 export const characterPrompt = (c: CharacterInput, s: StyleInput | null, photos = 0) =>
   `${photos ? `The first ${photos} reference image${photos > 1 ? 's are' : ' is'} of "${c.name}" (photo or drawing). Keep the same person: face shape, hairstyle, hair color, body type, and outfit must stay recognizable. Redraw them as an illustration in the art style below, not as a photo. Any other reference images show only the art style. ` : ''}`
-  + `${s ? `${stylePrompt(s)}. ` : ''}Character reference sheet of "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}. Front view, full body, neutral pose, white background. ${NO_TEXT}`
+  + `${s ? `${stylePrompt(s)}. ` : ''}Character reference sheet of "${c.name}": ${characterLook(c)}. Front view, full body, neutral pose, white background. ${NO_TEXT}`
 
 /** 이미지 작업 params (style.sample · panel.image) */
 export const imageParams = z.object({

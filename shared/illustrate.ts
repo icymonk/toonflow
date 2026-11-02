@@ -1,7 +1,7 @@
 import type { Character, Style } from './library'
 import type { Crop, Cut, Panel } from './studio'
 import { samePlace } from './studio'
-import { describeAppearance, NO_TEXT, stylePrompt, variantFor } from './library'
+import { characterLook, NO_TEXT, stylePrompt, variantFor } from './library'
 import { cutRects, pageSize, titleBand } from './render'
 
 // Illustrate (ILL-01~06·10~12·20·23·40·41)
@@ -57,9 +57,20 @@ export function sceneRefCut(cuts: Cut[], cut: Cut): Cut | null {
 
 export const SCENE_REF = 'The first reference image is another cut of the same scene (same place and time). Keep every character\'s outfit, hairstyle, colors and accessories exactly the same as in it. Do not copy its composition or pose.'
 
-export function panelPrompt(panel: Panel, chars: Character[], style: Style | null, opts: { extra?: string, leaveRoom?: boolean, sceneRef?: boolean } = {}) {
+/** ILL-08: 같은 인물이 나온 가장 앞의 그림 있는 컷 (장소가 달라도). 얼굴·머리를 맞추는 기준 그림 */
+export function anchorRefCut(cuts: Cut[], cut: Cut, exclude?: Cut | null): Cut | null {
+  const names = new Set(cut.panel.characterNames)
+  if (!names.size) return null
+  return cuts.find(c => c.panel.id !== cut.panel.id && c.panel.id !== exclude?.panel.id && c.panel.selectedCandidateId && c.panel.characterNames.some(n => names.has(n))) ?? null
+}
+export const anchorRef = (pos: 'first' | 'second') => `The ${pos} reference image shows the same characters earlier in this episode. Keep each character's face, hairstyle, hair color, body type and colors exactly the same as in it (the outfit may change only if the place or time changed). Do not copy its composition or pose.`
+
+export function panelPrompt(panel: Panel, chars: Character[], style: Style | null, opts: { extra?: string, leaveRoom?: boolean, sceneRef?: boolean, anchorRef?: boolean, cast?: { name: string, look: string }[] } = {}) {
   const linked = new Set(chars.flatMap(c => [c.name, ...c.aliases]))
-  const others = panel.characterNames.filter(n => !linked.has(n))
+  const unlinked = panel.characterNames.filter(n => !linked.has(n))
+  const lookOf = (n: string) => opts.cast?.find(c => c.name.replace(/\s/g, '') === n.replace(/\s/g, ''))?.look.trim()
+  const described = unlinked.filter(n => lookOf(n))
+  const others = unlinked.filter(n => !lookOf(n))
   return [
     style ? `${stylePrompt(style)}.` : 'Korean Instagram webtoon (instatoon) style.',
     `Scene: ${panel.scene}`,
@@ -69,9 +80,11 @@ export function panelPrompt(panel: Panel, chars: Character[], style: Style | nul
     panel.action && `Action: ${panel.action}`,
     panel.outfit && `Outfit: ${panel.outfit}`,
     panel.mood && `Mood/effects: ${panel.mood}`,
-    ...chars.map(c => `Character "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}`),
+    ...chars.map(c => `Character "${c.name}": ${characterLook(c)}`),
+    ...described.map(n => `Character "${n}": ${lookOf(n)}`),
     others.length ? `Other characters: ${others.join(', ')}` : '',
     opts.sceneRef ? SCENE_REF : '',
+    opts.anchorRef ? anchorRef(opts.sceneRef ? 'second' : 'first') : '',
     opts.leaveRoom ? 'Leave some empty space near the top for speech bubbles.' : '',
     FULL_BLEED,
     NO_TEXT,

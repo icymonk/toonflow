@@ -20,6 +20,8 @@ export const analysisSchema = z.object({
   characters: z.array(z.object({ name: z.string(), role: z.string().catch('') })).max(10).catch([]),
   points: z.array(z.string()).max(8).catch([]),
   sensitive: z.array(z.object({ text: z.string(), reason: z.string() })).max(10).catch([]),
+  /** STO-04: 원문 그대로의 웃기거나 핵심인 대사·문장 */
+  quotes: z.array(z.string()).max(8).catch([]),
 })
 export type Analysis = z.infer<typeof analysisSchema>
 
@@ -47,6 +49,8 @@ export const captionSchema = z.object({ caption: z.string().min(1).max(2000), ha
 
 // SBD-01 자동 콘티
 export const splitSchema = z.object({
+  /** SBD-17 이번 화 등장인물표 */
+  cast: z.array(z.object({ name: z.string().trim().min(1).max(40), look: z.string().trim().max(400) })).max(12).catch([]),
   pages: z.array(z.object({
     title: z.string().trim().max(40).catch(''),
     panels: z.array(z.object({
@@ -117,6 +121,10 @@ export const storyParams = z.object({
   /** STO-13: 부분 다시 쓰기 */
   rewrite: z.object({ mode: z.enum(REWRITE_MODES), text: z.string().min(1).max(3000), tone: z.string().max(40).catch('') }).optional(),
   suggest: z.object({ field: z.enum(SUGGEST_FIELDS), text: z.string().max(3000).catch(''), scene: z.string().max(3000).optional() }).optional(),
+  /** STO-04 꼭 살릴 펀치라인·원문 대사, STO-05 내 뼈대(줄마다 한 장), STO-15 분석의 웃음 포인트 */
+  keep: z.object({ punchline: z.string().max(200).catch(''), lines: z.array(z.string().max(300)).max(8).catch([]) }).optional(),
+  outline: z.array(z.string().max(300)).max(20).optional(),
+  points: z.array(z.string().max(300)).max(8).optional(),
   /** QCK-16 대사 길이 */
   lineLength: z.enum(['short', 'normal', 'long']).optional(),
 })

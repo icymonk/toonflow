@@ -2,7 +2,7 @@
 import type { Bubble, Typeset } from '#shared/render'
 import type { Cut } from '#shared/studio'
 import { getDownloadURL, ref as storageRef } from 'firebase/storage'
-import { adjustFilter, fontCss, layoutPage, layoutTitle, pageRects, pageSize, spikyPath } from '#shared/render'
+import { adjustFilter, fontCss, layoutPage, layoutTitle, pageRects, pageSize, spikyPath, thoughtDots } from '#shared/render'
 import { resolveCandidatePath } from '~/lib/candidates'
 
 // 장 렌더러 (R5): 화면·출력 공용 SVG. 편집 모드에서 말풍선을 끌어 옮기고 크기를 바꾼다 (REV-02)
@@ -91,8 +91,7 @@ defineExpose({ svg })
               :stroke-dasharray="bb.b.shape === 'whisper' ? '10 8' : bb.b.shape === 'thought' ? '2 0' : undefined"
             />
             <template v-if="bb.b.shape === 'thought' && bb.b.tail !== 'none'">
-              <circle :cx="bb.px.x + bb.px.w * 0.5" :cy="bb.b.tail.startsWith('t') ? bb.px.y - 14 : bb.px.y + bb.px.h + 14" r="10" fill="#fff" stroke="#1F2A44" stroke-width="3" />
-              <circle :cx="bb.px.x + bb.px.w * 0.5 + 16" :cy="bb.b.tail.startsWith('t') ? bb.px.y - 38 : bb.px.y + bb.px.h + 38" r="6" fill="#fff" stroke="#1F2A44" stroke-width="3" />
+              <circle v-for="(d, k) in thoughtDots(bb.px, bb.b.tail)" :key="k" :cx="d[0]" :cy="d[1]" :r="d[2]" fill="#fff" stroke="#1F2A44" stroke-width="3" />
             </template>
           </template>
           <text

@@ -4,7 +4,7 @@ import type { JobError, JobStatus } from '#shared/jobs'
 import type { Crop, Cut } from '#shared/studio'
 import type { Library } from '~/composables/useLibrary'
 import { addDoc, collection, doc, getDoc, onSnapshot, orderBy, query, serverTimestamp, updateDoc, where } from 'firebase/firestore'
-import { cutSize, panelPrompt, panelRefPaths, sceneRefCut } from '#shared/illustrate'
+import { anchorRefCut, cutSize, panelPrompt, panelRefPaths, sceneRefCut } from '#shared/illustrate'
 import { callFn } from '~/lib/functions'
 
 export interface PanelJob { id: string, status: JobStatus, error?: JobError, createdAt?: { toMillis: () => number } | null, target: { panelId?: string } }
@@ -62,12 +62,11 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
   })
   const charsOf = (cut: Cut) => lib.characters.value.filter(c => cut.panel.characterIds?.includes(c.id))
   const styleOf = (cut: Cut) => (cut.panel.styleId && lib.styles.value.find(x => x.id === cut.panel.styleId)) || style.value
-  const promptOf = (cut: Cut, opts: { extra?: string, leaveRoom?: boolean, sceneRef?: boolean }) => panelPrompt(cut.panel, charsOf(cut), styleOf(cut), opts)
+  const promptOf = (cut: Cut, opts: { extra?: string, leaveRoom?: boolean, sceneRef?: boolean, anchorRef?: boolean }) => panelPrompt(cut.panel, charsOf(cut), styleOf(cut), { ...opts, cast: s.episode.value?.cast ?? [] })
   const sizeOf = (cut: Cut) => cutSize(s.cuts.value, cut, s.episode.value?.settings.aspect)
 
   /** 같은 장소·시간 컷에서 고른 그림 (의상·외모 맞추기용) */
-  async function sceneRefPath(cut: Cut): Promise<string | null> {
-    const ref = sceneRefCut(s.cuts.value, cut)
+  async function sceneRefPath(cut: Cut, ref: Cut | null = sceneRefCut(s.cuts.value, cut)): Promise<string | null> {
     if (!ref) return null
     const d = await getDoc(doc($firestore, 'workspaces', ws(), 'episodes', s.episode.value!.id, 'panels', ref.panel.id, 'candidates', ref.panel.selectedCandidateId!))
     const path = d.get('imagePath')
@@ -79,12 +78,15 @@ export function useIllustrate(s: ReturnType<typeof useStudio>, lib: Library, pan
     await Promise.all(list.map(async (cut) => {
       const st = styleOf(cut)
       const scene = await sceneRefPath(cut).catch(() => null)
+      // ILL-08: 캐릭터 기준 그림이 없는 인물은 이 화에서 처음 그린 컷을 기준으로
+      const linked = new Set(charsOf(cut).flatMap(c => [c.name, ...c.aliases]))
+      const anchor = cut.panel.characterNames.some(n => !linked.has(n)) ? await sceneRefPath(cut, anchorRefCut(s.cuts.value, cut, sceneRefCut(s.cuts.value, cut))).catch(() => null) : null
       const input: CandidateInput = { scene: cut.panel.scene, characterIds: cut.panel.characterIds ?? [], styleId: st?.id ?? null, styleVersion: st?.version ?? null, extra: opts.extra ?? '' }
       return callFn($functions, 'startAiJob', {
         workspaceId: ws(),
         type: 'panel.image',
         target: { episodeId: s.episode.value!.id, panelId: cut.panel.id },
-        params: { prompt: promptOf(cut, { extra: opts.extra, leaveRoom: opts.leaveRoom, sceneRef: !!scene }), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(scene ? [scene] : []), ...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
+        params: { prompt: promptOf(cut, { extra: opts.extra, leaveRoom: opts.leaveRoom, sceneRef: !!scene, anchorRef: !!anchor }), n, ...(st?.negative ? { negative: st.negative } : {}), refPaths: [...(scene ? [scene] : []), ...(anchor ? [anchor] : []), ...(cut.panel.refImage ? [cut.panel.refImage] : []), ...panelRefPaths(charsOf(cut), st, cut.panel)].slice(0, 5), size: sizeOf(cut), input },
         idempotencyKey: opts.keyPrefix ? `${opts.keyPrefix}${cut.panel.id}`.slice(0, 64) : crypto.randomUUID(),
       })
     }))

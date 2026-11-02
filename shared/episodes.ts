@@ -94,13 +94,15 @@ export interface Episode {
   number: number
   step: Step
   status: EpisodeStatus
-  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null, coverDesignId?: string, outroDesignId?: string }
+  settings: { tone: Tone, pageCount: number, narrator: 'first' | 'third', aspect: string, extraRequest?: string, styleId?: string | null, characterIds?: string[], format?: 'jpg' | 'png', aiLabel?: boolean, creditPlace?: 'caption' | 'page', hiRes?: boolean, plannedAt?: string | null, coverDesignId?: string, outroDesignId?: string, keepPunchline?: string, keepLines?: string[], outline?: string[] }
   submissionIds: string[]
   activeStoryVersionId?: string | null
   storyVersionCount?: number
   analysis?: import('./story').Analysis & { jobId: string }
   staleFrom?: 'story' | null
   pageOrder?: string[]
+  /** SBD-17 이번 화 등장인물표 (콘티 AI가 만들고 고칠 수 있음) */
+  cast?: { name: string, look: string }[] | null
   review?: Record<string, import('./review').ReviewState>
   caption?: { text: string, hashtags: string[] } | null
   aiCheck?: import('./aicheck').AiCheck | null

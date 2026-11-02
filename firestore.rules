@@ -229,11 +229,11 @@ service cloud.firestore {
       match /characters/{id} {
         allow read: if canView(ws);
         allow create: if canEdit(ws)
-          && request.resource.data.keys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['name', 'kind', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'createdBy', 'createdAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
           && request.resource.data.deletedAt == null && request.resource.data.createdBy == request.auth.uid;
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'kind', 'aliases', 'intro', 'appearance', 'appearanceText', 'personality', 'speech', 'variants', 'episodeId', 'refImages', 'coverPath', 'archivedAt', 'deletedAt', 'updatedAt'])
           && strLen(request.resource.data.name, 1, 30) && request.resource.data.refImages.size() <= 5
           && (!('variants' in request.resource.data) || request.resource.data.variants.size() <= 12)
           && (request.resource.data.deletedAt == null || request.resource.data.deletedAt == request.time);
@@ -281,7 +281,8 @@ service cloud.firestore {
           allow delete: if signedIn() && request.auth.uid == uid;
         }
         allow update: if canEdit(ws) && resource.data.deletedAt == null
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'threadsPublished', 'updatedAt'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['title', 'number', 'step', 'status', 'archivedAt', 'settings', 'pageOrder', 'activeStoryVersionId', 'staleFrom', 'review', 'caption', 'published', 'threadsPublished', 'cast', 'updatedAt'])
+          && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['cast']) || (request.resource.data.cast is list && request.resource.data.cast.size() <= 12))
           && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(['threadsPublished']) || request.resource.data.threadsPublished == null)
           && strLen(request.resource.data.title, 1, 80)
           && request.resource.data.number is int && request.resource.data.number >= 1 && request.resource.data.number <= 9999
@@ -315,7 +316,7 @@ service cloud.firestore {
           allow write: if canEdit(ws) && ((docId == 'typeset'
             && request.resource.data.keys().hasOnly(['font', 'fontSize', 'lineHeight', 'strokeWidth', 'strokeColor', 'updatedAt'])
             && request.resource.data.font in ['pretendard', 'gowun-dodum', 'jua']
-            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 12 && request.resource.data.fontSize <= 96)
+            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 10 && request.resource.data.fontSize <= 96)
             || (docId == 'video' && validVideo(ws, request.resource.data))
             // QCK: 빠른 제작 답과 완료 표시
             || (docId == 'quick' && request.resource.data.keys().hasOnly(['answers', 'done', 'updatedAt'])
