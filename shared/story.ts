@@ -49,6 +49,8 @@ export const captionSchema = z.object({ caption: z.string().min(1).max(2000), ha
 
 // SBD-01 자동 콘티
 export const splitSchema = z.object({
+  /** SBD-17 이번 화 등장인물표 */
+  cast: z.array(z.object({ name: z.string().trim().min(1).max(40), look: z.string().trim().max(400) })).max(12).catch([]),
   pages: z.array(z.object({
     title: z.string().trim().max(40).catch(''),
     panels: z.array(z.object({

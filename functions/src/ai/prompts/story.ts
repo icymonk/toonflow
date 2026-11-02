@@ -92,7 +92,8 @@ const split = (p: StoryParams): TextPrompt => ({
     + `dialogues는 그 컷의 대사(${p.lineLength ? `컷당 최대 ${LINE_RULE[p.lineLength].perPanel}개, ` : ''}한 개에 ${lineChars(p)}자 이내). ${LINE_TYPES} `
     // STO-25: 원문 그대로 쓰기
     + (p.verbatim ? `이 글은 각색하지 않은 원문이야. 줄이거나 바꾸거나 빼지 말고 원문의 사건 순서와 대사·표현을 그대로 살려 컷으로 나눠. 대사가 ${lineChars(p)}자를 넘으면 두 개로 나누고, 장 수가 모자라면 한 장에 컷을 더 넣어. ` : '')
-    + '반드시 JSON만: {"pages": [{"panels": [{"scene": str, "place": str, "characters": [str], "shot": str, "expression": str, "action": str, "outfit": str, "mood": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}]}]}',
+    + 'cast는 이 화에 나오는 인물마다 외형 고정 설명 한 문장(머리 색·모양, 얼굴 특징, 나이대·체형, 기본 의상. 사람이 아니면 무엇인지와 색·크기). 모든 컷에서 이 외형을 똑같이 유지하고, characters 이름은 cast의 name과 글자까지 같게. 작품 참고에 외형·기본 의상이 있으면 그걸 따른다. '
+    + '반드시 JSON만: {"cast": [{"name": str, "look": str}], "pages": [{"panels": [{"scene": str, "place": str, "characters": [str], "shot": str, "expression": str, "action": str, "outfit": str, "mood": str, "dialogues": [{"speaker": str, "type": str, "text": str}]}]}]}',
   prompt: p.draft || p.material,
 })
 
