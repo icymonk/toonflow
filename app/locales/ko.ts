@@ -268,7 +268,7 @@ export const ko = {
     nextEpisode: '다음 화',
     episodeNav: '회차 이동',
     open: '제작실 열기',
-    look: { castTitle: '이번 화 등장인물표', castHint: '콘티 AI가 인물마다 정한 외형이에요. 모든 컷 그림에 같이 들어가서 머리·옷이 바뀌지 않게 해요. 고치면 다음에 그리는 컷부터 반영돼요.', title: '그림체·캐릭터', seriesStyle: '작품 그림체 (모든 화 기본)', episodeStyle: '이번 화 그림체', followSeries: '작품 그림체 따르기', none: '정하지 않음', noStyles: '아직 그림체가 없어요.', goStyles: '그림체 만들기', characters: '캐릭터', main: '작품 주요', thisEpisode: '이번 화', mainOf: (n: string) => `${n} 작품 주요 캐릭터`, episodeOf: (n: string) => `${n} 이번 화 등장`, noCharacters: '아직 캐릭터가 없어요.', goCharacters: '캐릭터 만들기', hint: '그림체는 컷 > 이번 화 > 작품 순으로 적용돼요. 체크한 캐릭터의 성격·말투는 각색에 쓰이고, 컷에 이름이 나오면 그 모습으로 그려요.', summary: (style: string, n: number) => `${style || '그림체 없음'} · 캐릭터 ${n}명`, castSummary: (n: number) => (n ? `등장 캐릭터 ${n}명` : '아직 등장 캐릭터가 없어요'), boardHint: '체크한 캐릭터의 기본 의상·성격·말투를 콘티 AI에 같이 넘겨요. 콘티 인물 이름이 캐릭터 이름(별명)과 같으면 자동으로 연결돼요. 그림체는 그림 단계에서 골라요.', illHint: '그림체는 컷 > 이번 화 > 작품 순으로 적용돼요. 컷에 이름이 나오는 캐릭터는 기준 그림대로 그려요. 컷마다 다른 그림체는 컷 속성에서 골라요.' },
+    look: { castTitle: '이번 화 등장인물표', castSave: '캐릭터로 저장', castSaved: '저장됨', castSavedToast: (n: string) => `${n}을(를) 이번 화 캐릭터로 저장했어요. 캐릭터에서 기준 그림을 만들 수 있어요.`, castHint: '콘티 AI가 인물마다 정한 외형이에요. 모든 컷 그림에 같이 들어가서 머리·옷이 바뀌지 않게 해요. 고치면 다음에 그리는 컷부터 반영돼요.', title: '그림체·캐릭터', seriesStyle: '작품 그림체 (모든 화 기본)', episodeStyle: '이번 화 그림체', followSeries: '작품 그림체 따르기', none: '정하지 않음', noStyles: '아직 그림체가 없어요.', goStyles: '그림체 만들기', characters: '캐릭터', main: '작품 주요', thisEpisode: '이번 화', mainOf: (n: string) => `${n} 작품 주요 캐릭터`, episodeOf: (n: string) => `${n} 이번 화 등장`, noCharacters: '아직 캐릭터가 없어요.', goCharacters: '캐릭터 만들기', hint: '그림체는 컷 > 이번 화 > 작품 순으로 적용돼요. 체크한 캐릭터의 성격·말투는 각색에 쓰이고, 컷에 이름이 나오면 그 모습으로 그려요.', summary: (style: string, n: number) => `${style || '그림체 없음'} · 캐릭터 ${n}명`, castSummary: (n: number) => (n ? `등장 캐릭터 ${n}명` : '아직 등장 캐릭터가 없어요'), boardHint: '체크한 캐릭터의 기본 의상·성격·말투를 콘티 AI에 같이 넘겨요. 콘티 인물 이름이 캐릭터 이름(별명)과 같으면 자동으로 연결돼요. 그림체는 그림 단계에서 골라요.', illHint: '그림체는 컷 > 이번 화 > 작품 순으로 적용돼요. 컷에 이름이 나오는 캐릭터는 기준 그림대로 그려요. 컷마다 다른 그림체는 컷 속성에서 골라요.' },
     picker: { pick: '이어서 작업할 에피소드를 고르세요', create: '에피소드 만들기', all: 'Stories에서 전체 보기', untitled: '제목 없음', number: (n: number) => `${n}화`, switch: '다른 에피소드' },
     keys: { title: '단축키', list: { '1~5': '단계 이동', 'J / →': '다음 컷', 'K / ←': '이전 컷', 'G': '그림 단계에서 선택 컷 생성', 'Ctrl+Z': '실행 취소 (Shift: 다시 실행)', 'Ctrl+K': '검색·명령 팔레트', '?': '단축키 목록' } as Record<string, string> },
     snap: {
@@ -786,6 +786,7 @@ export const ko = {
     speech: '말투 예시 대사 (한 줄에 하나, 3개까지)',
     appearance: '외형',
     appearanceText: '그림 생성에 넘길 외형 설명',
+    kind: '종류', kinds: { person: '사람', animal: '동물', object: '사물·음식', simple: '단순한 선' },
     autoText: '항목으로 다시 쓰기',
     mainIn: '주요 캐릭터로 쓰는 작품',
     usedIn: '이 그림체를 쓰는 작품',

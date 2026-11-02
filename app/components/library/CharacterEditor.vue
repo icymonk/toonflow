@@ -4,7 +4,7 @@ import type { Library } from '~/composables/useLibrary'
 import { Archive, Check, Loader2, Sparkles, Trash2, X } from '@lucide/vue'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
-import { APPEARANCE_KEYS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, emptyAppearance, SHEET, withHint } from '#shared/library'
+import { APPEARANCE_KEYS, CHARACTER_KINDS, APPEARANCE_LABEL, characterInput, characterPrompt, CONSISTENCY_SCENES, describeAppearance, emptyAppearance, SHEET, withHint } from '#shared/library'
 import { errorMessage } from '~/lib/errors'
 import { ko } from '~/locales/ko'
 
@@ -17,7 +17,7 @@ const fail = (e: unknown) => toast.error(errorMessage(e) ?? ko.errors.unknown)
 
 const c = props.character
 const form = reactive<CharacterInput>({
-  name: c.name, aliases: [...c.aliases], intro: c.intro, personality: c.personality ?? '', speech: [...(c.speech ?? [])],
+  name: c.name, kind: c.kind ?? 'person', aliases: [...c.aliases], intro: c.intro, personality: c.personality ?? '', speech: [...(c.speech ?? [])],
   appearance: { ...emptyAppearance(), ...c.appearance }, appearanceText: c.appearanceText, episodeId: c.episodeId,
 })
 const aliases = ref(props.character.aliases.join(', '))
@@ -155,6 +155,9 @@ const selectClass = 'border-input bg-card h-9 rounded-md border px-2 text-sm'
       <legend class="mb-1 text-sm font-medium">
         {{ t.appearance }}
       </legend>
+      <div class="flex flex-wrap gap-1.5" role="group" :aria-label="t.kind">
+        <Button v-for="k in CHARACTER_KINDS" :key="k" size="sm" class="h-8 rounded-full" :variant="form.kind === k ? 'default' : 'outline'" :aria-pressed="form.kind === k" :disabled="!edit" @click="form.kind = k">{{ t.kinds[k] }}</Button>
+      </div>
       <div class="grid grid-cols-2 gap-2">
         <div v-for="k in APPEARANCE_KEYS" :key="k" class="flex flex-col gap-1">
           <Label :for="`c-${k}`" class="text-xs">{{ APPEARANCE_LABEL[k] }}</Label>

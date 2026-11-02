@@ -1,7 +1,7 @@
 import type { Character, Style } from './library'
 import type { Crop, Cut, Panel } from './studio'
 import { samePlace } from './studio'
-import { describeAppearance, NO_TEXT, stylePrompt, variantFor } from './library'
+import { characterLook, NO_TEXT, stylePrompt, variantFor } from './library'
 import { cutRects, pageSize, titleBand } from './render'
 
 // Illustrate (ILL-01~06·10~12·20·23·40·41)
@@ -80,7 +80,7 @@ export function panelPrompt(panel: Panel, chars: Character[], style: Style | nul
     panel.action && `Action: ${panel.action}`,
     panel.outfit && `Outfit: ${panel.outfit}`,
     panel.mood && `Mood/effects: ${panel.mood}`,
-    ...chars.map(c => `Character "${c.name}": ${c.appearanceText || describeAppearance(c.appearance)}`),
+    ...chars.map(c => `Character "${c.name}": ${characterLook(c)}`),
     ...described.map(n => `Character "${n}": ${lookOf(n)}`),
     others.length ? `Other characters: ${others.join(', ')}` : '',
     opts.sceneRef ? SCENE_REF : '',
