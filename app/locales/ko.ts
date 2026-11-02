@@ -726,6 +726,7 @@ export const ko = {
       settings: '각색 설정',
       extraRequest: '추가 요청',
       analysis: '썰 분석',
+      keep: '꼭 살릴 것', keepHint: 'AI는 여기 적은 펀치라인과 대사를 바꾸지 않아요.', keepPunchline: '펀치라인 (마지막 한 줄)', keepPunchlinePh: '예: 알고 보니 부장님도 뀌었다', quotes: '원문 대사 (눌러서 살리기)', keepLinePh: '살릴 대사를 직접 추가', keepAdd: '추가', outline: '내 뼈대 (한 줄이 한 장)', outlinePh: '1장: 엘리베이터에 부장님과 둘만\n2장: 참다 참다 방귀\n3장: …', outlineHint: (n: number) => (n ? `뼈대 ${n}줄 → ${n}장. AI는 순서·내용을 그대로 두고 대사만 채워요.` : '비워 두면 AI가 장면을 나눠요.'),
       analyze: '분석하기',
       reanalyze: '다시 분석',
       summary: '요약',
