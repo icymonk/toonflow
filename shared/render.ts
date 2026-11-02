@@ -74,7 +74,7 @@ export type FontId = (typeof FONTS)[number]['id']
 export interface Typeset { font: FontId, fontSize: number, lineHeight: number, strokeWidth: number, strokeColor: string }
 export const DEFAULT_TYPESET: Typeset = { font: 'pretendard', fontSize: 34, lineHeight: 1.3, strokeWidth: 3, strokeColor: '#1F2A44' }
 export const fontCss = (id?: string) => (FONTS.find(f => f.id === id) ?? FONTS[0]).css
-export const MIN_FONT = 24
+export const MIN_FONT = 18
 
 /** 글자 수 기준 줄바꿈. 줄바꿈 문자는 그대로, 긴 줄은 띄어쓰기에서 자른다 */
 export function wrapText(text: string, maxChars: number): string[] {
@@ -98,9 +98,9 @@ export function wrapText(text: string, maxChars: number): string[] {
   return out
 }
 
-const PAD = 1.6 // 글자 크기 대비 말풍선 안쪽 여백 배수
+const PAD = 0.8 // 글자 크기 대비 말풍선 안쪽 여백 배수 (REV-02: 적은 글에도 작게)
 export function bubbleSize(text: string, fontSize: number, shape: DialogueType, rect: Rect) {
-  const maxChars = shape === 'narration' ? 18 : 9
+  const maxChars = shape === 'narration' ? 18 : 12
   const lines = wrapText(text || ' ', maxChars)
   const longest = Math.max(...lines.map(l => l.length), 1)
   const pw = longest * fontSize + fontSize * PAD * (shape === 'narration' ? 1 : 2)
@@ -170,6 +170,18 @@ export function tailPoints(b: { x: number, y: number, w: number, h: number }, ta
   return `${bx - half},${by} ${bx + half},${by} ${tipX},${tipY}`
 }
 
+/** 생각 말풍선 꼬리: 꼬리 방향(위·아래, 왼·가운데·오른)으로 작은 원 두 개 [cx, cy, r] */
+export function thoughtDots(b: { x: number, y: number, w: number, h: number }, tail: BubbleTail): [number, number, number][] {
+  if (tail === 'none') return []
+  const top = tail.startsWith('t')
+  const dir = tail.endsWith('l') ? -1 : tail.endsWith('r') ? 1 : 0
+  const fx = dir < 0 ? 0.3 : dir > 0 ? 0.7 : 0.5
+  const x0 = b.x + b.w * fx
+  const edge = top ? b.y : b.y + b.h
+  const s = top ? -1 : 1
+  return [[x0 + dir * 10, edge + s * 14, 10], [x0 + dir * 26, edge + s * 38, 6]]
+}
+
 /** 외침 말풍선의 뾰족한 테두리 */
 export function spikyPath(b: { x: number, y: number, w: number, h: number }, spikes = 14): string {
   const cx = b.x + b.w / 2
@@ -195,7 +207,7 @@ export function layoutPage(cuts: Cut[], W: number, H: number, ts: Typeset, overr
     const bubbles = syncBubbles(cut.panel, r, ts.fontSize).map(b0 => override?.(cut.panel.id, b0) ?? b0).map((b) => {
       const px = { x: r.x + b.x * r.w, y: r.y + b.y * r.h, w: b.w * r.w, h: b.h * r.h }
       const text = cut.panel.dialogues.find(d => d.id === b.dialogueId)?.text ?? ''
-      const lines = wrapText(text, Math.max(1, Math.floor((px.w - b.fontSize * (b.shape === 'narration' ? 1 : 2)) / b.fontSize)))
+      const lines = wrapText(text, Math.max(1, Math.floor((px.w - b.fontSize * PAD * (b.shape === 'narration' ? 1 : 2)) / b.fontSize)))
       return { b, px, lines, lh: b.fontSize * ts.lineHeight, tail: tailPoints(px, b.tail) }
     })
     return { cut, r, img, bubbles }

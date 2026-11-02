@@ -60,7 +60,7 @@ const unhideAi = () => { hidden.value = hidden.value.filter(k => !k.startsWith(`
         </label>
         <div class="flex items-center gap-3 text-xs">
           <label class="flex items-center gap-2">{{ t.fontSize }}
-            <input :value="bubble.fontSize" type="number" min="12" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { fontSize: Number(($event.target as HTMLInputElement).value) })">
+            <input :value="bubble.fontSize" type="number" min="10" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { fontSize: Number(($event.target as HTMLInputElement).value) })">
           </label>
           <label class="flex items-center gap-1"><AppCheck :model-value="bubble.bold" :disabled="!edit" @change="emit('bubble', bubble.dialogueId, { bold: !bubble.bold })" />{{ t.bold }}</label>
         </div>
@@ -92,7 +92,7 @@ const unhideAi = () => { hidden.value = hidden.value.filter(k => !k.startsWith(`
         </AppSelect>
       </label>
       <label class="flex items-center gap-2 text-xs">{{ t.baseSize }}
-        <input :value="typeset.fontSize" type="number" min="12" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('typeset', { fontSize: Number(($event.target as HTMLInputElement).value) })">
+        <input :value="typeset.fontSize" type="number" min="10" max="96" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('typeset', { fontSize: Number(($event.target as HTMLInputElement).value) })">
       </label>
       <label class="flex items-center gap-2 text-xs">{{ t.stroke }}
         <input :value="typeset.strokeWidth" type="number" min="0" max="10" :class="[sel, 'w-16']" :disabled="!edit" @change="emit('typeset', { strokeWidth: Number(($event.target as HTMLInputElement).value) })">

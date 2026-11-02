@@ -4,7 +4,7 @@ import type { Firestore } from 'firebase/firestore'
 import type { FirebaseStorage } from 'firebase/storage'
 import type { CandidateRef } from './candidates'
 import { getBlob, ref as storageRef } from 'firebase/storage'
-import { adjustFilter, fontCss, layoutTitle, spikyPath } from '#shared/render'
+import { adjustFilter, fontCss, layoutTitle, spikyPath, thoughtDots } from '#shared/render'
 import { resolveCandidatePath } from './candidates'
 
 const INK = '#1F2A44'
@@ -85,10 +85,9 @@ export function paintPage(ctx: Ctx, laid: LaidCut[], W: number, H: number, ts: T
         ctx.stroke(path)
         ctx.setLineDash([])
         if (b.shape === 'thought' && b.tail !== 'none') {
-          const top = b.tail.startsWith('t')
-          for (const [dx, dy, rr] of [[0, 14, 10], [16, 38, 6]] as const) {
+          for (const [cx, cy, rr] of thoughtDots(px, b.tail)) {
             ctx.beginPath()
-            ctx.arc(px.x + px.w * 0.5 + dx, top ? px.y - dy : px.y + px.h + dy, rr, 0, Math.PI * 2)
+            ctx.arc(cx, cy, rr, 0, Math.PI * 2)
             ctx.fillStyle = '#fff'
             ctx.fill()
             ctx.stroke()

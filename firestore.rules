@@ -316,7 +316,7 @@ service cloud.firestore {
           allow write: if canEdit(ws) && ((docId == 'typeset'
             && request.resource.data.keys().hasOnly(['font', 'fontSize', 'lineHeight', 'strokeWidth', 'strokeColor', 'updatedAt'])
             && request.resource.data.font in ['pretendard', 'gowun-dodum', 'jua']
-            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 12 && request.resource.data.fontSize <= 96)
+            && request.resource.data.fontSize is number && request.resource.data.fontSize >= 10 && request.resource.data.fontSize <= 96)
             || (docId == 'video' && validVideo(ws, request.resource.data))
             // QCK: 빠른 제작 답과 완료 표시
             || (docId == 'quick' && request.resource.data.keys().hasOnly(['answers', 'done', 'updatedAt'])
